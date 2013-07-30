@@ -1,5 +1,6 @@
-45 2 -2 #Rotation_x_y_z
-301.8 51.3 -244.4 #Center_of_root_x_y_z
+45 2 -2 #Rotation x y z
+301.8 51.3 -244.4 #Center of root x y z
+688 291 161 #Dimension of raw data set x y z
 ObjectID X Y Z Timepoint Radius Precursors Color
 1 320.5883789063 72.9006347656 112 1 10 {} "RGBColor[0.8834369645359315, 0.6240454651988563, 0.22592623028269374]"
 1 299.9926757813 70.1906738281 111 19 10 {} "RGBColor[0.8834369645359315, 0.6240454651988563, 0.22592623028269374]"
