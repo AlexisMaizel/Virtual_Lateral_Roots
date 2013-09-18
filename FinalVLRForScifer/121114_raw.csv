@@ -1,6 +1,6 @@
-0 0 0 #Rotation x y z
-0 0 0 #Center of root x y z
-1 1 1 #Dimension of raw data set x y z
+90 0 0 #Rotation x y z
+336.1 126.7 -202 #Center of root x y z
+0 0 0 #Dimension of raw data set x y z
 ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup
 1 23.9873046875 121.0083007813 60 1 10 {} "RGBColor[0.9028061560707639, 0.45365969050802996, 0.19195430834799143]" 1 {1} "RGBColor[0.5019607843137255, 1., 1.]" 1
 1 89.4072265625 135.9614257813 70 76 10 {} "RGBColor[0.9028061560707639, 0.45365969050802996, 0.19195430834799143]" 1 {1} "RGBColor[0.5019607843137255, 1., 1.]" 1
