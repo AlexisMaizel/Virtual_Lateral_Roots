@@ -33,16 +33,16 @@ dir = [ 0, 90 ];
 cView = 1;
 
 % path to movie output
-movieDir = '/home/necrolyte/Data/VLR/VLRDataForMatlab/test_3D_030214_all.avi';
+movieDir = 'videos/movie.avi';
 
 % path to image output
-imageDir = '/home/necrolyte/Data/VLR/VLRDataForMatlab/121204/TopView/';
+imageDir = 'videos/121204/TopView/';
 
 % output format of values
 format shortG
 
 % reading raw data
-fileID = fopen( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/FinalVLRForMatlab/130607_raw.csv');
+fileID = fopen( '../FinalVLRForMatlab/130607_raw.csv');
 % format of data sets:
 % ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer DivisionType
 formatSpec = '%d %f %f %f %d %d %q %q %d %q %q %d %d %q';
