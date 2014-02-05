@@ -10,27 +10,28 @@ function mainInterpolated()
 startT = 300;
 % draw ellipsoids?
 drawEllipsoids = 1;
-% draw only cell positions?
-drawSpheres = 0;
 % draw delaunay tri?
 drawDelaunay = 0;
 % render movie?
-renderMovie = 1;
+% if set to zero then only a single time step
+% is rendered given by startT
+renderMovie = 0;
 % create images for each time step
-% TODO: does not work at the moment
+% TODO: does not work at the moment, let it be 0
 createImages = 0;
 % render only master file?
 renderSingleCellFile = 0;
-% master cell file
+% set specific cell file to render (e.g. master cell file)
+% if renderSingleCellFile is set to 1
 singleCellFile = 3;
 % default view in positive z direction
 dir = [ 0, 90 ];
-% camera view:
+% camera view which is later set by chaning the camera orbit:
 % 0 -> top
 % 1 -> side
 % 2 -> radial
 % 3 -> 3D
-cView = 1;
+cView = 3;
 
 % path to movie output
 movieDir = 'videos/movie.avi';
@@ -46,6 +47,7 @@ fileID = fopen( '../FinalVLRForMatlab/130607_raw.csv');
 % format of data sets:
 % ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer DivisionType
 formatSpec = '%d %f %f %f %d %d %q %q %d %q %q %d %d %q';
+% read data and ignore the first four header lines
 data = textscan( fileID, formatSpec, 'HeaderLines', 4, 'Delimiter', ';' );
 fclose(fileID);
 
@@ -74,7 +76,13 @@ CLCol = data{13};
 DCol = data{14};
 
 % get maximum of time steps
-maxT = max( TCol );
+% if a movie should be created
+if renderMovie == 1
+  maxT = max( TCol );
+  % else only render current time step
+else
+  maxT = startT;
+end
 
 % get bounding box are by determining
 % min and max of x/y/z values
@@ -93,6 +101,7 @@ maxCF = max( CFCol );
 l = 1;
 % first determine dimension of cellData
 % in order to initialize the size of cellData
+% -> huge performance speed up
 dim = 0;
 while (l < numLines+1)
   firstCellId = IdCol(l);
@@ -161,20 +170,18 @@ while (l < numLines+1)
   end
 end
 
-% boundary offset
+% boundary offset for rendering since the elongation of the
+% ellipsoids can be quite large
 offset = 130;
 
-% window properties
+% figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
 hold on;
 cameratoolbar( 'SetMode', 'orbit' );
 %zoom on;
 
-if drawSpheres == 1
-  axis vis3d
-else
-  axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
-end
+% axes properties
+axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
 grid off;
 xlabel('X');
 ylabel('Y');
@@ -186,7 +193,7 @@ view(dir);
 % number of cell files
 numCellFiles = double( maxCF-minCF+1 );
 ticks = [ minCF:maxCF ];
-% set colormap depending on the number of cell files
+% set colormap and colorbar depending on the number of cell files
 cm = hsv( numCellFiles );
 colormap( hsv( numCellFiles ) );
 h = colorbar;
@@ -248,7 +255,7 @@ for curT=startT:maxT
     %numTotalLinks = size( edges(tri), 1 );
     
     if drawDelaunay == 1
-      tetramesh(tri, 'FaceColor', cc( 1, : ), 'FaceAlpha', 0.9 );
+      tetramesh(tri, 'FaceColor', cm( 1, : ), 'FaceAlpha', 0.9 );
     end
     
     if drawEllipsoids == 1
@@ -315,29 +322,19 @@ for curT=startT:maxT
         zEigVec = Q(:, 3);
         
         % draw the single cell as ellipsoid
-        if drawSpheres == 0
-          [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., 20 );
-          X = p1(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
-          Y = p1(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
-          Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
-          S(c) = surface( X, Y, Z, 'FaceColor', color, 'EdgeColor', 'none', 'FaceLighting','gouraud' );
-          hold on;
-        else
-          [ x, y, z ] = ellipsoid( p1(1), p1(2), p1(3), 10., 10., 10., 20 );
-          S(c) = surface( x, y, z,'FaceColor', color, 'EdgeColor', 'none', 'FaceLighting','gouraud' );
-          hold on;
-        end
+        [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., 20 );
+        X = p1(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
+        Y = p1(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
+        Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
+        S(c) = surface( X, Y, Z, 'FaceColor', color, 'EdgeColor', 'none', 'FaceLighting','gouraud' );
+        hold on;
       end
     end
     
     hold off;
     set( f,'nextplot','replacechildren' );
-    if drawSpheres == 1
-      axis vis3d
-    else
-      axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
-      daspect('manual')
-    end
+    axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
+    daspect('manual')
     grid off;
     xlabel('X');
     ylabel('Y');
@@ -372,6 +369,7 @@ for curT=startT:maxT
       writeVideo( writerObj, getframe(f) );
     end
     
+    % TODO: does not work at the moment
     if createImages == 1
       F = getframe(S);
       I = image( F.cdata );
@@ -393,6 +391,7 @@ if renderMovie == 1
   close(writerObj);
 end
 
+% close figure after processing
 %close(f);
 
 end
