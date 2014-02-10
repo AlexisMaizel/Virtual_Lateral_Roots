@@ -4,7 +4,6 @@
 %%%% pp 349 -- 369, 2008
 
 function mainInterpolated()
-
 %%%%% setting of properties %%%%%%
 % data Index:
 % 1 -> 120830
@@ -29,7 +28,7 @@ renderMovie = 0;
 % TODO: does not work at the moment, let it be 0
 createImages = 0;
 % render only master file?
-renderSingleCellFile = 0;
+renderSingleCellFile = 1;
 % set specific cell file to render (e.g. master cell file)
 % if renderSingleCellFile is set to 1
 singleCellFile = 3;
@@ -40,10 +39,16 @@ dir = [ 0, 90 ];
 % 1 -> side
 % 2 -> radial
 % 3 -> 3D
-cView = 3;
+cView = 1;
 
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
+
+% master cell file information taken by the picture made of Daniel located in dropbox
+% and the trackGroup information of the raw data sets
+masterCellFile = [ 4 3 4 2 3 ];
+% render the corresponding master cell file
+singleCellFile = masterCellFile( 1, dataIndex );
 
 % path to movie output
 movieDir = strcat( 'videos/', dataStr( 1, dataIndex ), 'movie.avi/');
