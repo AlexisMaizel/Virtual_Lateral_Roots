@@ -6,8 +6,17 @@
 function mainInterpolated()
 
 %%%%% setting of properties %%%%%%
+% data Index:
+% 1 -> 120830
+% 2 -> 121204
+% 3 -> 121211
+% 4 -> 130508
+% 5 -> 130607
+dataIndex = 1;
 % start with the current time step
 startT = 300;
+% deltaT value based on the paper mentioned above
+deltaT = 1;
 % draw ellipsoids?
 drawEllipsoids = 1;
 % draw delaunay tri?
@@ -33,17 +42,21 @@ dir = [ 0, 90 ];
 % 3 -> 3D
 cView = 3;
 
+% vector of data strings
+dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
+
 % path to movie output
-movieDir = 'videos/movie.avi';
+movieDir = strcat( 'videos/', dataStr( 1, dataIndex ), 'movie.avi/');
 
 % path to image output
-imageDir = 'videos/121204/TopView/';
+imageDir = strcat( 'videos/', dataStr( 1, dataIndex ), '/TopView/');
 
 % output format of values
 format shortG
 
 % reading raw data
-fileID = fopen( '../FinalVLRForMatlab/130607_raw.csv');
+path = strcat( '../FinalVLRForMatlab/', dataStr( 1, dataIndex ), '.csv' );
+fileID = fopen( char(path) );
 % format of data sets:
 % ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer DivisionType
 formatSpec = '%d %f %f %f %d %d %q %q %d %q %q %d %d %q';
@@ -73,7 +86,7 @@ CFCol = data{12};
 % Cell Layer Id
 CLCol = data{13};
 % Divison Type
-DCol = data{14};
+%DCol = data{14};
 
 % get maximum of time steps
 % if a movie should be created
@@ -375,11 +388,11 @@ for curT=startT:maxT
       I = image( F.cdata );
       
       if curT < 10
-        digit = '121204_00';
+        digit = strcat( dataStr( 1, dataIndex ), '_00' );
       elseif curT < 100
-        digit = '121204_0';
+        digit = strcat( dataStr( 1, dataIndex ), '_0' );
       else
-        digit = '121204_';
+        digit = strcat( dataStr( 1, dataIndex ), '_' );
       end
       
       imwrite(I, strcat( imageDir, digit, num2str(curT), '.png' ), 'png');
