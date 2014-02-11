@@ -3,7 +3,6 @@
 %%%% statistical tools in two or three dimensions, Eur. Phys. J.,
 %%%% pp 349 -- 369, 2008
 
-function mainInterpolated()
 %%%%% setting of properties %%%%%%
 % data Index:
 % 1 -> 120830
@@ -12,6 +11,12 @@ function mainInterpolated()
 % 4 -> 130508
 % 5 -> 130607
 dataIndex = 1;
+% camera view which is later set by chaning the camera orbit:
+% 0 -> top
+% 1 -> side
+% 2 -> radial
+% 3 -> 3D
+cView = 1;
 % start with the current time step
 startT = 300;
 % deltaT value based on the paper mentioned above
@@ -32,21 +37,14 @@ renderSingleCellFile = 1;
 % set specific cell file to render (e.g. master cell file)
 % if renderSingleCellFile is set to 1
 singleCellFile = 3;
-% default view in positive z direction
-dir = [ 0, 90 ];
-% camera view which is later set by chaning the camera orbit:
-% 0 -> top
-% 1 -> side
-% 2 -> radial
-% 3 -> 3D
-cView = 1;
 
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 
 % master cell file information taken by the picture made of Daniel located in dropbox
 % and the trackGroup information of the raw data sets
-masterCellFile = [ 4 3 4 2 3 ];
+%masterCellFile = [ 4 3 4 2 3 ];
+masterCellFile = [ 4 4 4 2 3 ];
 % render the corresponding master cell file
 singleCellFile = masterCellFile( 1, dataIndex );
 
@@ -57,7 +55,7 @@ movieDir = strcat( 'videos/', dataStr( 1, dataIndex ), 'movie.avi/');
 imageDir = strcat( 'videos/', dataStr( 1, dataIndex ), '/TopView/');
 
 % output format of values
-format shortG
+format longG
 
 % reading raw data
 path = strcat( '../FinalVLRForMatlab/', dataStr( 1, dataIndex ), '.csv' );
@@ -170,7 +168,7 @@ while (l < numLines+1)
       cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l)};
       nl = nl+1;
     end
-  
+    
     % insert last line
     cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1)};
     nl = nl+1;
@@ -179,7 +177,7 @@ while (l < numLines+1)
     
     % increment loop index
     l = l+2;
-  % else cell exists only for one time step
+    % else cell exists only for one time step
   else
     % update cell file map
     cellFileMap( firstCellId ) = CFCol(l);
@@ -195,8 +193,13 @@ offset = 130;
 % figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
 hold on;
+% activate orbit rotation by default
 cameratoolbar( 'SetMode', 'orbit' );
-%zoom on;
+% activate none coord system by default for not resetting the camera up
+% vector when rotating
+cameratoolbar( 'SetCoordSys', 'none' );
+% show camera toolbar by default
+cameratoolbar( 'Show' );
 
 % axes properties
 axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
@@ -206,14 +209,14 @@ ylabel('Y');
 zlabel('Z');
 title( strcat( 'Time Step ', num2str(startT) ) );
 camlight headlight;
-view(dir);
+camproj( 'orthographic' )
 
 % number of cell files
 numCellFiles = double( maxCF-minCF+1 );
 ticks = [ minCF:maxCF ];
 % set colormap and colorbar depending on the number of cell files
 cm = hsv( numCellFiles );
-colormap( hsv( numCellFiles ) );
+colormap( cm );
 h = colorbar;
 set( h, 'YTickMode', 'manual' );
 set( h, 'YTickLabel', ticks );
@@ -276,6 +279,8 @@ for curT=startT:maxT
       tetramesh(tri, 'FaceColor', cm( 1, : ), 'FaceAlpha', 0.9 );
     end
     
+    cellFileMat = [];
+    
     if drawEllipsoids == 1
       % draw an ellipsoid for each cell
       for c=1:numCells
@@ -292,6 +297,8 @@ for curT=startT:maxT
             continue;
           end
         end
+        
+        cellFileMat = [ cellFileMat ; p1(1) p1(2) p1(3) ];
         
         % get neighbor for specific vertex ID = c
         nVec = getNeighbors( c, tri, numCells );
@@ -329,12 +336,6 @@ for curT=startT:maxT
         % radii of the ellipsoid
         radii = sqrt( diag(D) );
         
-        % determine the angle values between each eigen vector and the
-        % coordinate axes
-        xAxis = [ 1 0 0 ];
-        yAxis = [ 0 1 0 ];
-        zAxis = [ 0 0 1 ];
-        
         xEigVec = Q(:, 1);
         yEigVec = Q(:, 2);
         zEigVec = Q(:, 3);
@@ -349,6 +350,28 @@ for curT=startT:maxT
       end
     end
     
+    % after drawing all cells get the eigenvectors from
+    % the covariance matrix
+    start = mean( cellFileMat );
+    coeff = pca( cellFileMat );
+    %[ V, D ] = eig( cov(cellFileMat) );
+    arrowLength = 150;
+    %VV = V*arrowLength;%sqrt(D);
+    %coeff = coeff*arrowLength;
+    
+    unit = [ 1 0 0; 0 1 0; 0 0 1 ];
+    
+%     dot( coeff(:,1), coeff(:,2) )
+%     dot( coeff(:,1), coeff(:,3) )
+%     dot( coeff(:,2), coeff(:,3) )
+    
+    % draw principal components
+    for a=1:3
+      %quiver3( start(1), start(2), start(3), VV(1,a), VV(2,a), VV(3,a), 'LineWidth', 5 );
+      quiver3( start(1), start(2), start(3), coeff(1,a), coeff(2,a), coeff(3,a), arrowLength, 'LineWidth', 3 );
+      %quiver3( 0, 0, 0, unit(1,a), unit(2,a), unit(3,a), arrowLength, 'LineWidth', 3 );
+    end
+    
     hold off;
     set( f,'nextplot','replacechildren' );
     axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
@@ -357,27 +380,50 @@ for curT=startT:maxT
     xlabel('X');
     ylabel('Y');
     zlabel('Z');
-    title( strcat( 'Time Step ', num2str(curT) ) );
-    view(dir);
+    title( strcat( dataStr( 1, dataIndex ), ' Time Step ', num2str(curT) ) );
     % TODO: include optical rotation information into current view
     %rot = [ 2 -5 41 ];
     if cView == 0
       % top view
-      camorbit( 0, 80, [ 0 0 1 ] );
-      camorbit( 20, 0, [ 0 0 1 ] );
-      camorbit( 0, 90, [ 0 0 1 ] );
+      if dataIndex == 2
+        view( [ -coeff(1,2), -coeff(2,2), -coeff(3,2) ] );
+      else
+        view( [ coeff(1,2), coeff(2,2), coeff(3,2) ] );
+      end
+      camup( [ coeff(:,3) ] );
+      % specific view for 120830
+      %       camorbit( 0, 80, [ 0 0 1 ] );
+      %       camorbit( 20, 0, [ 0 0 1 ] );
+      %       camorbit( 0, 90, [ 0 0 1 ] );
     elseif cView == 1
       % side view
-      camorbit( 0, 80, [ 0 0 1 ] );
-      camorbit( 10, 0, [ 0 0 1 ] );
+      view( [ coeff(1,3), coeff(2,3), coeff(3,3) ] );
+      if dataIndex == 2
+        camup( [ -coeff(:,2) ] );
+      else
+        camup( [ coeff(:,2) ] );
+      end
+      %camorbit( 0, 0, [ 0 0 1 ] );
+      % specific view for 120830
+      %       camorbit( 0, 80, [ 0 0 1 ] );
+      %       camorbit( 10, 0, [ 0 0 1 ] );
     elseif cView == 2
       % radial view
-      camorbit( 0, 80, [ 0 0 1 ] );
-      camorbit( 105, 0, [ 0 0 1 ] );
+      view( [ coeff(1,1), coeff(2,1), coeff(3,1) ] );
+      if dataIndex == 2
+        camup( [ -coeff(:,2) ] );
+      else
+        camup( [ coeff(:,2) ] );
+      end
+      % specific view for 120830
+      %       camorbit( 0, 80, [ 0 0 1 ] );
+      %       camorbit( 105, 0, [ 0 0 1 ] );
     else
       % 3D view
       view(3);
     end
+    
+    
     
     % first delete last lightsource
     delete(findall(gcf, 'Type', 'light'))
@@ -411,5 +457,3 @@ end
 
 % close figure after processing
 %close(f);
-
-end
