@@ -281,6 +281,8 @@ for curT=startT:maxT
     
     cellFileMat = [];
     
+    linePos = [];
+    
     if drawEllipsoids == 1
       % draw an ellipsoid for each cell
       for c=1:numCells
@@ -364,9 +366,11 @@ for curT=startT:maxT
           lineX = p1(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
           lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
           lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
+          
+          linePos = [ linePos ; lineX(1) lineY(1) lineZ(1) ; lineX(2) lineY(2) lineZ(2) ];
+          
           line( lineX, lineY, lineZ );
         end
-
         %S(c) = surface( X, Y, Z, 'FaceColor', color, 'EdgeColor', 'none', 'EdgeAlpha', 0.5, 'FaceLighting', 'gouraud' );
         hold on;
       end
@@ -392,6 +396,21 @@ for curT=startT:maxT
       %quiver3( start(1), start(2), start(3), VV(1,a), VV(2,a), VV(3,a), 'LineWidth', 5 );
       quiver3( start(1), start(2), start(3), coeff(1,a), coeff(2,a), coeff(3,a), arrowLength, 'LineWidth', 3 );
       %quiver3( 0, 0, 0, unit(1,a), unit(2,a), unit(3,a), arrowLength, 'LineWidth', 3 );
+    end
+    
+    l = 1;
+    dim = size( linePos( :, 1 ), 1 ) + 1;
+    
+    planePos = coeff(:,3) * 150;
+    
+    while l < dim
+      linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,1), coeff(:,2) );
+      linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,1), coeff(:,2) );
+      lineX = [ linep1(1), linep2(1) ];
+      lineY = [ linep1(2), linep2(2) ];
+      lineZ = [ linep1(3), linep2(3) ];
+      line( lineX, lineY, lineZ );
+      l = l+2;
     end
     
     hold off;
@@ -444,8 +463,6 @@ for curT=startT:maxT
       % 3D view
       view(3);
     end
-    
-    
     
     % first delete last lightsource
     delete(findall(gcf, 'Type', 'light'))
