@@ -188,7 +188,7 @@ end
 
 % boundary offset for rendering since the elongation of the
 % ellipsoids can be quite large
-offset = 130;
+offset = 50;%130;
 
 % figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
@@ -341,11 +341,33 @@ for curT=startT:maxT
         zEigVec = Q(:, 3);
         
         % draw the single cell as ellipsoid
-        [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., 20 );
+        [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., 10 );
         X = p1(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
         Y = p1(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
         Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
-        S(c) = surface( X, Y, Z, 'FaceColor', color, 'EdgeColor', 'none', 'FaceLighting','gouraud' );
+        S(c) = mesh( X, Y, Z, 'EdgeColor', color, 'FaceAlpha', 0 );
+        
+        for l=1:3
+          if l == 1
+            sX = [ -radii(1)/2., radii(1)/2. ];
+            sY = [ 0, 0 ];
+            sZ = [ 0, 0 ];
+          elseif l == 2
+            sX = [ 0, 0 ];
+            sY = [ -radii(2)/2., radii(2)/2. ];
+            sZ = [ 0, 0 ];
+          else
+            sX = [ 0, 0 ];
+            sY = [ 0, 0 ];
+            sZ = [ -radii(3)/2., radii(3)/2. ];
+          end
+          lineX = p1(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
+          lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
+          lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
+          line( lineX, lineY, lineZ );
+        end
+
+        %S(c) = surface( X, Y, Z, 'FaceColor', color, 'EdgeColor', 'none', 'EdgeAlpha', 0.5, 'FaceLighting', 'gouraud' );
         hold on;
       end
     end
