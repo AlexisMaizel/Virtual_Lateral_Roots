@@ -10,7 +10,8 @@
 % 3 -> 121211
 % 4 -> 130508
 % 5 -> 130607
-dataIndex = 5;
+% 6 -> all
+data = 1;
 % camera view which is later set by chaning the camera orbit:
 % 0 -> top
 % 1 -> side
@@ -41,6 +42,8 @@ renderPrincipalComponents = 1;
 % correctly, else the result looks blurred (but only the vis, the computation
 % is still correct)
 equalAspectRatio = 1;
+% draw only those lines with the largest elongation of the ellipoids
+renderOnlyLargestElongation = 1;
 
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
@@ -49,6 +52,19 @@ dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw
 % and the trackGroup information of the raw data sets
 %masterCellFile = [ 4 3 4 2 3 ];
 masterCellFile = [ 4 4 4 3 3 ];
+
+% either loop over all data sets creating five figures or only
+% show one specific one
+startD = 1;
+endD = 5;
+if data ~= 6
+  startD = data;
+  endD = data;
+end
+
+% loop over all data sets
+for dataIndex=startD:endD
+
 % render the corresponding master cell file
 singleCellFile = masterCellFile( 1, dataIndex );
 
@@ -361,9 +377,17 @@ for curT=startT:maxT
         Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
         %S(c) = mesh( X, Y, Z, 'EdgeColor', color, 'FaceAlpha', 0 );
         
+        % if only the lines with the largest elongation should be drawn
+        % then only traverse the last entry of the loop which corresponds
+        % to the largest eigenvalue
+        lineStart = 1;
+        if renderOnlyLargestElongation == 1
+          lineStart = 3;
+        end
+        
         % draw the three major axes in the origin which are then
         % rotated according to the eigenvectors
-        for l=1:3
+        for l=lineStart:3
           if l == 1
             sX = [ -radii(1)/2., radii(1)/2. ];
             sY = [ 0, 0 ];
@@ -524,6 +548,8 @@ end
 
 if renderMovie == 1
   close(writerObj);
+end
+
 end
 
 % close figure after processing
