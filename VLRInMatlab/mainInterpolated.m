@@ -10,7 +10,7 @@
 % 3 -> 121211
 % 4 -> 130508
 % 5 -> 130607
-dataIndex = 1;
+dataIndex = 5;
 % camera view which is later set by chaning the camera orbit:
 % 0 -> top
 % 1 -> side
@@ -34,9 +34,13 @@ renderMovie = 0;
 createImages = 0;
 % render only master file?
 renderSingleCellFile = 1;
-% set specific cell file to render (e.g. master cell file)
-% if renderSingleCellFile is set to 1
-singleCellFile = 3;
+% render principal components
+renderPrincipalComponents = 1;
+% equalAspectRation
+% This is required to use equal axes in order to project the ellipsoids
+% correctly, else the result looks blurred (but only the vis, the computation
+% is still correct)
+equalAspectRatio = 1;
 
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
@@ -44,7 +48,7 @@ dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw
 % master cell file information taken by the picture made of Daniel located in dropbox
 % and the trackGroup information of the raw data sets
 %masterCellFile = [ 4 3 4 2 3 ];
-masterCellFile = [ 4 4 4 2 3 ];
+masterCellFile = [ 4 4 4 3 3 ];
 % render the corresponding master cell file
 singleCellFile = masterCellFile( 1, dataIndex );
 
@@ -113,6 +117,9 @@ maxZ = max( ZCol );
 % store min and max of cell files
 minCF = min( CFCol );
 maxCF = max( CFCol );
+
+% number of subdivisions for ellipsoids
+n = 10;
 
 l = 1;
 % first determine dimension of cellData
@@ -202,7 +209,12 @@ cameratoolbar( 'SetCoordSys', 'none' );
 cameratoolbar( 'Show' );
 
 % axes properties
-axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
+if equalAspectRatio == 0
+  axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
+else
+  axis 'equal'
+end
+
 grid off;
 xlabel('X');
 ylabel('Y');
@@ -217,9 +229,9 @@ ticks = [ minCF:maxCF ];
 % set colormap and colorbar depending on the number of cell files
 cm = hsv( numCellFiles );
 colormap( cm );
-h = colorbar;
-set( h, 'YTickMode', 'manual' );
-set( h, 'YTickLabel', ticks );
+%h = colorbar;
+%set( h, 'YTickMode', 'manual' );
+%set( h, 'YTickLabel', ticks );
 
 % gca is the current axes handle
 set( gca,'nextplot','replacechildren' );
@@ -343,12 +355,14 @@ for curT=startT:maxT
         zEigVec = Q(:, 3);
         
         % draw the single cell as ellipsoid
-        [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., 10 );
+        [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., n );
         X = p1(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
         Y = p1(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
         Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
-        S(c) = mesh( X, Y, Z, 'EdgeColor', color, 'FaceAlpha', 0 );
+        %S(c) = mesh( X, Y, Z, 'EdgeColor', color, 'FaceAlpha', 0 );
         
+        % draw the three major axes in the origin which are then
+        % rotated according to the eigenvectors
         for l=1:3
           if l == 1
             sX = [ -radii(1)/2., radii(1)/2. ];
@@ -367,62 +381,91 @@ for curT=startT:maxT
           lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
           lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
           
+          % and store the start/end points of the lines in linePos
           linePos = [ linePos ; lineX(1) lineY(1) lineZ(1) ; lineX(2) lineY(2) lineZ(2) ];
           
-          line( lineX, lineY, lineZ );
+          % draw line in 3D
+          %line( lineX, lineY, lineZ );
         end
-        %S(c) = surface( X, Y, Z, 'FaceColor', color, 'EdgeColor', 'none', 'EdgeAlpha', 0.5, 'FaceLighting', 'gouraud' );
+        if renderSingleCellFile == 1
+          S(c) = surface( X, Y, Z, 'FaceColor', 'w', 'EdgeColor', 'none', 'EdgeAlpha', 0, 'FaceLighting', 'gouraud' );
+        else
+          S(c) = surface( X, Y, Z, 'FaceColor', color, 'EdgeColor', 'none', 'EdgeAlpha', 0, 'FaceLighting', 'gouraud' );
+        end
         hold on;
       end
     end
     
-    % after drawing all cells get the eigenvectors from
-    % the covariance matrix
+    % after drawing all cells perform a pca for getting the principal axes
     start = mean( cellFileMat );
     coeff = pca( cellFileMat );
-    %[ V, D ] = eig( cov(cellFileMat) );
     arrowLength = 150;
-    %VV = V*arrowLength;%sqrt(D);
-    %coeff = coeff*arrowLength;
-    
-    unit = [ 1 0 0; 0 1 0; 0 0 1 ];
-    
-%     dot( coeff(:,1), coeff(:,2) )
-%     dot( coeff(:,1), coeff(:,3) )
-%     dot( coeff(:,2), coeff(:,3) )
     
     % draw principal components
-    for a=1:3
-      %quiver3( start(1), start(2), start(3), VV(1,a), VV(2,a), VV(3,a), 'LineWidth', 5 );
-      quiver3( start(1), start(2), start(3), coeff(1,a), coeff(2,a), coeff(3,a), arrowLength, 'LineWidth', 3 );
-      %quiver3( 0, 0, 0, unit(1,a), unit(2,a), unit(3,a), arrowLength, 'LineWidth', 3 );
+    if renderPrincipalComponents == 1
+      for a=1:3
+        quiver3( start(1), start(2), start(3), coeff(1,a), coeff(2,a), coeff(3,a), arrowLength, 'LineWidth', 3 );
+      end
     end
     
     l = 1;
     dim = size( linePos( :, 1 ), 1 ) + 1;
     
-    planePos = coeff(:,3) * 150;
-    
-    while l < dim
-      linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,1), coeff(:,2) );
-      linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,1), coeff(:,2) );
-      lineX = [ linep1(1), linep2(1) ];
-      lineY = [ linep1(2), linep2(2) ];
-      lineZ = [ linep1(3), linep2(3) ];
-      line( lineX, lineY, lineZ );
-      l = l+2;
+    if cView == 0
+      % TODO
+      % plane position
+      planePos = coeff(:,2) * 450;
+      while l < dim
+        linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,1), coeff(:,3) );
+        linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,1), coeff(:,3) );
+        lineX = [ linep1(1), linep2(1) ];
+        lineY = [ linep1(2), linep2(2) ];
+        lineZ = [ linep1(3), linep2(3) ];
+        line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
+        l = l+2;
+      end
+    elseif cView == 1 || cView == 3
+      % plane position
+      planePos = coeff(:,3) * 450;
+      while l < dim
+        linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,1), coeff(:,2) );
+        linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,1), coeff(:,2) );
+        lineX = [ linep1(1), linep2(1) ];
+        lineY = [ linep1(2), linep2(2) ];
+        lineZ = [ linep1(3), linep2(3) ];
+        line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
+        l = l+2;
+      end
+    elseif cView == 2
+      % TODO
+      % plane position
+      planePos = coeff(:,1) * 450;
+      while l < dim
+        linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,2), coeff(:,3) );
+        linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,2), coeff(:,3) );
+        lineX = [ linep1(1), linep2(1) ];
+        lineY = [ linep1(2), linep2(2) ];
+        lineZ = [ linep1(3), linep2(3) ];
+        line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
+        l = l+2;
+      end
     end
     
     hold off;
     set( f,'nextplot','replacechildren' );
-    axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
-    daspect('manual')
+    if equalAspectRatio == 0
+      axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
+    else
+      axis 'equal'
+    end
+    
+    %daspect('manual')
     grid off;
     xlabel('X');
     ylabel('Y');
     zlabel('Z');
     title( strcat( dataStr( 1, dataIndex ), ' Time Step ', num2str(curT) ) );
-    % TODO: include optical rotation information into current view
+    % perhaps include optical rotation information into current view
     %rot = [ 2 -5 41 ];
     if cView == 0
       % top view
@@ -432,10 +475,6 @@ for curT=startT:maxT
         view( [ coeff(1,2), coeff(2,2), coeff(3,2) ] );
       end
       camup( [ coeff(:,3) ] );
-      % specific view for 120830
-      %       camorbit( 0, 80, [ 0 0 1 ] );
-      %       camorbit( 20, 0, [ 0 0 1 ] );
-      %       camorbit( 0, 90, [ 0 0 1 ] );
     elseif cView == 1
       % side view
       view( [ coeff(1,3), coeff(2,3), coeff(3,3) ] );
@@ -444,10 +483,6 @@ for curT=startT:maxT
       else
         camup( [ coeff(:,2) ] );
       end
-      %camorbit( 0, 0, [ 0 0 1 ] );
-      % specific view for 120830
-      %       camorbit( 0, 80, [ 0 0 1 ] );
-      %       camorbit( 10, 0, [ 0 0 1 ] );
     elseif cView == 2
       % radial view
       view( [ coeff(1,1), coeff(2,1), coeff(3,1) ] );
@@ -456,9 +491,6 @@ for curT=startT:maxT
       else
         camup( [ coeff(:,2) ] );
       end
-      % specific view for 120830
-      %       camorbit( 0, 80, [ 0 0 1 ] );
-      %       camorbit( 105, 0, [ 0 0 1 ] );
     else
       % 3D view
       view(3);
