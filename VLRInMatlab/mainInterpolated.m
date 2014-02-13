@@ -17,7 +17,7 @@ data = 3;
 % 2 -> side
 % 3 -> radial
 % 4 -> 3D
-cView = 3;
+cView = 2;
 % start with the current time step
 startT = 300;
 % deltaT value based on the paper mentioned above
@@ -29,7 +29,7 @@ drawDelaunay = 0;
 % render movie?
 % if set to zero then only a single time step
 % is rendered given by startT
-renderMovie = 1;
+renderMovie = 0;
 % create images for each time step
 % TODO: does not work at the moment, let it be 0
 createImages = 0;
@@ -43,7 +43,7 @@ renderPrincipalComponents = 0;
 % is still correct)
 equalAspectRatio = 0;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 1;
+lineRenderType = 2;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2. draw only those lines with the largest elongation of the ellipoids
@@ -151,7 +151,7 @@ for dataIndex=startD:endD
   maxCF = max( CFCol );
   
   % number of subdivisions for ellipsoids
-  n = 15;
+  nEllip = 20;
   
   l = 1;
   % first determine dimension of cellData
@@ -396,7 +396,7 @@ for dataIndex=startD:endD
           zEigVec = Q(:, 3);
           
           % draw the single cell as ellipsoid
-          [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., n );
+          [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., nEllip );
           X = p1(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
           Y = p1(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
           Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
@@ -491,14 +491,35 @@ for dataIndex=startD:endD
         l = 1;
         dimL = size( linePos( :, 1 ), 1 ) + 1;
         while l < dimL
-          linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
-          linep2 = projectOnPlane( linePos(l+1, :), planePos, u, v );
-          lineX = [ linep1(1), linep2(1) ];
-          lineY = [ linep1(2), linep2(2) ];
-          lineZ = [ linep1(3), linep2(3) ];
-          L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
-          hold on;
-          l = l+2;
+          if strcmp( lineStr( 1, lineRenderType ), 'renderOnlyLargestElongation' )
+            % check the length of all three main major axes and choose the
+            % largest one to render only
+            lengthVec = zeros( 3, 1 );
+            for ll=1:3
+              linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
+              linep2 = projectOnPlane( linePos(l+1, :), planePos, u, v );
+              length = norm( linep2 - linep1 );
+              lengthVec( ll, 1 ) = length;
+              l = l+2;
+            end
+            [ C, I ] = max( lengthVec );
+            linep1 = projectOnPlane( linePos( l-2*(4-I), :), planePos, u, v );
+            linep2 = projectOnPlane( linePos( l+1-2*(4-I), :), planePos, u, v );
+            lineX = [ linep1(1), linep2(1) ];
+            lineY = [ linep1(2), linep2(2) ];
+            lineZ = [ linep1(3), linep2(3) ];
+            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
+            hold on;
+          else
+            linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
+            linep2 = projectOnPlane( linePos(l+1, :), planePos, u, v );
+            lineX = [ linep1(1), linep2(1) ];
+            lineY = [ linep1(2), linep2(2) ];
+            lineZ = [ linep1(3), linep2(3) ];
+            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
+            hold on;
+            l = l+2;
+          end
         end
         
         hold off;
