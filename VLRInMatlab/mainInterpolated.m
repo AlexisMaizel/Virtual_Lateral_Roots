@@ -11,7 +11,7 @@
 % 4 -> 130508
 % 5 -> 130607
 % 6 -> all
-data = 3;
+data = 5;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -19,7 +19,7 @@ data = 3;
 % 4 -> 3D
 cView = 2;
 % start with the current time step
-startT = 300;
+startT = 1;
 % deltaT value based on the paper mentioned above
 deltaT = 1;
 % draw ellipsoids?
@@ -29,7 +29,7 @@ drawDelaunay = 0;
 % render movie?
 % if set to zero then only a single time step
 % is rendered given by startT
-renderMovie = 0;
+renderMovie = 1;
 % create images for each time step
 % TODO: does not work at the moment, let it be 0
 createImages = 0;
@@ -227,7 +227,7 @@ for dataIndex=startD:endD
   
   % boundary offset for rendering since the elongation of the
   % ellipsoids can be quite large
-  offset = 100;
+  offset = 150;
   
   % figure properties
   f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
@@ -254,7 +254,8 @@ for dataIndex=startD:endD
   xlabel('X');
   ylabel('Y');
   zlabel('Z');
-  title( strcat( 'Time Step ', num2str(startT) ) );
+  C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
+  title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT) ) );
   camlight headlight;
   camproj( 'orthographic' )
   
@@ -400,7 +401,6 @@ for dataIndex=startD:endD
           X = p1(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
           Y = p1(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
           Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
-          %S(c) = mesh( X, Y, Z, 'EdgeColor', color, 'FaceAlpha', 0 );
           
           % if only the lines with the largest elongation should be drawn
           % then only traverse the last entry of the loop which corresponds
@@ -508,7 +508,7 @@ for dataIndex=startD:endD
             lineX = [ linep1(1), linep2(1) ];
             lineY = [ linep1(2), linep2(2) ];
             lineZ = [ linep1(3), linep2(3) ];
-            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
+            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 2 );
             hold on;
           else
             linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
@@ -516,7 +516,7 @@ for dataIndex=startD:endD
             lineX = [ linep1(1), linep2(1) ];
             lineY = [ linep1(2), linep2(2) ];
             lineZ = [ linep1(3), linep2(3) ];
-            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
+            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 2 );
             hold on;
             l = l+2;
           end
@@ -539,7 +539,8 @@ for dataIndex=startD:endD
         xlabel('X');
         ylabel('Y');
         zlabel('Z');
-        title( strcat( dataStr( 1, dataIndex ), ' Time Step ', num2str(curT) ) );
+        C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
+        title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT) ) );
         % perhaps include optical rotation information into current view
         %rot = [ 2 -5 41 ];
         if cView == 1
@@ -583,7 +584,8 @@ for dataIndex=startD:endD
         xlabel('X');
         ylabel('Y');
         zlabel('Z');
-        title( strcat( dataStr( 1, dataIndex ), ' Time Step ', num2str(curT) ) );
+        C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
+        title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT) ) );
         view(2);
       end
       
