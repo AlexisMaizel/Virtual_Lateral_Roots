@@ -17,7 +17,7 @@ data = 3;
 % 2 -> side
 % 3 -> radial
 % 4 -> 3D
-cView = 2;
+cView = 3;
 % start with the current time step
 startT = 300;
 % deltaT value based on the paper mentioned above
@@ -42,9 +42,16 @@ renderPrincipalComponents = 0;
 % correctly, else the result looks blurred (but only the vis, the computation
 % is still correct)
 equalAspectRatio = 0;
-% draw only those lines with the largest elongation of the ellipoids
-renderOnlyLargestElongation = 0;
-
+% choose which major lines of the ellipsoids should be rendered
+lineRenderType = 1;
+% vector of line render types
+% 1. draw only those lines with the largest elongation of the ellipoids in 3D
+% 2. draw only those lines with the largest elongation of the ellipoids
+%    projected onto the generated 2D plane
+% 3: render all three major lines of elongation of the ellipsoids in 3D
+lineStr = { 'renderOnlyLargest3DElongation'...
+            'renderOnlyLargestElongation'...
+            'allLines' };
 % in fact the lambda factor how far the plane is translated
 % along the viewing direction vector
 planePositionFactor = 350;
@@ -399,7 +406,7 @@ for dataIndex=startD:endD
           % then only traverse the last entry of the loop which corresponds
           % to the largest eigenvalue
           lineStart = 1;
-          if renderOnlyLargestElongation == 1
+          if strcmp( lineStr( 1, lineRenderType ), 'renderOnlyLargest3DElongation' )
             lineStart = 3;
           end
           
@@ -462,48 +469,36 @@ for dataIndex=startD:endD
           end
         end
         
+        % set PC depending on the viewing direction
+        if cView == 1
+          dir = coeff(:,2);
+          u = coeff(:,1);
+          v = coeff(:,3);
+        elseif cView == 2 || cView == 4
+          dir = coeff(:,3);
+          u = coeff(:,1);
+          v = coeff(:,2);
+        elseif cView == 3
+          dir = coeff(:,1);
+          u = coeff(:,2);
+          v = coeff(:,3);
+        end
+        
+        % set plane position
+        planePos = dir * planePositionFactor;
+        
+        % draw lines of the major ellipsoid axes onto the projected plane
         l = 1;
         dimL = size( linePos( :, 1 ), 1 ) + 1;
-        
-        if cView == 1
-          % plane position
-          planePos = coeff(:,2) * planePositionFactor;
-          while l < dimL
-            linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,1), coeff(:,3) );
-            linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,1), coeff(:,3) );
-            lineX = [ linep1(1), linep2(1) ];
-            lineY = [ linep1(2), linep2(2) ];
-            lineZ = [ linep1(3), linep2(3) ];
-            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
-            hold on;
-            l = l+2;
-          end
-        elseif cView == 2 || cView == 4
-          % plane position
-          planePos = coeff(:,3) * planePositionFactor;
-          while l < dimL
-            linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,1), coeff(:,2) );
-            linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,1), coeff(:,2) );
-            lineX = [ linep1(1), linep2(1) ];
-            lineY = [ linep1(2), linep2(2) ];
-            lineZ = [ linep1(3), linep2(3) ];
-            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
-            hold on;
-            l = l+2;
-          end
-        elseif cView == 3
-          % plane position
-          planePos = coeff(:,1) * planePositionFactor;
-          while l < dimL
-            linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,2), coeff(:,3) );
-            linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,2), coeff(:,3) );
-            lineX = [ linep1(1), linep2(1) ];
-            lineY = [ linep1(2), linep2(2) ];
-            lineZ = [ linep1(3), linep2(3) ];
-            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
-            hold on;
-            l = l+2;
-          end
+        while l < dimL
+          linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
+          linep2 = projectOnPlane( linePos(l+1, :), planePos, u, v );
+          lineX = [ linep1(1), linep2(1) ];
+          lineY = [ linep1(2), linep2(2) ];
+          lineZ = [ linep1(3), linep2(3) ];
+          L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
+          hold on;
+          l = l+2;
         end
         
         hold off;
