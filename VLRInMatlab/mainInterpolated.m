@@ -11,13 +11,13 @@
 % 4 -> 130508
 % 5 -> 130607
 % 6 -> all
-data = 1;
+data = 3;
 % camera view which is later set by chaning the camera orbit:
-% 0 -> top
-% 1 -> side
-% 2 -> radial
-% 3 -> 3D
-cView = 1;
+% 1 -> top
+% 2 -> side
+% 3 -> radial
+% 4 -> 3D
+cView = 2;
 % start with the current time step
 startT = 300;
 % deltaT value based on the paper mentioned above
@@ -29,24 +29,31 @@ drawDelaunay = 0;
 % render movie?
 % if set to zero then only a single time step
 % is rendered given by startT
-renderMovie = 0;
+renderMovie = 1;
 % create images for each time step
 % TODO: does not work at the moment, let it be 0
 createImages = 0;
 % render only master file?
 renderSingleCellFile = 1;
 % render principal components
-renderPrincipalComponents = 1;
+renderPrincipalComponents = 0;
 % equalAspectRation
 % This is required to use equal axes in order to project the ellipsoids
 % correctly, else the result looks blurred (but only the vis, the computation
 % is still correct)
-equalAspectRatio = 1;
+equalAspectRatio = 0;
 % draw only those lines with the largest elongation of the ellipoids
-renderOnlyLargestElongation = 1;
+renderOnlyLargestElongation = 0;
+
+% in fact the lambda factor how far the plane is translated
+% along the viewing direction vector
+planePositionFactor = 350;
 
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
+
+% vector of view strings
+viewStr = { 'Top' 'Side' 'Radial' '3D' };
 
 % master cell file information taken by the picture made of Daniel located in dropbox
 % and the trackGroup information of the raw data sets
@@ -69,10 +76,12 @@ for dataIndex=startD:endD
   singleCellFile = masterCellFile( 1, dataIndex );
   
   % path to movie output
-  movieDir = strcat( 'videos/', dataStr( 1, dataIndex ), '_movie.avi');
+  movieDir = strcat( 'videos/', dataStr( 1, dataIndex ), '_',...
+                     viewStr( 1, cView ),  '_movie.avi');
   
   % path to image output
-  imageDir = strcat( 'videos/', dataStr( 1, dataIndex ), '/TopView/');
+  imageDir = strcat( 'videos/', dataStr( 1, dataIndex ),...
+                     viewStr( 1, cView ), '/');
   
   % output format of values
   format longG
@@ -98,8 +107,8 @@ for dataIndex=startD:endD
   XCol = data{2};
   % Y coord
   YCol = data{3};
-  % z coord
-  ZCol = data{4};
+  % z coord; Note that due to resampling, the z value is multiplied with 2
+  ZCol = 2 * data{4};
   % Time Step
   TCol = data{5};
   % Lineage Tree Id
@@ -211,7 +220,7 @@ for dataIndex=startD:endD
   
   % boundary offset for rendering since the elongation of the
   % ellipsoids can be quite large
-  offset = 50;%130;
+  offset = 100;
   
   % figure properties
   f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
@@ -225,9 +234,13 @@ for dataIndex=startD:endD
   
   % axes properties
   if equalAspectRatio == 0
-    axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
+    axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset minZ-offset maxZ+offset ] );
+    axis off
+    daspect( [ 1 1 1 ] );
   else
-    axis 'equal'
+    %axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset minZ-offset maxZ+offset ] );
+    axis equal
+    axis off
   end
   
   grid off;
@@ -256,6 +269,7 @@ for dataIndex=startD:endD
   lighting gouraud
   set( gcf, 'Renderer', 'OpenGL' );
   set( gcf,'nextplot','replacechildren' );
+  set( gcf, 'color', [ 1 1 1 ] );
   
   % video output options
   if renderMovie == 1
@@ -359,7 +373,7 @@ for dataIndex=startD:endD
           end
           
           % after processing each neighbor, divide each entry by number
-          % of neighbors
+          % of neighbors -> averaging
           M = M./numLinks;
           
           % compute the eigenvectors and eigenvalues of matrix M
@@ -433,7 +447,8 @@ for dataIndex=startD:endD
       numPCACells = size( cellFileMat( :, 1 ), 1 );
       if numPCACells > 3
         start = mean( cellFileMat );
-        coeff = pca( cellFileMat );
+        %coeff = pca( cellFileMat );
+        coeff = getPrincipalComponents( dataStr( 1, dataIndex ) );
         arrowLength = 150;
         
         % draw principal components
@@ -450,9 +465,9 @@ for dataIndex=startD:endD
         l = 1;
         dimL = size( linePos( :, 1 ), 1 ) + 1;
         
-        if cView == 0
+        if cView == 1
           % plane position
-          planePos = coeff(:,2) * 450;
+          planePos = coeff(:,2) * planePositionFactor;
           while l < dimL
             linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,1), coeff(:,3) );
             linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,1), coeff(:,3) );
@@ -463,9 +478,9 @@ for dataIndex=startD:endD
             hold on;
             l = l+2;
           end
-        elseif cView == 1 || cView == 3
+        elseif cView == 2 || cView == 4
           % plane position
-          planePos = coeff(:,3) * 450;
+          planePos = coeff(:,3) * planePositionFactor;
           while l < dimL
             linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,1), coeff(:,2) );
             linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,1), coeff(:,2) );
@@ -476,9 +491,9 @@ for dataIndex=startD:endD
             hold on;
             l = l+2;
           end
-        elseif cView == 2
+        elseif cView == 3
           % plane position
-          planePos = coeff(:,1) * 450;
+          planePos = coeff(:,1) * planePositionFactor;
           while l < dimL
             linep1 = projectOnPlane( linePos(l, :), planePos, coeff(:,2), coeff(:,3) );
             linep2 = projectOnPlane( linePos(l+1, :), planePos, coeff(:,2), coeff(:,3) );
@@ -494,9 +509,13 @@ for dataIndex=startD:endD
         hold off;
         set( f,'nextplot','replacechildren' );
         if equalAspectRatio == 0
-          axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset ] );
+          axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset minZ-offset maxZ+offset ] );
+          %axis off
+          daspect( [ 1 1 1 ] );
         else
-          axis 'equal'
+          %axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset minZ-offset maxZ+offset ] );
+          axis equal
+          axis off
         end
         
         %daspect('manual')
@@ -507,7 +526,7 @@ for dataIndex=startD:endD
         title( strcat( dataStr( 1, dataIndex ), ' Time Step ', num2str(curT) ) );
         % perhaps include optical rotation information into current view
         %rot = [ 2 -5 41 ];
-        if cView == 0
+        if cView == 1
           % top view
           if dataIndex == 2
             view( [ -coeff(1,2), -coeff(2,2), -coeff(3,2) ] );
@@ -515,7 +534,7 @@ for dataIndex=startD:endD
             view( [ coeff(1,2), coeff(2,2), coeff(3,2) ] );
           end
           camup( [ coeff(:,3) ] );
-        elseif cView == 1
+        elseif cView == 2
           % side view
           view( [ coeff(1,3), coeff(2,3), coeff(3,3) ] );
           if dataIndex == 2
@@ -523,7 +542,7 @@ for dataIndex=startD:endD
           else
             camup( [ coeff(:,2) ] );
           end
-        elseif cView == 2
+        elseif cView == 3
           % radial view
           view( [ coeff(1,1), coeff(2,1), coeff(3,1) ] );
           if dataIndex == 2
@@ -536,6 +555,7 @@ for dataIndex=startD:endD
           view(3);
         end
       else
+        continue;
         hold off;
         set( f,'nextplot','replacechildren' );
         if equalAspectRatio == 0
