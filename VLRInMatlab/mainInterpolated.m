@@ -11,7 +11,7 @@
 % 4 -> 130508
 % 5 -> 130607
 % 6 -> all
-data = 5;
+data = 1;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -19,9 +19,7 @@ data = 5;
 % 4 -> 3D
 cView = 2;
 % start with the current time step
-startT = 1;
-% deltaT value based on the paper mentioned above
-deltaT = 1;
+startT = 50;
 % draw ellipsoids?
 drawEllipsoids = 1;
 % draw delaunay tri?
@@ -29,7 +27,7 @@ drawDelaunay = 0;
 % render movie?
 % if set to zero then only a single time step
 % is rendered given by startT
-renderMovie = 1;
+renderMovie = 0;
 % create images for each time step
 % TODO: does not work at the moment, let it be 0
 createImages = 0;
@@ -255,7 +253,7 @@ for dataIndex=startD:endD
   ylabel('Y');
   zlabel('Z');
   C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
-  title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT) ) );
+  title( strcat( C( 1, 1 ), ' Time Step ', num2str(startT) ) );
   camlight headlight;
   camproj( 'orthographic' )
   
@@ -294,6 +292,10 @@ for dataIndex=startD:endD
   % PC instance
   P = [];
   
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %%% Traversal over all time steps and texture field generation %%%
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
   % loop over all time steps
   for curT=startT:maxT
     % number of cells for the current time step
@@ -320,7 +322,7 @@ for dataIndex=startD:endD
     set( S, 'Visible', 'off' );
     set( L, 'Visible', 'off' );
     set( P, 'Visible', 'off' );
-    
+
     % if at least three cells exists
     if numCells > 3
       % delaunay triangulation visualzation

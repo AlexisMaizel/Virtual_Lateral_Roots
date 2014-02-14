@@ -193,7 +193,7 @@ for curT=startT:maxT
           p2 = [ tri.Points( verID, 1 ) tri.Points( verID, 2 ) tri.Points( verID, 3 ) ];
           
           % compute link matrix
-          lMat = getLinkMatrix( p1, p2 );
+          lMat = getLinkMatrix( p2-p1, p2-p1 );
           
           % update texture matrix
           M = M + lMat;

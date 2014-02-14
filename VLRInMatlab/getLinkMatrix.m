@@ -1,4 +1,2 @@
-function lMat = getLinkMatrix( p1, p2 )
-l = p2 - p1;
-
-lMat = [ l(1)*l(1) l(1)*l(2) l(1)*l(3) ; l(2)*l(1) l(2)*l(2) l(2)*l(3) ; l(3)*l(1) l(3)*l(2) l(3)*l(3)];
+function lMat = getLinkMatrix( p, q )
+lMat = [ p(1)*q(1) p(1)*q(2) p(1)*q(3) ; p(2)*q(1) p(2)*q(2) p(2)*q(3) ; p(3)*q(1) p(3)*q(2) p(3)*q(3)];
