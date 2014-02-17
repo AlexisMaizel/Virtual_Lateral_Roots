@@ -11,7 +11,7 @@
 % 4 -> 130508
 % 5 -> 130607
 % 6 -> all
-data = 1;
+data = 5;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -22,7 +22,7 @@ cView = 2;
 startT = 1;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
-deltaT = 25;
+deltaT = 2;
 % render movie?
 % if set to zero then only a single time step
 % is rendered given by startT
@@ -84,8 +84,18 @@ for dataIndex=startD:endD
   movieDir = strcat( 'videos/', dataStr( 1, dataIndex ), '_',...
     viewStr( 1, cView ), num2str(deltaT), '_test_movie.avi');
   
+  % create directory if required
+  if strcmp( exportTypeStr( 1, exportType ), 'AsVideos' )
+    mkdir( 'videos/' );
+  end
+  
   % path to image output
   imageDir = strcat( 'images/', dataStr( 1, dataIndex ), '/' );
+  
+  % create directory if required
+  if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
+    mkdir( char(imageDir) );
+  end
   
   % output format of values
   format longG
@@ -222,9 +232,13 @@ for dataIndex=startD:endD
     end
   end
   
+  
   % boundary offset for rendering since the elongation of the
-  % ellipsoids can be quite large
+  % ellipsoids can be quite large; special case for data set 130508
   offset = 50;
+  if strcmp( dataStr( 1, dataIndex ), '130508_raw' )
+    offset = 150;
+  end
   
   % figure properties
   f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
@@ -327,10 +341,9 @@ for dataIndex=startD:endD
   numTotalAveragedLinks = 0;
   
   % loop over all time steps
+  imgStart = 1;
   curT = startT;
   while curT < maxT-deltaT+ 1
-  %for curT=startT:maxT-deltaT
-        
     % update cell information
     if begin ~= 1
       numCellsC = numCellsN;
@@ -375,7 +388,6 @@ for dataIndex=startD:endD
     
     % if at least three cells exists in both time steps
     if numCellsC > 3 && numCellsN > 3
-      
       % delaunay triangulation
       if begin ~= 1
         triC = triN;
@@ -415,7 +427,6 @@ for dataIndex=startD:endD
       % Note that if the current considered cell vanishes in time step t
       % + deltaT then we do not draw an ellipsoid (for now -> TODO)
       for c=1:numCellsC
-        
         % geometrical term
         B = zeros(3);
         
@@ -445,6 +456,10 @@ for dataIndex=startD:endD
         if isConserved( objectId, objectLinksN ) == 0
           continue;
         end
+        
+        % if it exists then get the position of the current cell in the
+        % next time step
+        p2 = getCellPosition( objectId, triN, cellIdsN );
         
         cellsInFileMat = [ cellsInFileMat ; p1(1) p1(2) p1(3) ];
         
@@ -488,8 +503,7 @@ for dataIndex=startD:endD
           % link at time step t
           l1 = getCellPosition( neighborId, triC, cellIdsC ) - p1;
           % link at time step t + deltaT
-          l2 = getCellPosition( neighborId, triN, cellIdsN ) -...
-               getCellPosition( objectId, triN, cellIdsN );
+          l2 = getCellPosition( neighborId, triN, cellIdsN ) - p2;
           
           % compute average of the two links
           la = ( l1 + l2 )/2.;
@@ -597,7 +611,8 @@ for dataIndex=startD:endD
         % radii of the ellipsoid
         radii = sqrt( radii );
         
-        % scaling
+        % scaling such that even with small deformation changes
+        % the ellipsoids can be identified
         radii = radii.*4;
         
         xEigVec = Q(:, 1);
@@ -606,9 +621,10 @@ for dataIndex=startD:endD
         
         % draw the single cell as ellipsoid
         [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., nEllip );
-        X = p1(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
-        Y = p1(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
-        Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
+        ellipPos = (p1+p2)/2.;
+        X = ellipPos(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
+        Y = ellipPos(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
+        Z = ellipPos(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
         
         if renderLines == 1
           % if only the lines with the largest elongation should be drawn
@@ -635,9 +651,9 @@ for dataIndex=startD:endD
               sY = [ 0, 0 ];
               sZ = [ -radii(3)/2., radii(3)/2. ];
             end
-            lineX = p1(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
-            lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
-            lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
+            lineX = ellipPos(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
+            lineY = ellipPos(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
+            lineZ = ellipPos(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
             
             % and store the start/end points of the lines in linePos
             linePos = [ linePos ; lineX(1) lineY(1) lineZ(1) ; lineX(2) lineY(2) lineZ(2) ];
@@ -803,21 +819,19 @@ for dataIndex=startD:endD
       
       % if images instead of a video should be exported
       if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
-        if curT < 10
+        if imgStart < 10
           digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_00' );
-        elseif curT < 100
+        elseif imgStart < 100
           digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_0' );
         else
           digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_' );
         end
         
-        if begin == 1
-          filePath = strcat( imageDir, digit, num2str(curT-1), '.png' );
-        else
-          filePath = strcat( imageDir, digit, num2str(curT), '.png' );
-        end
+        filePath = strcat( imageDir, digit, num2str(imgStart), '.png' );
         
         saveas( gcf, char(filePath) );
+        
+        imgStart = imgStart + 1;
       end
       
     end
@@ -828,8 +842,6 @@ for dataIndex=startD:endD
     else
       curT = curT + deltaT;
     end
-    
-    
   end
   
   if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' )
