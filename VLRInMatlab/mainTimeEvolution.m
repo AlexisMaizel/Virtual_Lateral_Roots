@@ -31,7 +31,7 @@ renderMovie = 0;
 % TODO: does not work at the moment, let it be 0
 createImages = 0;
 % render only master file?
-renderSingleCellFile = 1;
+renderSingleCellFile = 0;
 % render principal components
 renderPrincipalComponents = 0;
 % equalAspectRation
@@ -328,14 +328,7 @@ for dataIndex=startD:endD
   
   % loop over all time steps
   for curT=startT:maxT-deltaT
-    
-    % geometrical term
-    B = zeros(3);
-    
-    % topological term
-    T1 = zeros(3);
-    T2 = zeros(3);
-    
+        
     % update cell information
     if begin ~= 1
       numCellsC = numCellsN;
@@ -419,28 +412,36 @@ for dataIndex=startD:endD
       % position of the cell at time step t (not t + deltaT)
       % Note that if the current considered cell vanishes in time step t
       % + deltaT then we do not draw an ellipsoid (for now -> TODO)
-      for c=1:numCellsC        
+      for c=1:numCellsC
+        
+        % geometrical term
+        B = zeros(3);
+        
+        % topological term
+        T1 = zeros(3);
+        T2 = zeros(3);
+        
         % get position of current cell
         p1 = [ triC.Points( c, 1 ) triC.Points( c, 2 ) triC.Points( c, 3 ) ];
         
         % get objectId of current cell
         objectId = cellIdsC( c );
         
-        % check if the current cell still exists in the next time
-        % step; if not then continue with the next one
-        if isConserved( objectId, objectLinksN ) == 0
-          continue;
-        end
-        
         % get color for ellipsoid
         if renderSingleCellFile == 0
-          color = cm( cellFileMap( cellIdsC(c,1) ), : );
+          color = cm( cellFileMap( objectId ), : );
         else
-          if singleCellFile == cellFileMap( cellIdsC(c,1) )
+          if singleCellFile == cellFileMap( objectId )
             color = cm( 1, : );
           else
             continue;
           end
+        end
+        
+        % check if the current cell still exists in the next time
+        % step; if not then continue with the next one
+        if isConserved( objectId, objectLinksN ) == 0
+          continue;
         end
         
         cellsInFileMat = [ cellsInFileMat ; p1(1) p1(2) p1(3) ];
@@ -506,11 +507,11 @@ for dataIndex=startD:endD
         if numConservedLinksPerCell > 0
           B = B./numConservedLinksPerCell;
         end
-%         
-%         % multiply the factor of N_c/N_tot (see paper in Appendix C1)
-%         if numConservedLinksPerCell > 0
-%           B = B.*( numConservedLinksPerCell / numAveragedLinksPerCell);
-%         end
+         
+        % multiply the factor of N_c/N_tot (see paper in Appendix C1)
+        if numConservedLinksPerCell > 0
+          B = B.*( numConservedLinksPerCell / numAveragedLinksPerCell);
+        end
         
         % loop over all appeared linked neighbors determining the first part of T
         for a=1:numAppearedLinksPerCell
@@ -534,10 +535,10 @@ for dataIndex=startD:endD
           T1 = T1./numAppearedLinksPerCell;
         end
         
-%         % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
-%         if numAppearedLinksPerCell > 0
-%           T1 = T1.*( numAppearedLinksPerCell / numAveragedLinksPerCell);
-%         end
+        % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
+        if numAppearedLinksPerCell > 0
+          T1 = T1.*( numAppearedLinksPerCell / numAveragedLinksPerCell);
+        end
         
         % divide by deltaT
         T1 = T1./deltaT;
@@ -563,11 +564,11 @@ for dataIndex=startD:endD
         if numDisappearedLinksPerCell > 0
           T2 = T2./numDisappearedLinksPerCell;
         end
-%         
-%         % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
-%         if numDisappearedLinksPerCell > 0
-%           T2 = T2.*( numDisappearedLinksPerCell / numAveragedLinksPerCell);
-%         end
+        
+        % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
+        if numDisappearedLinksPerCell > 0
+          T2 = T2.*( numDisappearedLinksPerCell / numAveragedLinksPerCell);
+        end
         
         % divide by deltaT
         T2 = T2./deltaT;
