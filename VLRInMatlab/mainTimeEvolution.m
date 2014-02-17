@@ -17,21 +17,21 @@ data = 1;
 % 2 -> side
 % 3 -> radial
 % 4 -> 3D
-cView = 4;
+cView = 2;
 % start with the current time step
-startT = 1;
+startT = 65;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
 deltaT = 1;
 % render movie?
 % if set to zero then only a single time step
 % is rendered given by startT
-renderMovie = 1;
+renderMovie = 0;
 % create images for each time step
 % TODO: does not work at the moment, let it be 0
 createImages = 0;
 % render only master file?
-renderSingleCellFile = 0;
+renderSingleCellFile = 1;
 % render principal components
 renderPrincipalComponents = 0;
 % equalAspectRation
@@ -333,7 +333,8 @@ for dataIndex=startD:endD
     B = zeros(3);
     
     % topological term
-    T = zeros(3);
+    T1 = zeros(3);
+    T2 = zeros(3);
     
     % update cell information
     if begin ~= 1
@@ -398,9 +399,6 @@ for dataIndex=startD:endD
       cellsInFileMat = [];
       linePos = [];
       
-      % TODO: determine the vectors of appearing and disappearing links 
-      % between t and t + deltaT
-      
       % first get mapping of vertex ids of delaunay triangulation to object
       % ids of raw data set and store the results as a dimx2 matrix
       % including the link information between two cells
@@ -409,6 +407,12 @@ for dataIndex=startD:endD
       
       % determine the number of conserved links for all cells
       conservedLinks = intersect( objectLinksC, objectLinksN, 'rows' );
+      
+      % disappeared links
+      disappearedLinks = setxor( objectLinksC, conservedLinks, 'rows' );
+      
+      % appeared links
+      appearedLinks = setxor( objectLinksN, conservedLinks, 'rows' );
       
       % consider each cell between two time steps
       % and render the time evolution as an ellipsoid located at the
@@ -428,17 +432,16 @@ for dataIndex=startD:endD
           continue;
         end
         
-        % get color for ellipsoid TODO
-%         if renderSingleCellFile == 0
-%           color = cm( cellFileMap( cellIdsC(c,1) ), : );
-%         else
-%           if singleCellFile == cellFileMap( cellIdsC(c,1) )
-%             color = cm( 1, : );
-%           else
-%             continue;
-%           end
-%         end
-        color = cm( 1, : );
+        % get color for ellipsoid
+        if renderSingleCellFile == 0
+          color = cm( cellFileMap( cellIdsC(c,1) ), : );
+        else
+          if singleCellFile == cellFileMap( cellIdsC(c,1) )
+            color = cm( 1, : );
+          else
+            continue;
+          end
+        end
         
         cellsInFileMat = [ cellsInFileMat ; p1(1) p1(2) p1(3) ];
         
@@ -454,6 +457,19 @@ for dataIndex=startD:endD
         conservedLinksPerCell = getNeighborsOfObjectId( objectId, conservedLinks );
         % number of conserved links between two time steps
         numConservedLinksPerCell = size( conservedLinksPerCell, 2 );
+        
+        % get vector of objectsIds of cell which are added in the next time
+        % step
+        appearedLinksPerCell = getNeighborsOfObjectId( objectId, appearedLinks );
+        % number of added links between two time steps
+        numAppearedLinksPerCell = size( appearedLinksPerCell, 2 );
+        
+        % get vector of objectsIds of cell which disappeared in the next time
+        % step
+        disappearedLinksPerCell = getNeighborsOfObjectId( objectId, disappearedLinks );
+        % number of added links between two time steps
+        numDisappearedLinksPerCell = size( disappearedLinksPerCell, 2 );
+        
         % number of links of current and next cell
         numTotalLinksPerCellC = size( nVecC, 2 );
         numTotalLinksPerCellN = size( nVecN, 2 );
@@ -487,15 +503,82 @@ for dataIndex=startD:endD
         
         % after processing each neighbor, divide each entry by number
         % of conserved neighbors -> averaging
-        B = B./numConservedLinksPerCell;
+        if numConservedLinksPerCell > 0
+          B = B./numConservedLinksPerCell;
+        end
+%         
+%         % multiply the factor of N_c/N_tot (see paper in Appendix C1)
+%         if numConservedLinksPerCell > 0
+%           B = B.*( numConservedLinksPerCell / numAveragedLinksPerCell);
+%         end
         
-        % multiply the factor of N_c/N_tot (see paper in Appendix C1)
-        B = B.*( numConservedLinksPerCell/ numAveragedLinksPerCell);
+        % loop over all appeared linked neighbors determining the first part of T
+        for a=1:numAppearedLinksPerCell
+          % current object id of neighbor
+          neighborId = appearedLinksPerCell( 1, a );
+          
+          % link at time step t + deltaT
+          l = getCellPosition( neighborId, triN, cellIdsN ) -...
+              getCellPosition( objectId, triN, cellIdsN );
+            
+          % compute link matrix
+          m = getLinkMatrix( l, l );
+          
+          % update matrix T
+          T1 = T1 + m;
+        end
         
-        % compute the eigenvectors and eigenvalues of matrix B
+        % after processing each neighbor, divide each entry by number
+        % of appeared neighbors -> averaging
+        if numAppearedLinksPerCell > 0
+          T1 = T1./numAppearedLinksPerCell;
+        end
+        
+%         % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
+%         if numAppearedLinksPerCell > 0
+%           T1 = T1.*( numAppearedLinksPerCell / numAveragedLinksPerCell);
+%         end
+        
+        % divide by deltaT
+        T1 = T1./deltaT;
+        
+        % loop over all disappeared linked neighbors determining the second part of T
+        for d=1:numDisappearedLinksPerCell
+          % current object id of neighbor
+          neighborId = disappearedLinksPerCell( 1, d );
+          
+          % link at time step t
+          l = getCellPosition( neighborId, triC, cellIdsC ) -...
+              getCellPosition( objectId, triC, cellIdsC );
+            
+          % compute link matrix
+          m = getLinkMatrix( l, l );
+          
+          % update matrix T
+          T2 = T2 + m;
+        end
+        
+        % after processing each neighbor, divide each entry by number
+        % of disappeared neighbors -> averaging
+        if numDisappearedLinksPerCell > 0
+          T2 = T2./numDisappearedLinksPerCell;
+        end
+%         
+%         % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
+%         if numDisappearedLinksPerCell > 0
+%           T2 = T2.*( numDisappearedLinksPerCell / numAveragedLinksPerCell);
+%         end
+        
+        % divide by deltaT
+        T2 = T2./deltaT;
+        
+        % compute the final texture for the current ellipsoid
+        M = B + T1 - T2;
+        
+        % compute the eigenvectors and eigenvalues of matrix M
         % The columns of Q are the eigenvectors and the diagonal
         % elements of D are the eigenvalues
-        [Q,D] = eig(B);
+        [Q,D] = eig(M);
         
         % check if the eigenvalues are smaller then zero; if so, then do
         % not draw a line and consider the absolute value of it -> TODO
@@ -555,6 +638,7 @@ for dataIndex=startD:endD
           % draw line in 3D
           %line( lineX, lineY, lineZ );
         end
+        
         if renderSingleCellFile == 1
           S(c) = surface( X, Y, Z, 'FaceColor', 'w',...
             'EdgeColor', 'none', 'EdgeAlpha', 0,...
