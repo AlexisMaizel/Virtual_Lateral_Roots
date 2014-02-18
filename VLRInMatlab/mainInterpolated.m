@@ -11,7 +11,7 @@
 % 4 -> 130508
 % 5 -> 130607
 % 6 -> all
-data = 1;
+data = 6;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -19,18 +19,16 @@ data = 1;
 % 4 -> 3D
 cView = 2;
 % start with the current time step
-startT = 50;
+startT = 1;
 % draw ellipsoids?
 drawEllipsoids = 1;
 % draw delaunay tri?
 drawDelaunay = 0;
-% render movie?
-% if set to zero then only a single time step
+% if set to one then only a single time step
 % is rendered given by startT
-renderMovie = 0;
-% create images for each time step
-% TODO: does not work at the moment, let it be 0
-createImages = 0;
+exportType = 2;
+% vector of data strings
+exportTypeStr = { 'SingleFigure' 'AsImages' 'AsVideo' };
 % render only master file?
 renderSingleCellFile = 1;
 % render principal components
@@ -82,11 +80,20 @@ for dataIndex=startD:endD
   
   % path to movie output
   movieDir = strcat( 'videos/', dataStr( 1, dataIndex ), '_',...
-                     viewStr( 1, cView ),  '_movie.avi');
+    viewStr( 1, cView ), '_test_movie.avi');
+  
+  % create directory if required
+  if strcmp( exportTypeStr( 1, exportType ), 'AsVideos' )
+    mkdir( 'videos/' );
+  end
   
   % path to image output
-  imageDir = strcat( 'videos/', dataStr( 1, dataIndex ),...
-                     viewStr( 1, cView ), '/');
+  imageDir = strcat( 'images/', dataStr( 1, dataIndex ), '/' );
+  
+  % create directory if required
+  if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
+    mkdir( char(imageDir) );
+  end
   
   % output format of values
   format longG
@@ -127,7 +134,8 @@ for dataIndex=startD:endD
   
   % get maximum of time steps
   % if a movie should be created
-  if renderMovie == 1
+  if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' ) ||...
+     strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
     maxT = max( TCol );
     % else only render current time step
   else
@@ -224,8 +232,11 @@ for dataIndex=startD:endD
   end
   
   % boundary offset for rendering since the elongation of the
-  % ellipsoids can be quite large
-  offset = 150;
+  % ellipsoids can be quite large; special case for data set 130508
+  offset = 50;
+  if strcmp( dataStr( 1, dataIndex ), '130508_raw' )
+    offset = 150;
+  end
   
   % figure properties
   f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
@@ -278,11 +289,24 @@ for dataIndex=startD:endD
   set( gcf, 'color', [ 1 1 1 ] );
   
   % video output options
-  if renderMovie == 1
+  if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' )
     writerObj = VideoWriter( char(movieDir) );
-    writerObj.FrameRate = 10;
-    writerObj.Quality = 50;
+    writerObj.FrameRate = 3;
+    writerObj.Quality = 100;
     open( writerObj );
+  end
+  
+  maxTimeStep = max( TCol );
+  numCellsAtStart = 0;
+  numCellsAtEnd = 0;
+  % get maximum number of cells at the beginning and at the end
+  for j=1:dim
+    % next time step
+    if cellData{ j, 5 } == 1
+      numCellsAtStart = numCellsAtStart +1;
+    elseif cellData{ j, 5 } == maxTimeStep
+      numCellsAtEnd = numCellsAtEnd +1;
+    end
   end
   
   % surface instance
@@ -296,6 +320,7 @@ for dataIndex=startD:endD
   %%% Traversal over all time steps and texture field generation %%%
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
+  imgStart = 1;
   % loop over all time steps
   for curT=startT:maxT
     % number of cells for the current time step
@@ -322,7 +347,7 @@ for dataIndex=startD:endD
     set( S, 'Visible', 'off' );
     set( L, 'Visible', 'off' );
     set( P, 'Visible', 'off' );
-
+    
     % if at least three cells exists
     if numCells > 3
       % delaunay triangulation visualzation
@@ -376,7 +401,7 @@ for dataIndex=startD:endD
             p2 = [ tri.Points( verID, 1 ) tri.Points( verID, 2 ) tri.Points( verID, 3 ) ];
             
             % compute link matrix
-            lMat = getLinkMatrix( p1, p2 );
+            lMat = getLinkMatrix( p2-p1, p2-p1 );
             
             % update texture matrix
             M = M + lMat;
@@ -391,8 +416,19 @@ for dataIndex=startD:endD
           % elements of D are the eigenvalues
           [Q,D] = eig(M);
           
+          % check if the eigenvalues are smaller then zero; if so, then do
+          % not draw a line and consider the absolute value of it -> TODO
+          positiveEigenvalue = [ 1 ; 1 ; 1 ];
+          radii = diag(D);
+          for e=1:3
+            if radii(e) < 0.
+              radii(e) = -radii(e);
+              positiveEigenvalue( e, 1 ) = 0;
+            end
+          end
+          
           % radii of the ellipsoid
-          radii = sqrt( diag(D) );
+          radii = sqrt( radii );
           
           xEigVec = Q(:, 1);
           yEigVec = Q(:, 2);
@@ -595,29 +631,31 @@ for dataIndex=startD:endD
       delete(findall(gcf, 'Type', 'light'))
       camlight headlight;
       
-      if renderMovie == 1
+      if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' )
         writeVideo( writerObj, getframe(f) );
       end
       
-      % TODO: does not work at the moment
-      if createImages == 1
-        F = getframe(S);
-        I = image( F.cdata );
-        
-        if curT < 10
-          digit = strcat( dataStr( 1, dataIndex ), '_00' );
-        elseif curT < 100
-          digit = strcat( dataStr( 1, dataIndex ), '_0' );
+      % if images instead of a video should be exported
+      if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
+        if imgStart < 10
+          digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_00' );
+        elseif imgStart < 100
+          digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_0' );
         else
-          digit = strcat( dataStr( 1, dataIndex ), '_' );
+          digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_' );
         end
         
-        imwrite(I, strcat( imageDir, digit, num2str(curT), '.png' ), 'png');
+        filePath = strcat( imageDir, digit, num2str(imgStart), '_', num2str(numCells), '.png' );
+        
+        saveas( gcf, char(filePath) );
+        
+        imgStart = imgStart + 1;
       end
+      
     end
   end
   
-  if renderMovie == 1
+  if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' )
     close(writerObj);
   end
   

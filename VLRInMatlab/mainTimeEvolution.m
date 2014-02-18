@@ -11,7 +11,7 @@
 % 4 -> 130508
 % 5 -> 130607
 % 6 -> all
-data = 5;
+data = 6;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -22,11 +22,10 @@ cView = 2;
 startT = 1;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
-deltaT = 2;
-% render movie?
-% if set to zero then only a single time step
+deltaT = 10;
+% if set to one then only a single time step
 % is rendered given by startT
-exportType = 2;
+exportType = 1;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' 'AsVideo' };
 % render only master file?
@@ -82,7 +81,7 @@ for dataIndex=startD:endD
   
   % path to movie output
   movieDir = strcat( 'videos/', dataStr( 1, dataIndex ), '_',...
-    viewStr( 1, cView ), num2str(deltaT), '_test_movie.avi');
+    viewStr( 1, cView ), '_test_movie.avi');
   
   % create directory if required
   if strcmp( exportTypeStr( 1, exportType ), 'AsVideos' )
@@ -136,7 +135,8 @@ for dataIndex=startD:endD
   
   % get maximum of time steps
   % if a movie should be created
-  if renderMovie == 1
+  if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' ) ||...
+     strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
     maxT = max( TCol );
     % else only render between two time steps
   else
@@ -298,6 +298,19 @@ for dataIndex=startD:endD
     open( writerObj );
   end
   
+  maxTimeStep = max( TCol );
+  numCellsAtStart = 0;
+  numCellsAtEnd = 0;
+  % get maximum number of cells at the beginning and at the end
+  for j=1:dim
+    % next time step
+    if cellData{ j, 5 } == 1
+      numCellsAtStart = numCellsAtStart +1;
+    elseif cellData{ j, 5 } == maxTimeStep
+      numCellsAtEnd = numCellsAtEnd +1;
+    end
+  end
+ 
   % surface instance
   S = [];
   % line instance
@@ -520,9 +533,9 @@ for dataIndex=startD:endD
         
         % after processing each neighbor, divide each entry by number
         % of conserved neighbors -> averaging
-%         if numConservedLinksPerCell > 0
-%           B = B./numConservedLinksPerCell;
-%         end
+        if numConservedLinksPerCell > 0
+          B = B./numConservedLinksPerCell;
+        end
          
         % multiply the factor of N_c/N_tot (see paper in Appendix C1)
         if numConservedLinksPerCell > 0
@@ -590,7 +603,9 @@ for dataIndex=startD:endD
         T2 = T2./deltaT;
         
         % compute the final texture for the current ellipsoid
-        M = B + T1 - T2;
+        M = B;
+        %M = B + T1 - T2;
+        %M = T1 - T2;
         
         % compute the eigenvectors and eigenvalues of matrix M
         % The columns of Q are the eigenvectors and the diagonal
@@ -613,7 +628,7 @@ for dataIndex=startD:endD
         
         % scaling such that even with small deformation changes
         % the ellipsoids can be identified
-        radii = radii.*4;
+        radii = radii.*8;
         
         xEigVec = Q(:, 1);
         yEigVec = Q(:, 2);
