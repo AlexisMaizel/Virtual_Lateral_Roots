@@ -12,7 +12,7 @@
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-data = 1;
+data = 7;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -23,7 +23,10 @@ cView = 2;
 startT = 1;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
-deltaT = 10;
+deltaT = 25;
+% decide which term should be included in the time evolution
+termTypeStr = { 'B' 'T' 'All' };
+renderTermType = 1;
 % if set to one then only a single time step
 % is rendered given by startT
 exportType = 2;
@@ -68,7 +71,7 @@ masterCellFile = [ 4 4 4 3 3 0 ];
 % either loop over all data sets creating five figures or only
 % show one specific one
 startD = 1;
-endD = 5;
+endD = 6;
 if data ~= 7
   startD = data;
   endD = data;
@@ -360,6 +363,9 @@ for dataIndex=startD:endD
   cellIdsC = [];
   cellIdsN = [];
   
+  % vector of strings storing the precursors
+  cellPrecursorsN = [];
+  
   % delaunay triangulation
   triC = [];
   triN = [];
@@ -372,7 +378,7 @@ for dataIndex=startD:endD
   % loop over all time steps
   imgStart = 1;
   curT = startT;
-  while curT < maxT-deltaT+ 1
+  while curT < maxT-deltaT+1    
     % update cell information
     if begin ~= 1
       numCellsC = numCellsN;
@@ -381,6 +387,7 @@ for dataIndex=startD:endD
       matPosN = [];
       cellIdsC = cellIdsN;
       cellIdsN = [];
+      cellPrecursorsN = [];
       
       for j=1:dim
         % next time step
@@ -389,6 +396,7 @@ for dataIndex=startD:endD
           matPosN = [matPosN; pos];
           numCellsN = numCellsN +1;
           cellIdsN = [ cellIdsN ; cellData{ j, 1 } ];
+          cellPrecursorsN = [ cellPrecursorsN ; cellData{ j, 8 } ];
         end
       end
     else
@@ -400,11 +408,12 @@ for dataIndex=startD:endD
           numCellsC = numCellsC +1;
           cellIdsC = [ cellIdsC ; cellData{ j, 1 } ];
           % next time step
-        elseif cellData{ j, 5 } == curT+deltaT
+        elseif cellData{ j, 5 } == curT+deltaT%curT+deltaT-1
           pos = [ cellData{ j, 2 } cellData{ j, 3 } cellData{ j, 4 } ];
           matPosN = [matPosN; pos];
           numCellsN = numCellsN +1;
           cellIdsN = [ cellIdsN ; cellData{ j, 1 } ];
+          cellPrecursorsN = [ cellPrecursorsN ; cellData{ j, 8 } ];
         end
       end
     end
@@ -452,10 +461,10 @@ for dataIndex=startD:endD
       
       % consider each cell between two time steps
       % and render the time evolution as an ellipsoid located at the
-      % position of the cell at time step t (not t + deltaT)
-      % Note that if the current considered cell vanishes in time step t
-      % + deltaT then we do not draw an ellipsoid (for now -> TODO)
-      for c=1:numCellsC
+      % position of the cell at time step t + deltaT
+      % Note that we consider the TIME STEP t + deltaT and look back at
+      % time step t which cell is related to the second time step
+      for c=1:numCellsN
         % geometrical term
         B = zeros(3);
         
@@ -464,56 +473,60 @@ for dataIndex=startD:endD
         T2 = zeros(3);
         
         % get position of current cell
-        p1 = [ triC.Points( c, 1 ) triC.Points( c, 2 ) triC.Points( c, 3 ) ];
+        p1 = [ triN.Points( c, 1 ) triN.Points( c, 2 ) triN.Points( c, 3 ) ];
         
         % get objectId of current cell
-        objectId = cellIdsC( c );
+        objectIdN = cellIdsN( c );
+        
+        % get objectId of previous cell
+        % which could be in the simplest case the same
+        % as the objectId of the current cell
+        objectIdC = objectIdN;
         
         % get color for ellipsoid
         if renderSingleCellFile == 0
-          color = cm( cellFileMap( objectId ), : );
+          color = cm( cellFileMap( objectIdN ), : );
         else
-          if singleCellFile == cellFileMap( objectId )
+          if singleCellFile == cellFileMap( objectIdN )
             color = cm( 1, : );
           else
             continue;
           end
         end
-        
-        % check if the current cell still exists in the next time
-        % step; if not then continue with the next one
-        if isConserved( objectId, objectLinksN ) == 0
-          continue;
+
+        % check if the current cell already existed in the last time
+        % step; if not then back traverse its precursors until the
+        % corresponding object id is found
+        if isConserved( objectIdN, objectLinksC ) == 0
+          objectIdC = getPrecursorID( objectIdN, cellPrecursorsN( c ), cellIdsC );
+        else
+          objectIdC = objectIdN;
         end
         
-        % if it exists then get the position of the current cell in the
-        % next time step
-        p2 = getCellPosition( objectId, triN, cellIdsN );
+        % get the position of the previous cell in the previous time step
+        p2 = getCellPosition( objectIdC, triC, cellIdsC );
         
-        cellsInFileMat = [ cellsInFileMat ; p1(1) p1(2) p1(3) ];
+        cellsInFileMat = [ cellsInFileMat ; p2(1) p2(2) p2(3) ];
         
-        % get all neighbors for specific objectId
-        nVecC = getNeighborsOfObjectId( objectId, objectLinksC );
-        % since the current cell also exists in the next time step, the
-        % objectId is guaranteed to exist in objectLinksN for which we can
-        % also get all neighbors
-        nVecN = getNeighborsOfObjectId( objectId, objectLinksN );
+        % get all neighbors for the two found cells
+        nVecC = getNeighborsOfObjectId( objectIdC, objectLinksC );
+        nVecN = getNeighborsOfObjectId( objectIdN, objectLinksN );
         
         % vector of objectIds of cells which are conserved in the next time
         % step
-        conservedLinksPerCell = getNeighborsOfObjectId( objectId, conservedLinks );
+        conservedLinksPerCell = getNeighborsOfObjectId( objectIdN, conservedLinks );
         % number of conserved links between two time steps
         numConservedLinksPerCell = size( conservedLinksPerCell, 2 );
         
         % get vector of objectsIds of cell which are added in the next time
         % step
-        appearedLinksPerCell = getNeighborsOfObjectId( objectId, appearedLinks );
+        appearedLinksPerCell = getNeighborsOfObjectId( objectIdN, appearedLinks );
         % number of added links between two time steps
         numAppearedLinksPerCell = size( appearedLinksPerCell, 2 );
         
         % get vector of objectsIds of cell which disappeared in the next time
         % step
-        disappearedLinksPerCell = getNeighborsOfObjectId( objectId, disappearedLinks );
+        disappearedLinksPerCell = getNeighborsOfObjectId( objectIdN, disappearedLinks );
         % number of added links between two time steps
         numDisappearedLinksPerCell = size( disappearedLinksPerCell, 2 );
         
@@ -530,9 +543,9 @@ for dataIndex=startD:endD
           neighborId = conservedLinksPerCell( 1, n );
           
           % link at time step t
-          l1 = getCellPosition( neighborId, triC, cellIdsC ) - p1;
+          l1 = getCellPosition( neighborId, triC, cellIdsC ) - p2;
           % link at time step t + deltaT
-          l2 = getCellPosition( neighborId, triN, cellIdsN ) - p2;
+          l2 = getCellPosition( neighborId, triN, cellIdsN ) - p1;
           
           % compute average of the two links
           la = ( l1 + l2 )/2.;
@@ -565,13 +578,27 @@ for dataIndex=startD:endD
           
           % link at time step t + deltaT
           l = getCellPosition( neighborId, triN, cellIdsN ) -...
-              getCellPosition( objectId, triN, cellIdsN );
+              getCellPosition( objectIdN, triN, cellIdsN );
             
           % compute link matrix
           m = getLinkMatrix( l, l );
           
           % update matrix T
           T1 = T1 + m;
+        end
+        
+        % NEW: also add the link between the cell in time step t + deltaT
+        % and the precursor which does not have the same id
+        if isConserved( objectIdN, objectLinksC ) == 0
+          % link between position at time step t and t + deltaT
+          l = p2 - p1;
+            
+          % compute link matrix
+          m = getLinkMatrix( l, l );
+          
+          T1 = T1 + m;
+          
+          numAppearedLinksPerCell = numAppearedLinksPerCell + 1;
         end
         
         % after processing each neighbor, divide each entry by number
@@ -595,7 +622,7 @@ for dataIndex=startD:endD
           
           % link at time step t
           l = getCellPosition( neighborId, triC, cellIdsC ) -...
-              getCellPosition( objectId, triC, cellIdsC );
+              getCellPosition( objectIdC, triC, cellIdsC );
             
           % compute link matrix
           m = getLinkMatrix( l, l );
@@ -619,9 +646,13 @@ for dataIndex=startD:endD
         T2 = T2./deltaT;
         
         % compute the final texture for the current ellipsoid
-        M = B;
-        %M = B + T1 - T2;
-        %M = T1 - T2;
+        if strcmp( termTypeStr( 1, renderTermType ), 'B' )
+          M = B;
+        elseif strcmp( termTypeStr( 1, renderTermType ), 'T' )
+          M = T1 - T2;
+        else
+          M = B + T1 - T2;
+        end
         
         % compute the eigenvectors and eigenvalues of matrix M
         % The columns of Q are the eigenvectors and the diagonal
@@ -644,7 +675,7 @@ for dataIndex=startD:endD
         
         % scaling such that even with small deformation changes
         % the ellipsoids can be identified
-        radii = radii.*8;
+        radii = radii.*6;
         
         xEigVec = Q(:, 1);
         yEigVec = Q(:, 2);
@@ -652,7 +683,8 @@ for dataIndex=startD:endD
         
         % draw the single cell as ellipsoid
         [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., nEllip );
-        ellipPos = (p1+p2)/2.;
+        %ellipPos = (p1+p2)/2.;
+        ellipPos = p1;
         X = ellipPos(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
         Y = ellipPos(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
         Z = ellipPos(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
@@ -800,9 +832,10 @@ for dataIndex=startD:endD
         zlabel('Z');
         C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
         if begin == 1
-          title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT-1) ) );
+          %title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT-1) ) );
+          title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT+deltaT) ) );
         else
-          title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT) ) );
+          title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT+deltaT) ) );
         end
         % perhaps include optical rotation information into current view
         %rot = [ 2 -5 41 ];
@@ -869,7 +902,8 @@ for dataIndex=startD:endD
     % at last set begin to false
     if begin == 1
       begin = 0;
-      curT = curT + deltaT - 1;
+      %curT = curT + deltaT - 1;
+      curT = curT + deltaT;
     else
       curT = curT + deltaT;
     end

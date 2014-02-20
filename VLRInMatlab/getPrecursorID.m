@@ -8,14 +8,17 @@ end
 
 % remove the first and last bracket and split the string into the
 % object IDs
-S = strsplit( precursors(2:end-1), ', ' );
+str = char(precursors);
+str = str(2:end-1);
+
+S = strsplit( char(str), ', ' );
 dim = size( S, 2 );
 
 % traverse the object list and find the earliest precursor
 while dim > 0
-  for o=1:size( previousObjectIdList, 2 )
-    if S( 1, dim ) == previousObjectIdList( 1, o )
-      objectID = S( 1, dim );
+  for o=1:size( previousObjectIdList, 1 )
+    if str2double(char( S( 1, dim ))) == previousObjectIdList( o, 1 )
+      objectID = previousObjectIdList( o, 1 );
       return;
     end
   end

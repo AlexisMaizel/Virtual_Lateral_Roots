@@ -67,7 +67,7 @@ masterCellFile = [ 4 4 4 3 3 0 ];
 % either loop over all data sets creating five figures or only
 % show one specific one
 startD = 1;
-endD = 5;
+endD = 6;
 if data ~= 7
   startD = data;
   endD = data;
