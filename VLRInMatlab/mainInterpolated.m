@@ -10,7 +10,8 @@
 % 3 -> 121211
 % 4 -> 130508
 % 5 -> 130607
-% 6 -> all
+% 6 -> 131203
+% 7 -> all
 data = 6;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
@@ -53,7 +54,7 @@ lineStr = { 'renderOnlyLargest3DElongation'...
 planePositionFactor = 350;
 
 % vector of data strings
-dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
+dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
 
 % vector of view strings
 viewStr = { 'Top' 'Side' 'Radial' '3D' };
@@ -61,13 +62,13 @@ viewStr = { 'Top' 'Side' 'Radial' '3D' };
 % master cell file information taken by the picture made of Daniel located in dropbox
 % and the trackGroup information of the raw data sets
 %masterCellFile = [ 4 3 4 2 3 ];
-masterCellFile = [ 4 4 4 3 3 ];
+masterCellFile = [ 4 4 4 3 3 0 ];
 
 % either loop over all data sets creating five figures or only
 % show one specific one
 startD = 1;
 endD = 5;
-if data ~= 6
+if data ~= 7
   startD = data;
   endD = data;
 end
@@ -103,7 +104,9 @@ for dataIndex=startD:endD
   fileID = fopen( char(path) );
   % format of data sets:
   % ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer DivisionType
-  formatSpec = '%d %f %f %f %d %d %q %q %d %q %q %d %d %q';
+  %formatSpec = '%d %f %f %f %d %d %q %q %d %q %q %d %d %q';
+  % temporal for data 131203
+  formatSpec = '%d %f %f %f %d %d %q %q %d %d %d %q';
   % read data and ignore the first four header lines
   data = textscan( fileID, formatSpec, 'HeaderLines', 4, 'Delimiter', ';' );
   fclose(fileID);
@@ -126,11 +129,18 @@ for dataIndex=startD:endD
   % Lineage Tree Id
   LCol = data{9};
   % Cell File Id
-  CFCol = data{12};
+  %CFCol = data{12};
   % Cell Layer Id
-  CLCol = data{13};
+  %CLCol = data{13};
   % Divison Type
   %DCol = data{14};
+  % temporal for data 131203
+  % Cell File Id
+  CFCol = data{10};
+  % Cell Layer Id
+  CLCol = data{11};
+  % Divison Type
+  DCol = data{12};
   
   % get maximum of time steps
   % if a movie should be created
@@ -234,7 +244,8 @@ for dataIndex=startD:endD
   % boundary offset for rendering since the elongation of the
   % ellipsoids can be quite large; special case for data set 130508
   offset = 50;
-  if strcmp( dataStr( 1, dataIndex ), '130508_raw' )
+  if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) ||...
+     strcmp( dataStr( 1, dataIndex ), '131203_raw' )
     offset = 150;
   end
   
@@ -546,7 +557,7 @@ for dataIndex=startD:endD
             lineX = [ linep1(1), linep2(1) ];
             lineY = [ linep1(2), linep2(2) ];
             lineZ = [ linep1(3), linep2(3) ];
-            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 2 );
+            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
             hold on;
           else
             linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
@@ -554,7 +565,7 @@ for dataIndex=startD:endD
             lineX = [ linep1(1), linep2(1) ];
             lineY = [ linep1(2), linep2(2) ];
             lineZ = [ linep1(3), linep2(3) ];
-            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 2 );
+            L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
             hold on;
             l = l+2;
           end
@@ -645,7 +656,10 @@ for dataIndex=startD:endD
           digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_' );
         end
         
-        filePath = strcat( imageDir, digit, num2str(imgStart), '_', num2str(numCells), '.png' );
+        % output with number of cells
+        %filePath = strcat( imageDir, digit, num2str(imgStart), '_', num2str(numCells), '.png' );
+        % output without number of cells
+        filePath = strcat( imageDir, digit, num2str(imgStart), '.png' );
         
         saveas( gcf, char(filePath) );
         
