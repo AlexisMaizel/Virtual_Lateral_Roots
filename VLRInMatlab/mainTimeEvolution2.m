@@ -12,7 +12,7 @@
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-data = 6;
+data = 1;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -128,6 +128,8 @@ for dataIndex=startD:endD
   ZCol = 2 * data{4};
   % Time Step
   TCol = data{5};
+  % string of precursors
+  PCol = data{7};
   % Lineage Tree Id
   LCol = data{9};
   % temporal for data 131203
@@ -196,9 +198,9 @@ for dataIndex=startD:endD
   
   % cellData is the main array with all relevant information
   % for the further analysis:
-  % ObjectID X Y Z Timepoint LineageID TrackGroup
-  %cellData = double.empty( 0, 7 );
-  cellData = cell( dim, 7 );
+  % ObjectID X Y Z Timepoint LineageID TrackGroup Precursors
+  %cellData = double.empty( 0, 8 );
+  cellData = cell( dim, 8 );
   cellFileMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
   
   l = 1;
@@ -208,7 +210,7 @@ for dataIndex=startD:endD
     firstCellId = IdCol(l);
     secondCellId = IdCol(l+1);
     % insert first line
-    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l)};
+    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) PCol(l)};
     nl = nl+1;
     
     % interpolate between cell positions
@@ -225,12 +227,12 @@ for dataIndex=startD:endD
         y = double(1-k) * YCol(l) + double(k) * YCol(l+1);
         z = double(1-k) * ZCol(l) + double(k) * ZCol(l+1);
         % insert all relevant data into main data structure
-        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l)};
+        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) PCol(l)};
         nl = nl+1;
       end
       
       % insert last line
-      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1)};
+      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) PCol(l+1)};
       nl = nl+1;
       % update cell file map
       cellFileMap( firstCellId ) = CFCol(l);
@@ -271,7 +273,6 @@ for dataIndex=startD:endD
     axis off
     daspect( [ 1 1 1 ] );
   else
-    %axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset minZ-offset maxZ+offset ] );
     axis equal
     axis off
   end
