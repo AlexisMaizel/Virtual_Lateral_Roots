@@ -12,7 +12,7 @@
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-data = 6;
+data = 7;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -104,9 +104,10 @@ for dataIndex=startD:endD
   fileID = fopen( char(path) );
   % format of data sets:
   % ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer DivisionType
-  %formatSpec = '%d %f %f %f %d %d %q %q %d %q %q %d %d %q';
-  % temporal for data 131203
-  formatSpec = '%d %f %f %f %d %d %q %q %d %d %d %q';
+  formatSpec = '%d %f %f %f %d %d %q %q %d %q %q %d %d %q';
+  if strcmp( dataStr( 1, dataIndex ), '131203_raw' )
+    formatSpec = '%d %f %f %f %d %d %q %q %d %d %d %q';
+  end
   % read data and ignore the first four header lines
   data = textscan( fileID, formatSpec, 'HeaderLines', 4, 'Delimiter', ';' );
   fclose(fileID);
@@ -128,19 +129,22 @@ for dataIndex=startD:endD
   TCol = data{5};
   % Lineage Tree Id
   LCol = data{9};
-  % Cell File Id
-  %CFCol = data{12};
-  % Cell Layer Id
-  %CLCol = data{13};
-  % Divison Type
-  %DCol = data{14};
   % temporal for data 131203
-  % Cell File Id
-  CFCol = data{10};
-  % Cell Layer Id
-  CLCol = data{11};
-  % Divison Type
-  DCol = data{12};
+  if strcmp( dataStr( 1, dataIndex ), '131203_raw' )
+    % Cell File Id
+    CFCol = data{10};
+    % Cell Layer Id
+    CLCol = data{11};
+    % Divison Type
+    DCol = data{12};
+  else
+    % Cell File Id
+    CFCol = data{12};
+    % Cell Layer Id
+    CLCol = data{13};
+    % Divison Type
+    %DCol = data{14};
+  end
   
   % get maximum of time steps
   % if a movie should be created

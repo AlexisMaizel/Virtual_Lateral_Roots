@@ -23,10 +23,10 @@ cView = 2;
 startT = 1;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
-deltaT = 25;
+deltaT = 10;
 % decide which term should be included in the time evolution
+renderTermType = 2;
 termTypeStr = { 'B' 'T' 'All' };
-renderTermType = 1;
 % if set to one then only a single time step
 % is rendered given by startT
 exportType = 2;
@@ -44,7 +44,7 @@ equalAspectRatio = 0;
 % render elongation lines
 renderLines = 1;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 2;
+lineRenderType = 4;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2. draw only those lines with the largest elongation of the ellipoids
@@ -52,6 +52,7 @@ lineRenderType = 2;
 % 3: render all three major lines of elongation of the ellipsoids in 3D
 lineStr = { 'renderOnlyLargest3DElongation'...
             'renderOnlyLargestElongation'...
+            'all2DLines'...
             'allLines' };
 % in fact the lambda factor how far the plane is translated
 % along the viewing direction vector
@@ -443,6 +444,7 @@ for dataIndex=startD:endD
       
       cellsInFileMat = [];
       linePos = [];
+      lineColorIndex = [];
       
       % first get mapping of vertex ids of delaunay triangulation to object
       % ids of raw data set and store the results as a dimx2 matrix
@@ -670,12 +672,32 @@ for dataIndex=startD:endD
           end
         end
         
+        % line color by default black for each line
+        lineColor = [ 0 0 0 ; 0 0 0 ; 0 0 0 ];
+        % set line colors depending on the computed term and
+        % eigenvalue
+        if strcmp( termTypeStr( 1, renderTermType ), 'B' )
+          for e=1:3
+            % if the eigenvalue is positive then use a red color
+            if positiveEigenvalue( e, 1 ) == 1
+              lineColor( e, 1 ) = 1;
+              lineColor( e, 2 ) = 0;
+              lineColor( e, 3 ) = 0;
+            % negative eigenvalue
+            elseif positiveEigenvalue( e, 1 ) == 0
+              lineColor( e, 1 ) = 0;
+              lineColor( e, 2 ) = 0;
+              lineColor( e, 3 ) = 1;
+            end
+          end
+        end
+        
         % radii of the ellipsoid
         radii = sqrt( radii );
         
         % scaling such that even with small deformation changes
         % the ellipsoids can be identified
-        radii = radii.*6;
+        radii = radii.*5;
         
         xEigVec = Q(:, 1);
         yEigVec = Q(:, 2);
@@ -701,6 +723,14 @@ for dataIndex=startD:endD
           % draw the three major axes in the origin which are then
           % rotated according to the eigenvectors
           for l=lineStart:3
+            
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+              % skip the lines that correspond to a negative eigenvalue
+              if positiveEigenvalue( e, 1 ) == 0
+                continue;
+              end
+            end
+            
             if l == 1
               sX = [ -radii(1)/2., radii(1)/2. ];
               sY = [ 0, 0 ];
@@ -720,6 +750,7 @@ for dataIndex=startD:endD
             
             % and store the start/end points of the lines in linePos
             linePos = [ linePos ; lineX(1) lineY(1) lineZ(1) ; lineX(2) lineY(2) lineZ(2) ];
+            lineColorIndex = [ lineColorIndex ; lineColor( l, : ) ];
             
             % draw line in 3D
             %line( lineX, lineY, lineZ );
@@ -785,9 +816,11 @@ for dataIndex=startD:endD
               % check the length of all three main major axes and choose the
               % largest one to render only
               lengthVec = zeros( 3, 1 );
+              lineVectors = [];
               for ll=1:3
                 linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
                 linep2 = projectOnPlane( linePos(l+1, :), planePos, u, v );
+                lineVectors = [ lineVectors ; linep2(1)-linep1(1) linep2(1)-linep1(1) linep2(1)-linep1(1) ];
                 length = norm( linep2 - linep1 );
                 lengthVec( ll, 1 ) = length;
                 l = l+2;
@@ -798,7 +831,36 @@ for dataIndex=startD:endD
               lineX = [ linep1(1), linep2(1) ];
               lineY = [ linep1(2), linep2(2) ];
               lineZ = [ linep1(3), linep2(3) ];
-              L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
+              index = int16( round( (l+1-2*(4-I))/2 ) );
+              L(l) = line( lineX, lineY, lineZ, 'Color', lineColorIndex( index, : ), 'LineWidth', 1.5 );
+              hold on;
+            elseif strcmp( lineStr( 1, lineRenderType ), 'all2DLines' )
+              % only render the line with the longest elongation and the one perpendicular
+              % to it
+              lengthVec = zeros( 3, 1 );
+              lineVectors = [];
+              for ll=1:3
+                linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
+                linep2 = projectOnPlane( linePos(l+1, :), planePos, u, v );
+                lineVectors = [ lineVectors ; linep2(1)-linep1(1) linep2(2)-linep1(2) linep2(3)-linep1(3) ];
+                length = norm( linep2 - linep1 );
+                lengthVec( ll, 1 ) = length;
+                l = l+2;
+              end
+              
+              % compute angle between
+              a = dot( lineVectors( 1, : ), lineVectors( 2, : ) )
+              a = dot( lineVectors( 1, : ), lineVectors( 3, : ) )
+              a = dot( lineVectors( 2, : ), lineVectors( 3, : ) )
+              
+              [ C, I ] = max( lengthVec );
+              linep1 = projectOnPlane( linePos( l-2*(4-I), :), planePos, u, v );
+              linep2 = projectOnPlane( linePos( l+1-2*(4-I), :), planePos, u, v );
+              lineX = [ linep1(1), linep2(1) ];
+              lineY = [ linep1(2), linep2(2) ];
+              lineZ = [ linep1(3), linep2(3) ];
+              index = int16( round( (l+1-2*(4-I))/2 ) );
+              L(l) = line( lineX, lineY, lineZ, 'Color', lineColorIndex( index, : ), 'LineWidth', 1.5 );
               hold on;
             else
               linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
@@ -806,7 +868,8 @@ for dataIndex=startD:endD
               lineX = [ linep1(1), linep2(1) ];
               lineY = [ linep1(2), linep2(2) ];
               lineZ = [ linep1(3), linep2(3) ];
-              L(l) = line( lineX, lineY, lineZ, 'Color', [ 0. 0. 0. ], 'LineWidth', 1.5 );
+              index = int16( round( (l+1)/2 ) );
+              L(l) = line( lineX, lineY, lineZ, 'Color', lineColorIndex( index, : ), 'LineWidth', 1.5 );
               hold on;
               l = l+2;
             end
