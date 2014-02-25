@@ -22,7 +22,7 @@ data = 1;
 % 4 -> 3D
 cView = 2;
 % start with the current time step
-startT = 267;
+startT = 300;
 % draw delaunay tri?
 drawDelaunay = 0;
 % if set to one then only a single time step
@@ -38,9 +38,11 @@ renderPrincipalComponents = 0;
 % This is required to use equal axes in order to project the ellipsoids
 % correctly, else the result looks blurred (but only the vis, the computation
 % is still correct)
-equalAspectRatio = 1;
+equalAspectRatio = 0;
+% line width of ellipses and semi axes
+lineWidth = 1.2;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 3;
+lineRenderType = 4;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2. draw only those lines with the largest elongation of the ellipoids
@@ -263,7 +265,9 @@ for dataIndex=startD:endD
   
   % axes properties
   if equalAspectRatio == 0
-    axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset minZ-offset maxZ+offset ] );
+    axis( [ minX-offset maxX+offset minY-offset maxY+offset...
+            minZ-offset*offset maxZ+offset*offset...
+            minZ-offset*offset maxZ+offset*offset ] );
     axis on
     daspect( [ 1 1 1 ] );
   else
@@ -323,10 +327,13 @@ for dataIndex=startD:endD
   
   % surface instance
   S = [];
-  % line instance
-  L = [];
+  % semi axes instances
+  MIN = [];
+  MAX = [];
   % PC instance
   P = [];
+  % ellipse instance
+  ELLIP = [];
   
   % get stored eigenvectors for the last time step to set the same
   % direction view for each time step
@@ -384,7 +391,9 @@ for dataIndex=startD:endD
     % clean figure content by removing the
     % last ellipsoids and lines in the previous time step
     set( S, 'Visible', 'off' );
-    set( L, 'Visible', 'off' );
+    set( MAX, 'Visible', 'off' );
+    set( MIN, 'Visible', 'off' );
+    set( ELLIP, 'Visible', 'off' );
     set( P, 'Visible', 'off' );
     
     % if at least three cells exists
@@ -500,7 +509,7 @@ for dataIndex=startD:endD
         minMaxS = determineAxes( X, Y, Z, p1, dir );
         minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];
         
-%         S(c) = surface( X, Y, Z, 'FaceColor', 'w',...
+%         S(c) = surface( X, Y, Z, 'FaceColor', 'w', 'FaceAlpha', 1,...
 %             'EdgeColor', 'none', 'EdgeAlpha', 0,...
 %             'FaceLighting', 'gouraud' );
       end
@@ -539,12 +548,12 @@ for dataIndex=startD:endD
         lineMaxZ = [ maxSemiPoint(3), c(3) + c(3)-maxSemiPoint(3) ];
         
         % line of minor semi axis
-        minorSemiAxes = cross( dir, [ maxSemiPoint(1)-c(1) maxSemiPoint(2)-c(2) 0. ] );
+        minorSemiAxes = cross( dir, maxSemiPoint-c );
         minorSemiAxes = normalizeVector3d( minorSemiAxes );
         lineMinX = [ c(1) - minLength*minorSemiAxes(1), c(1) + minLength*minorSemiAxes(1) ];
         lineMinY = [ c(2) - minLength*minorSemiAxes(2), c(2) + minLength*minorSemiAxes(2) ];
-        lineMinZ = [ c(3) - minLength*minorSemiAxes(3), c(3) + minLength*minorSemiAxes(3) ];
-        %lineMinZ = [ 0., 0. ];
+        %lineMinZ = [ c(3) - minLength*minorSemiAxes(3), c(3) + minLength*minorSemiAxes(3) ];
+        lineMinZ = [ 0., 0. ];
         
         theta = acos( dot(maxSemiPoint - c, [ 1 0 0 ])/norm(maxSemiPoint - c) );
         theta = theta*180/pi;
@@ -557,17 +566,17 @@ for dataIndex=startD:endD
         
         % draw ellipse
         hold on;
-        L(l) = drawEllipse3d( c(1), c(2), c(3), maxLength, minLength, 0, theta );
-        set( L(l), 'color', [ 0 0 0 ], 'LineWidth', 1.5 );
+        ELLIP(l) = drawEllipse3d( c(1), c(2), c(3), maxLength, minLength, 0, theta );
+        set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
         
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
-          L(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', [ 1. 0. 0. ], 'LineWidth', 1.5 );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
           l = l+1;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
-          L(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', [ 1. 0. 0. ], 'LineWidth', 1.5 );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
-          L(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', [ 0. 0. 1. ], 'LineWidth', 1.5 );
+          MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
           l = l+1;
         else
@@ -579,8 +588,10 @@ for dataIndex=startD:endD
       hold off;
       set( f,'nextplot','replacechildren' );
       if equalAspectRatio == 0
-        axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset minZ-offset maxZ+offset ] );
-        %axis off
+        axis( [ minX-offset maxX+offset minY-offset maxY+offset...
+          minZ-offset*offset maxZ+offset*offset...
+          minZ-offset*offset maxZ+offset*offset ] );
+        axis on
         daspect( [ 1 1 1 ] );
       else
         axis equal
@@ -597,8 +608,6 @@ for dataIndex=startD:endD
       % first delete last lightsource
       delete(findall(gcf, 'Type', 'light'))
       camlight headlight;
-      
-      return;
       
       if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' )
         writeVideo( writerObj, getframe(f) );
