@@ -3,6 +3,8 @@
 %%%% statistical tools in two or three dimensions, Eur. Phys. J.,
 %%%% pp 349 -- 369, 2008
 
+addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
+
 %%%%% setting of properties %%%%%%
 % data Index:
 % 1 -> 120830
@@ -12,7 +14,7 @@
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-data = 7;
+data = 1;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -20,7 +22,7 @@ data = 7;
 % 4 -> 3D
 cView = 2;
 % start with the current time step
-startT = 1;
+startT = 51;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
 deltaT = 10;
@@ -29,7 +31,7 @@ renderTermType = 2;
 termTypeStr = { 'B' 'T' 'All' };
 % if set to one then only a single time step
 % is rendered given by startT
-exportType = 2;
+exportType = 1;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' 'AsVideo' };
 % render only master file?
@@ -41,22 +43,20 @@ renderPrincipalComponents = 0;
 % correctly, else the result looks blurred (but only the vis, the computation
 % is still correct)
 equalAspectRatio = 0;
-% render elongation lines
-renderLines = 1;
+% line width of ellipses and semi axes
+lineWidth = 1.2;
 % choose which major lines of the ellipsoids should be rendered
 lineRenderType = 4;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
-% 2. draw only those lines with the largest elongation of the ellipoids
+% 2: render all three major lines of elongation of the ellipsoids in 3D
+% 3. draw only those lines with the largest elongation of the ellipoids
 %    projected onto the generated 2D plane
-% 3: render all three major lines of elongation of the ellipsoids in 3D
-lineStr = { 'renderOnlyLargest3DElongation'...
-            'renderOnlyLargestElongation'...
-            'all2DLines'...
-            'allLines' };
-% in fact the lambda factor how far the plane is translated
-% along the viewing direction vector
-planePositionFactor = 350;
+% 4: render all two major lines of elongation of the ellipses in 2D
+lineStr = { 'renderLargest3DElongation'...
+  'renderAll3DElongation'...
+  'renderLargest2DElongation'...
+  'renderAll2DElongation' };
 
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
@@ -156,11 +156,11 @@ for dataIndex=startD:endD
   % get maximum of time steps
   % if a movie should be created
   if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' ) ||...
-     strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
+      strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
     maxT = max( TCol );
     % else only render between two time steps
   else
-    maxT = startT + 1;
+    maxT = startT + deltaT;
   end
   
   % get bounding box are by determining
@@ -178,7 +178,7 @@ for dataIndex=startD:endD
   maxCF = max( CFCol );
   
   % number of subdivisions for ellipsoids
-  nEllip = 20;
+  nEllip = 10;
   
   l = 1;
   % first determine dimension of cellData
@@ -255,9 +255,9 @@ for dataIndex=startD:endD
   
   % boundary offset for rendering since the elongation of the
   % ellipsoids can be quite large; special case for data set 130508
-  offset = 50;
+  offset = 100;
   if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) ||...
-     strcmp( dataStr( 1, dataIndex ), '131203_raw' )
+      strcmp( dataStr( 1, dataIndex ), '131203_raw' )
     offset = 150;
   end
   
@@ -273,12 +273,14 @@ for dataIndex=startD:endD
   
   % axes properties
   if equalAspectRatio == 0
-    axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset minZ-offset maxZ+offset ] );
-    axis off
+    axis( [ minX-offset maxX+offset minY-offset maxY+offset...
+      minZ-offset*offset maxZ+offset*offset...
+      minZ-offset*offset maxZ+offset*offset ] );
+    axis on
     daspect( [ 1 1 1 ] );
   else
     axis equal
-    axis off
+    axis on
   end
   
   grid off;
@@ -330,13 +332,44 @@ for dataIndex=startD:endD
       numCellsAtEnd = numCellsAtEnd +1;
     end
   end
- 
+  
   % surface instance
   S = [];
-  % line instance
-  L = [];
+  % semi axes instances
+  MIN = [];
+  MID = [];
+  MAX = [];
   % PC instance
   P = [];
+  % ellipse instance
+  ELLIP = [];
+  
+  % get stored eigenvectors for the last time step to set the same
+  % direction view for each time step
+  coeff = getPrincipalComponents( dataStr( 1, dataIndex ) );
+  
+  % set PC depending on the viewing direction
+  if cView == 1
+    dir = coeff(:,2);
+    u = coeff(:,1);
+    v = coeff(:,3);
+  elseif cView == 2
+    dir = coeff(:,3);
+    u = coeff(:,1);
+    v = coeff(:,2);
+  elseif cView == 3
+    dir = coeff(:,1);
+    u = coeff(:,2);
+    v = coeff(:,3);
+  end
+  
+  % set plane position
+  planePos = dir * 1;
+  
+  plane = [ planePos(1) planePos(2) planePos(3)...
+    u(1) u(2) u(3)...
+    v(1) v(2) v(3) ];
+  TF = createBasisTransform3d( 'g', plane );
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%% Traversal over all time steps and time evolution generation %%%
@@ -379,7 +412,7 @@ for dataIndex=startD:endD
   % loop over all time steps
   imgStart = 1;
   curT = startT;
-  while curT < maxT-deltaT+1    
+  while curT < maxT-deltaT+1
     % update cell information
     if begin ~= 1
       numCellsC = numCellsN;
@@ -422,7 +455,10 @@ for dataIndex=startD:endD
     % clean figure content by removing the
     % last ellipsoids and lines in the previous time step
     set( S, 'Visible', 'off' );
-    set( L, 'Visible', 'off' );
+    set( MAX, 'Visible', 'off' );
+    set( MID, 'Visible', 'off' );
+    set( MIN, 'Visible', 'off' );
+    set( ELLIP, 'Visible', 'off' );
     set( P, 'Visible', 'off' );
     
     % if at least three cells exists in both time steps
@@ -443,8 +479,10 @@ for dataIndex=startD:endD
       end
       
       cellsInFileMat = [];
+      %lineColorIndex = [];
       linePos = [];
-      lineColorIndex = [];
+      minMaxSemiAxisVector = [];
+      centerEllipse = [];
       
       % first get mapping of vertex ids of delaunay triangulation to object
       % ids of raw data set and store the results as a dimx2 matrix
@@ -495,7 +533,7 @@ for dataIndex=startD:endD
             continue;
           end
         end
-
+        
         % check if the current cell already existed in the last time
         % step; if not then back traverse its precursors until the
         % corresponding object id is found
@@ -567,7 +605,7 @@ for dataIndex=startD:endD
         if numConservedLinksPerCell > 0
           B = B./numConservedLinksPerCell;
         end
-         
+        
         % multiply the factor of N_c/N_tot (see paper in Appendix C1)
         if numConservedLinksPerCell > 0
           B = B.*( numConservedLinksPerCell / numAveragedLinksPerCell);
@@ -580,8 +618,8 @@ for dataIndex=startD:endD
           
           % link at time step t + deltaT
           l = getCellPosition( neighborId, triN, cellIdsN ) -...
-              getCellPosition( objectIdN, triN, cellIdsN );
-            
+            getCellPosition( objectIdN, triN, cellIdsN );
+          
           % compute link matrix
           m = getLinkMatrix( l, l );
           
@@ -594,7 +632,7 @@ for dataIndex=startD:endD
         if isConserved( objectIdN, objectLinksC ) == 0
           % link between position at time step t and t + deltaT
           l = p2 - p1;
-            
+          
           % compute link matrix
           m = getLinkMatrix( l, l );
           
@@ -624,8 +662,8 @@ for dataIndex=startD:endD
           
           % link at time step t
           l = getCellPosition( neighborId, triC, cellIdsC ) -...
-              getCellPosition( objectIdC, triC, cellIdsC );
-            
+            getCellPosition( objectIdC, triC, cellIdsC );
+          
           % compute link matrix
           m = getLinkMatrix( l, l );
           
@@ -656,6 +694,11 @@ for dataIndex=startD:endD
           M = B + T1 - T2;
         end
         
+        % check if the matrix is zero then draw no ellipse
+        if all( M == 0 )
+          continue;
+        end
+        
         % compute the eigenvectors and eigenvalues of matrix M
         % The columns of Q are the eigenvectors and the diagonal
         % elements of D are the eigenvalues
@@ -683,7 +726,7 @@ for dataIndex=startD:endD
               lineColor( e, 1 ) = 1;
               lineColor( e, 2 ) = 0;
               lineColor( e, 3 ) = 0;
-            % negative eigenvalue
+              % negative eigenvalue
             elseif positiveEigenvalue( e, 1 ) == 0
               lineColor( e, 1 ) = 0;
               lineColor( e, 2 ) = 0;
@@ -711,257 +754,206 @@ for dataIndex=startD:endD
         Y = ellipPos(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
         Z = ellipPos(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
         
-        if renderLines == 1
-          % if only the lines with the largest elongation should be drawn
-          % then only traverse the last entry of the loop which corresponds
-          % to the largest eigenvalue
-          lineStart = 1;
-          if strcmp( lineStr( 1, lineRenderType ), 'renderOnlyLargest3DElongation' )
-            lineStart = 3;
+        semiLines = [];
+        % draw the three major axes in the origin which are then
+        % rotated according to the eigenvectors
+        for l=1:3
+          if l == 1
+            sX = [ -radii(1)/2., radii(1)/2. ];
+            sY = [ 0, 0 ];
+            sZ = [ 0, 0 ];
+          elseif l == 2
+            sX = [ 0, 0 ];
+            sY = [ -radii(2)/2., radii(2)/2. ];
+            sZ = [ 0, 0 ];
+          else
+            sX = [ 0, 0 ];
+            sY = [ 0, 0 ];
+            sZ = [ -radii(3)/2., radii(3)/2. ];
           end
+          lineX = p1(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
+          lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
+          lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
           
-          % draw the three major axes in the origin which are then
-          % rotated according to the eigenvectors
-          for l=lineStart:3
-            
-            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
-              % skip the lines that correspond to a negative eigenvalue
-              if positiveEigenvalue( e, 1 ) == 0
-                continue;
-              end
-            end
-            
-            if l == 1
-              sX = [ -radii(1)/2., radii(1)/2. ];
-              sY = [ 0, 0 ];
-              sZ = [ 0, 0 ];
-            elseif l == 2
-              sX = [ 0, 0 ];
-              sY = [ -radii(2)/2., radii(2)/2. ];
-              sZ = [ 0, 0 ];
-            else
-              sX = [ 0, 0 ];
-              sY = [ 0, 0 ];
-              sZ = [ -radii(3)/2., radii(3)/2. ];
-            end
-            lineX = ellipPos(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
-            lineY = ellipPos(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
-            lineZ = ellipPos(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
-            
-            % and store the start/end points of the lines in linePos
-            linePos = [ linePos ; lineX(1) lineY(1) lineZ(1) ; lineX(2) lineY(2) lineZ(2) ];
-            lineColorIndex = [ lineColorIndex ; lineColor( l, : ) ];
-            
-            % draw line in 3D
-            %line( lineX, lineY, lineZ );
+          projLine1 = projectOnPlane( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v );
+          projLine2 = projectOnPlane( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v );
+          projLine1 = transformPoint3d( projLine1, TF );
+          projLine2 = transformPoint3d( projLine2, TF );
+          
+          % and store the start/end points of the lines in linePos
+          semiLines = [ semiLines projLine1 projLine2 ];
+        end
+        
+        % update semi axes in 3D
+        linePos = [ linePos ; semiLines ];
+        
+        % project each vertex of the ellipsoid onto the plane
+        dimP = size( X, 1 );
+        for q=1:dimP
+          for p=1:dimP
+            curPos = projectOnPlane( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v );
+            curPos = transformPoint3d( [curPos(1) curPos(2) curPos(3)], TF );
+            X(p,q) = curPos(1);
+            Y(p,q) = curPos(2);
+            Z(p,q) = curPos(3);
           end
         end
         
-        if renderSingleCellFile == 1
-          S(c) = surface( X, Y, Z, 'FaceColor', 'w',...
-            'EdgeColor', 'none', 'EdgeAlpha', 0,...
-            'FaceLighting', 'gouraud' );
-        else
-          S(c) = surface( X, Y, Z, 'FaceColor', color,...
-            'EdgeColor', 'none', 'EdgeAlpha', 0,...
-            'FaceLighting', 'gouraud' );
-        end
-        hold on;
+        p1 = projectOnPlane( p1, planePos, u, v );
+        p1 = transformPoint3d( p1, TF );
+        centerEllipse = [ centerEllipse ; p1 ];
+        minMaxS = determineAxes( X, Y, Z, p1, dir );
+        minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];
+        
+        S(c) = surface( X, Y, Z, 'FaceColor', 'w', 'FaceAlpha', 1,...
+          'EdgeColor', 'none', 'EdgeAlpha', 0,...
+          'FaceLighting', 'gouraud' );
       end
       
-      % after drawing all cells perform a pca for getting the principal axes
-      % if at least four points exist (such that three PCs are generated)
-      numPCACells = size( cellsInFileMat, 1 );
-      if numPCACells > 3
-        start = mean( cellsInFileMat );
-        %coeff = pca( cellsInFileMat );
-        coeff = getPrincipalComponents( dataStr( 1, dataIndex ) );
+      % draw principal components
+      if renderPrincipalComponents == 1
+        start = mean( cellFileMat );
+        %coeff = pca( cellFileMat );
         arrowLength = 150;
-        
-        % draw principal components
-        if renderPrincipalComponents == 1
-          for a=1:3
-            P(a) = quiver3( start(1), start(2), start(3),...
-              coeff(1,a), coeff(2,a), coeff(3,a),...
-              arrowLength, 'LineWidth', 3,...
-              'Color', cm( a, : ) );
-            hold on;
-          end
+        for a=1:3
+          P(a) = quiver3( start(1), start(2), start(3),...
+            coeff(1,a), coeff(2,a), coeff(3,a),...
+            arrowLength, 'LineWidth', 3,...
+            'Color', cm( a, : ) );
+          hold on;
         end
+      end
+      
+      % draw ellipses and lines
+      l = 1;
+      dimL = size( centerEllipse, 1 )
+      while l < dimL+1
+        minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
+          minMaxSemiAxisVector( l, 2 )...
+          minMaxSemiAxisVector( l, 3 )];
+        maxSemiPoint = [minMaxSemiAxisVector( l, 4 )...
+          minMaxSemiAxisVector( l, 5 )...
+          minMaxSemiAxisVector( l, 6 )];
+        c = centerEllipse( l, : );
+        minLength = norm( minSemiPoint - c );
+        maxLength = norm( maxSemiPoint - c );
         
-        % set PC depending on the viewing direction
-        if cView == 1
-          dir = coeff(:,2);
-          u = coeff(:,1);
-          v = coeff(:,3);
-        elseif cView == 2 || cView == 4
-          dir = coeff(:,3);
-          u = coeff(:,1);
-          v = coeff(:,2);
-        elseif cView == 3
-          dir = coeff(:,1);
-          u = coeff(:,2);
-          v = coeff(:,3);
-        end
+        % line of major semi axis
+        lineMaxX = [ maxSemiPoint(1), c(1) + c(1)-maxSemiPoint(1) ];
+        lineMaxY = [ maxSemiPoint(2), c(2) + c(2)-maxSemiPoint(2) ];
+        lineMaxZ = [ maxSemiPoint(3), c(3) + c(3)-maxSemiPoint(3) ];
         
-        if renderLines == 1
-          % set plane position
-          planePos = dir * planePositionFactor;
-          
-          % draw lines of the major ellipsoid axes onto the projected plane
-          l = 1;
-          dimL = size( linePos, 1 ) + 1;
-          while l < dimL
-            if strcmp( lineStr( 1, lineRenderType ), 'renderOnlyLargestElongation' )
-              % check the length of all three main major axes and choose the
-              % largest one to render only
-              lengthVec = zeros( 3, 1 );
-              lineVectors = [];
-              for ll=1:3
-                linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
-                linep2 = projectOnPlane( linePos(l+1, :), planePos, u, v );
-                lineVectors = [ lineVectors ; linep2(1)-linep1(1) linep2(1)-linep1(1) linep2(1)-linep1(1) ];
-                length = norm( linep2 - linep1 );
-                lengthVec( ll, 1 ) = length;
-                l = l+2;
-              end
-              [ C, I ] = max( lengthVec );
-              linep1 = projectOnPlane( linePos( l-2*(4-I), :), planePos, u, v );
-              linep2 = projectOnPlane( linePos( l+1-2*(4-I), :), planePos, u, v );
-              lineX = [ linep1(1), linep2(1) ];
-              lineY = [ linep1(2), linep2(2) ];
-              lineZ = [ linep1(3), linep2(3) ];
-              index = int16( round( (l+1-2*(4-I))/2 ) );
-              L(l) = line( lineX, lineY, lineZ, 'Color', lineColorIndex( index, : ), 'LineWidth', 1.5 );
-              hold on;
-            elseif strcmp( lineStr( 1, lineRenderType ), 'all2DLines' )
-              % only render the line with the longest elongation and the one perpendicular
-              % to it
-              lengthVec = zeros( 3, 1 );
-              lineVectors = [];
-              for ll=1:3
-                linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
-                linep2 = projectOnPlane( linePos(l+1, :), planePos, u, v );
-                lineVectors = [ lineVectors ; linep2(1)-linep1(1) linep2(2)-linep1(2) linep2(3)-linep1(3) ];
-                length = norm( linep2 - linep1 );
-                lengthVec( ll, 1 ) = length;
-                l = l+2;
-              end
-              
-              % compute angle between
-              a = dot( lineVectors( 1, : ), lineVectors( 2, : ) )
-              a = dot( lineVectors( 1, : ), lineVectors( 3, : ) )
-              a = dot( lineVectors( 2, : ), lineVectors( 3, : ) )
-              
-              [ C, I ] = max( lengthVec );
-              linep1 = projectOnPlane( linePos( l-2*(4-I), :), planePos, u, v );
-              linep2 = projectOnPlane( linePos( l+1-2*(4-I), :), planePos, u, v );
-              lineX = [ linep1(1), linep2(1) ];
-              lineY = [ linep1(2), linep2(2) ];
-              lineZ = [ linep1(3), linep2(3) ];
-              index = int16( round( (l+1-2*(4-I))/2 ) );
-              L(l) = line( lineX, lineY, lineZ, 'Color', lineColorIndex( index, : ), 'LineWidth', 1.5 );
-              hold on;
-            else
-              linep1 = projectOnPlane( linePos(l, :), planePos, u, v );
-              linep2 = projectOnPlane( linePos(l+1, :), planePos, u, v );
-              lineX = [ linep1(1), linep2(1) ];
-              lineY = [ linep1(2), linep2(2) ];
-              lineZ = [ linep1(3), linep2(3) ];
-              index = int16( round( (l+1)/2 ) );
-              L(l) = line( lineX, lineY, lineZ, 'Color', lineColorIndex( index, : ), 'LineWidth', 1.5 );
-              hold on;
-              l = l+2;
-            end
-          end
+        % line of minor semi axis
+        minorSemiAxes = cross( dir, maxSemiPoint-c );
+        minorSemiAxes = normalizeVector3d( minorSemiAxes );
+        lineMinX = [ c(1) - minLength*minorSemiAxes(1), c(1) + minLength*minorSemiAxes(1) ];
+        lineMinY = [ c(2) - minLength*minorSemiAxes(2), c(2) + minLength*minorSemiAxes(2) ];
+        %lineMinZ = [ c(3) - minLength*minorSemiAxes(3), c(3) + minLength*minorSemiAxes(3) ];
+        lineMinZ = [ 0., 0. ];
+        
+        theta = acos( dot(maxSemiPoint - c, [ 1 0 0 ])/norm(maxSemiPoint - c) );
+        theta = theta*180/pi;
+        
+        % check y values because this is required for
+        % a correct rotation of the ellipses around the z axis
+        if lineMaxY(1) <= lineMaxY(2)
+          theta = -theta;
         end
         
-        hold off;
-        set( f,'nextplot','replacechildren' );
-        if equalAspectRatio == 0
-          axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset minZ-offset maxZ+offset ] );
-          %axis off
-          daspect( [ 1 1 1 ] );
-        else
-          %axis( [ minX-offset maxX+offset minY-offset maxY+offset minZ-offset maxZ+offset minZ-offset maxZ+offset ] );
-          axis equal
-          axis off
-        end
+        % draw ellipse
+        hold on;
+        ELLIP(l) = drawEllipse3d( c(1), c(2), c(3), maxLength, minLength, 0, theta );
+        set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
         
-        %daspect('manual')
-        grid off;
-        xlabel('X');
-        ylabel('Y');
-        zlabel('Z');
-        C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
-        if begin == 1
-          %title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT-1) ) );
-          title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT+deltaT) ) );
-        else
-          title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT+deltaT) ) );
+        if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          hold on;
+        elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          hold on;
+          MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'k', 'LineWidth', lineWidth );
+          hold on;
+        elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
+          lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
+          lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
+          lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          hold on;
+        elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
+          lineMinX = [ linePos( l, 1 ), linePos( l, 4 ) ];
+          lineMinY = [ linePos( l, 2 ), linePos( l, 5 ) ];
+          lineMinZ = [ linePos( l, 3 ), linePos( l, 6 ) ];
+          lineMidX = [ linePos( l, 7 ), linePos( l, 10 ) ];
+          lineMidY = [ linePos( l, 8 ), linePos( l, 11 ) ];
+          lineMidZ = [ linePos( l, 9 ), linePos( l, 12 ) ];
+          lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
+          lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
+          lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          hold on;
+          MID(l) = line( lineMidX, lineMidY, lineMidZ, 'Color', 'k', 'LineWidth', lineWidth );
+          hold on;
+          MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'b', 'LineWidth', lineWidth );
+          hold on;
         end
-        % perhaps include optical rotation information into current view
-        %rot = [ 2 -5 41 ];
-        if cView == 1
-          % top view
-          if dataIndex == 2
-            view( [ -coeff(1,2), -coeff(2,2), -coeff(3,2) ] );
-          else
-            view( [ coeff(1,2), coeff(2,2), coeff(3,2) ] );
-          end
-          camup( [ coeff(:,3) ] );
-        elseif cView == 2
-          % side view
-          view( [ coeff(1,3), coeff(2,3), coeff(3,3) ] );
-          if dataIndex == 2
-            camup( [ -coeff(:,2) ] );
-          else
-            camup( [ coeff(:,2) ] );
-          end
-        elseif cView == 3
-          % radial view
-          view( [ coeff(1,1), coeff(2,1), coeff(3,1) ] );
-          if dataIndex == 2
-            camup( [ -coeff(:,2) ] );
-          else
-            camup( [ coeff(:,2) ] );
-          end
-        else
-          % 3D view
-          view(3);
-        end
+        l = l+1;
+      end
+      
+      hold off;
+      set( f,'nextplot','replacechildren' );
+      if equalAspectRatio == 0
+        axis( [ minX-offset maxX+offset minY-offset maxY+offset...
+          minZ-offset*offset maxZ+offset*offset...
+          minZ-offset*offset maxZ+offset*offset ] );
+        axis on
+        daspect( [ 1 1 1 ] );
       else
-        % if too few cells are available for PCA then just continue
-        curT = curT + deltaT;
-        continue;
+        axis equal
+        axis on
       end
       
-      % first delete last lightsource
-      delete(findall(gcf, 'Type', 'light'))
-      camlight headlight;
-      
-      if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' )
-        writeVideo( writerObj, getframe(f) );
+      grid off;
+      xlabel('X');
+      ylabel('Y');
+      zlabel('Z');
+      C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
+      if begin == 1
+        %title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT-1) ) );
+        title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT+deltaT) ) );
+      else
+        title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT+deltaT) ) );
       end
-      
-      % if images instead of a video should be exported
-      if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
-        if imgStart < 10
-          digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_00' );
-        elseif imgStart < 100
-          digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_0' );
-        else
-          digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_' );
-        end
-        
-        filePath = strcat( imageDir, digit, num2str(imgStart), '.png' );
-        
-        saveas( gcf, char(filePath) );
-        
-        imgStart = imgStart + 1;
-      end
-      
+    else
+      % if too few cells are available for PCA then just continue
+      curT = curT + deltaT;
+      continue;
     end
+    
+    % first delete last lightsource
+    delete(findall(gcf, 'Type', 'light'))
+    camlight headlight;
+    
+    if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' )
+      writeVideo( writerObj, getframe(f) );
+    end
+    
+    % if images instead of a video should be exported
+    if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
+      if imgStart < 10
+        digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_00' );
+      elseif imgStart < 100
+        digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_0' );
+      else
+        digit = strcat( dataStr( 1, dataIndex ), viewStr( 1, cView ), '_' );
+      end
+      
+      filePath = strcat( imageDir, digit, num2str(imgStart), '.png' );
+      
+      saveas( gcf, char(filePath) );
+      
+      imgStart = imgStart + 1;
+    end
+    
     % at last set begin to false
     if begin == 1
       begin = 0;

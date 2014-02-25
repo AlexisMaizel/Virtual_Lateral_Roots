@@ -19,7 +19,6 @@ data = 1;
 % 1 -> top
 % 2 -> side
 % 3 -> radial
-% 4 -> 3D
 cView = 2;
 % start with the current time step
 startT = 300;
@@ -172,7 +171,7 @@ for dataIndex=startD:endD
   maxCF = max( CFCol );
   
   % number of subdivisions for ellipsoids
-  nEllip = 20;
+  nEllip = 9;
   
   l = 1;
   % first determine dimension of cellData
@@ -248,7 +247,7 @@ for dataIndex=startD:endD
   
   % boundary offset for rendering since the elongation of the
   % ellipsoids can be quite large; special case for data set 130508
-  offset = 50;
+  offset = 100;
   if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) ||...
      strcmp( dataStr( 1, dataIndex ), '131203_raw' )
     offset = 150;
@@ -346,7 +345,7 @@ for dataIndex=startD:endD
     dir = coeff(:,2);
     u = coeff(:,1);
     v = coeff(:,3);
-  elseif cView == 2 || cView == 4
+  elseif cView == 2
     dir = coeff(:,3);
     u = coeff(:,1);
     v = coeff(:,2);
@@ -411,12 +410,9 @@ for dataIndex=startD:endD
         tetramesh(tri, 'FaceColor', cm( 1, : ), 'FaceAlpha', 0.9 );
       end
       
-      cellFileMat = [];
-      
+      cellFileMat = [];    
       linePos = [];
-      
       minMaxSemiAxisVector = [];
-      
       centerEllipse = [];
       
       % draw an ellipsoid for each cell
@@ -547,7 +543,7 @@ for dataIndex=startD:endD
         
 %         S(c) = surface( X, Y, Z, 'FaceColor', 'w', 'FaceAlpha', 1,...
 %             'EdgeColor', 'none', 'EdgeAlpha', 0,...
-%             'FaceLighting', 'gouraud' );
+%             'FaceLighting', 'none' );
       end
       
       % draw principal components
@@ -567,7 +563,7 @@ for dataIndex=startD:endD
       % draw ellipses and lines
       l = 1;
       dimL = size( centerEllipse, 1 );
-      while l < dimL
+      while l < dimL+1
         minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
           minMaxSemiAxisVector( l, 2 )...
           minMaxSemiAxisVector( l, 3 )];
@@ -606,10 +602,10 @@ for dataIndex=startD:endD
         set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
         
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'k', 'LineWidth', lineWidth );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'k', 'LineWidth', lineWidth );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
           MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
@@ -617,7 +613,7 @@ for dataIndex=startD:endD
           lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
           lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
           lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'k', 'LineWidth', lineWidth );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
           lineMinX = [ linePos( l, 1 ), linePos( l, 4 ) ];
@@ -629,11 +625,11 @@ for dataIndex=startD:endD
           lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
           lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
           lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'k', 'LineWidth', lineWidth );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
           MID(l) = line( lineMidX, lineMidY, lineMidZ, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
-          MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'k', 'LineWidth', lineWidth );
+          MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'b', 'LineWidth', lineWidth );
           hold on;
         end
         l = l+1;
@@ -678,9 +674,9 @@ for dataIndex=startD:endD
         end
         
         % output with number of cells
-        %filePath = strcat( imageDir, digit, num2str(imgStart), '_', num2str(numCells), '.png' );
+        filePath = strcat( imageDir, digit, num2str(imgStart), '_', num2str(numCells), '.png' );
         % output without number of cells
-        filePath = strcat( imageDir, digit, num2str(imgStart), '.png' );
+        %filePath = strcat( imageDir, digit, num2str(imgStart), '.png' );
         
         saveas( gcf, char(filePath) );
         
