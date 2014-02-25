@@ -8,5 +8,5 @@ function planeCoord = projectOnPlane( x, r, u, v )
   % after finding the point on the plane tranlate it by the magnitude of r
   T = [ 1 0 0 r(1) ; 0 1 0 r(2) ; 0 0 1 r(3) ; 0 0 0 1 ];
   planeCoord = T * [ pos ; 1 ];
-  planeCoord = [ planeCoord(1) ; planeCoord(2); planeCoord(3) ];
+  planeCoord = [ planeCoord(1) planeCoord(2) planeCoord(3) ];
 end
