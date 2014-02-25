@@ -42,12 +42,13 @@ equalAspectRatio = 0;
 % line width of ellipses and semi axes
 lineWidth = 1.2;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 4;
+lineRenderType = 3;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
-% 2. draw only those lines with the largest elongation of the ellipoids
+% 2: render all three major lines of elongation of the ellipsoids in 3D
+% 3. draw only those lines with the largest elongation of the ellipoids
 %    projected onto the generated 2D plane
-% 3: render all three major lines of elongation of the ellipsoids in 3D
+% 4: render all two major lines of elongation of the ellipses in 2D
 lineStr = { 'renderLargest3DElongation'...
             'renderAll3DElongation'...
             'renderLargest2DElongation'...
@@ -329,6 +330,7 @@ for dataIndex=startD:endD
   S = [];
   % semi axes instances
   MIN = [];
+  MID = [];
   MAX = [];
   % PC instance
   P = [];
@@ -392,6 +394,7 @@ for dataIndex=startD:endD
     % last ellipsoids and lines in the previous time step
     set( S, 'Visible', 'off' );
     set( MAX, 'Visible', 'off' );
+    set( MID, 'Visible', 'off' );
     set( MIN, 'Visible', 'off' );
     set( ELLIP, 'Visible', 'off' );
     set( P, 'Visible', 'off' );
@@ -491,6 +494,39 @@ for dataIndex=startD:endD
         Y = p1(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
         Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
         
+        semiLines = [];
+        % draw the three major axes in the origin which are then
+        % rotated according to the eigenvectors
+        for l=1:3
+          if l == 1
+            sX = [ -radii(1)/2., radii(1)/2. ];
+            sY = [ 0, 0 ];
+            sZ = [ 0, 0 ];
+          elseif l == 2
+            sX = [ 0, 0 ];
+            sY = [ -radii(2)/2., radii(2)/2. ];
+            sZ = [ 0, 0 ];
+          else
+            sX = [ 0, 0 ];
+            sY = [ 0, 0 ];
+            sZ = [ -radii(3)/2., radii(3)/2. ];
+          end
+          lineX = p1(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
+          lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
+          lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
+          
+          projLine1 = projectOnPlane( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v );
+          projLine2 = projectOnPlane( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v );
+          projLine1 = transformPoint3d( projLine1, TF );
+          projLine2 = transformPoint3d( projLine2, TF );
+          
+          % and store the start/end points of the lines in linePos
+          semiLines = [ semiLines projLine1 projLine2 ];
+        end
+        
+        % update semi axes in 3D
+        linePos = [ linePos ; semiLines ];
+        
         % project each vertex of the ellipsoid onto the plane
         dimP = size( X, 1 );
         for q=1:dimP
@@ -572,17 +608,35 @@ for dataIndex=startD:endD
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
           MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
-          l = l+1;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
           MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
           MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
-          l = l+1;
-        else
-          % TODO
-          l = l+1;
+        elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
+          lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
+          lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
+          lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'k', 'LineWidth', lineWidth );
+          hold on;
+        elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
+          lineMinX = [ linePos( l, 1 ), linePos( l, 4 ) ];
+          lineMinY = [ linePos( l, 2 ), linePos( l, 5 ) ];
+          lineMinZ = [ linePos( l, 3 ), linePos( l, 6 ) ];
+          lineMidX = [ linePos( l, 7 ), linePos( l, 10 ) ];
+          lineMidY = [ linePos( l, 8 ), linePos( l, 11 ) ];
+          lineMidZ = [ linePos( l, 9 ), linePos( l, 12 ) ];
+          lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
+          lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
+          lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'k', 'LineWidth', lineWidth );
+          hold on;
+          MID(l) = line( lineMidX, lineMidY, lineMidZ, 'Color', 'k', 'LineWidth', lineWidth );
+          hold on;
+          MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'k', 'LineWidth', lineWidth );
+          hold on;
         end
+        l = l+1;
       end
       
       hold off;
