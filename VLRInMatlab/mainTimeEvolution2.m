@@ -22,12 +22,12 @@ data = 1;
 % 4 -> 3D
 cView = 2;
 % start with the current time step
-startT = 51;
+startT = 81;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
 deltaT = 10;
 % decide which term should be included in the time evolution
-renderTermType = 2;
+renderTermType = 1;
 termTypeStr = { 'B' 'T' 'All' };
 % if set to one then only a single time step
 % is rendered given by startT
@@ -46,7 +46,7 @@ equalAspectRatio = 0;
 % line width of ellipses and semi axes
 lineWidth = 1.2;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 4;
+lineRenderType = 1;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2: render all three major lines of elongation of the ellipsoids in 3D
@@ -479,10 +479,11 @@ for dataIndex=startD:endD
       end
       
       cellsInFileMat = [];
-      %lineColorIndex = [];
+      lineColorIndex = [];
       linePos = [];
       minMaxSemiAxisVector = [];
       centerEllipse = [];
+      minMaxEigenValueIndex = [];
       
       % first get mapping of vertex ids of delaunay triangulation to object
       % ids of raw data set and store the results as a dimx2 matrix
@@ -715,25 +716,33 @@ for dataIndex=startD:endD
           end
         end
         
+        % store the order of increasing eigen values
+        [ SortE, index ] = sort( radii );
+        minMaxEigenValueIndex = [ minMaxEigenValueIndex; index(1) index(2) index(3) ];
+        
         % line color by default black for each line
-        lineColor = [ 0 0 0 ; 0 0 0 ; 0 0 0 ];
+        lineColor = [ 0 0 0 0 0 0 0 0 0 ];
         % set line colors depending on the computed term and
         % eigenvalue
         if strcmp( termTypeStr( 1, renderTermType ), 'B' )
           for e=1:3
             % if the eigenvalue is positive then use a red color
             if positiveEigenvalue( e, 1 ) == 1
-              lineColor( e, 1 ) = 1;
-              lineColor( e, 2 ) = 0;
-              lineColor( e, 3 ) = 0;
+              lineColor( 1, 1 +3*e-3 ) = 1;
+              lineColor( 1, 2 +3*e-3 ) = 0;
+              lineColor( 1, 3 +3*e-3 ) = 0;
               % negative eigenvalue
             elseif positiveEigenvalue( e, 1 ) == 0
-              lineColor( e, 1 ) = 0;
-              lineColor( e, 2 ) = 0;
-              lineColor( e, 3 ) = 1;
+              lineColor( 1, 1 +3*e-3 ) = 0;
+              lineColor( 1, 2 +3*e-3 ) = 0;
+              lineColor( 1, 3 +3*e-3 ) = 1;
             end
           end
         end
+        
+        % store the coloring of lines depending on the sign of the
+        % eigenvalues
+        lineColorIndex = [ lineColorIndex; lineColor ];
         
         % radii of the ellipsoid
         radii = sqrt( radii );
@@ -805,9 +814,9 @@ for dataIndex=startD:endD
         minMaxS = determineAxes( X, Y, Z, p1, dir );
         minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];
         
-        S(c) = surface( X, Y, Z, 'FaceColor', 'w', 'FaceAlpha', 1,...
-          'EdgeColor', 'none', 'EdgeAlpha', 0,...
-          'FaceLighting', 'gouraud' );
+%         S(c) = surface( X, Y, Z, 'FaceColor', 'w', 'FaceAlpha', 1,...
+%           'EdgeColor', 'none', 'EdgeAlpha', 0,...
+%           'FaceLighting', 'gouraud' );
       end
       
       % draw principal components
@@ -826,7 +835,7 @@ for dataIndex=startD:endD
       
       % draw ellipses and lines
       l = 1;
-      dimL = size( centerEllipse, 1 )
+      dimL = size( centerEllipse, 1 );
       while l < dimL+1
         minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
           minMaxSemiAxisVector( l, 2 )...
@@ -874,27 +883,25 @@ for dataIndex=startD:endD
           MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
-          lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
-          lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
-          lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          % get index of longest elongation
+          index = minMaxEigenValueIndex( l, 3 );
+          lineMaxX = [ linePos( l, (index-1)*6 +1 ), linePos( l, (index-1)*6 +4 ) ];
+          lineMaxY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
+          lineMaxZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
+          color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', color, 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
-          lineMinX = [ linePos( l, 1 ), linePos( l, 4 ) ];
-          lineMinY = [ linePos( l, 2 ), linePos( l, 5 ) ];
-          lineMinZ = [ linePos( l, 3 ), linePos( l, 6 ) ];
-          lineMidX = [ linePos( l, 7 ), linePos( l, 10 ) ];
-          lineMidY = [ linePos( l, 8 ), linePos( l, 11 ) ];
-          lineMidZ = [ linePos( l, 9 ), linePos( l, 12 ) ];
-          lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
-          lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
-          lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
-          hold on;
-          MID(l) = line( lineMidX, lineMidY, lineMidZ, 'Color', 'k', 'LineWidth', lineWidth );
-          hold on;
-          MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'b', 'LineWidth', lineWidth );
-          hold on;
+          % get index of all elongation types
+          for el=1:3
+            index = minMaxEigenValueIndex( l, el );
+            lineX = [ linePos( l, (index-1)*6 +1 ), linePos( l, (index-1)*6 +4 ) ];
+            lineY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
+            lineZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
+            color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
+            MIN(l) = line( lineX, lineY, lineZ, 'Color', color, 'LineWidth', lineWidth );
+            hold on;
+          end
         end
         l = l+1;
       end
