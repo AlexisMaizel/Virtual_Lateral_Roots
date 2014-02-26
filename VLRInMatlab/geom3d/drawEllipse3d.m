@@ -197,8 +197,9 @@ ellipse = transformPoint3d(base, trans);
 
 % draw the curve
 h = drawPolyline3d(ellipse, options{:});
+h2 = fillPolygon3d( ellipse, [ 1 1 1 ] );
 
 if nargout > 0
-    varargout = {h};
+    varargout = {h h2};
 end
 

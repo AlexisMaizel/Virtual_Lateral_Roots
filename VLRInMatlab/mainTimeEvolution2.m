@@ -14,7 +14,7 @@ addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-data = 1;
+dataId = 7;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -22,31 +22,32 @@ data = 1;
 % 4 -> 3D
 cView = 2;
 % start with the current time step
-startT = 81;
+startT = 1;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
 deltaT = 10;
+% scaling of ellipses
+scaling = 10;
 % decide which term should be included in the time evolution
 renderTermType = 1;
 termTypeStr = { 'B' 'T' 'All' };
 % if set to one then only a single time step
 % is rendered given by startT
-exportType = 1;
+exportType = 2;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' 'AsVideo' };
 % render only master file?
 renderSingleCellFile = 1;
 % render principal components
 renderPrincipalComponents = 0;
-% equalAspectRation
-% This is required to use equal axes in order to project the ellipsoids
-% correctly, else the result looks blurred (but only the vis, the computation
-% is still correct)
-equalAspectRatio = 0;
+% vector of view offsets for x/Y/Z coordinates
+viewOffsets = [ 100 100 100 250 250 250 ];
 % line width of ellipses and semi axes
 lineWidth = 1.2;
+% enable z overlapping
+overlapping = 1;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 1;
+lineRenderType = 3;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2: render all three major lines of elongation of the ellipsoids in 3D
@@ -73,9 +74,9 @@ masterCellFile = [ 4 4 4 3 3 0 ];
 % show one specific one
 startD = 1;
 endD = 6;
-if data ~= 7
-  startD = data;
-  endD = data;
+if dataId ~= 7
+  startD = dataId;
+  endD = dataId;
 end
 
 % loop over all data sets
@@ -129,7 +130,11 @@ for dataIndex=startD:endD
   % Y coord
   YCol = data{3};
   % z coord; Note that due to resampling, the z value is multiplied with 2
-  ZCol = 2 * data{4};
+  if strcmp( dataStr( 1, dataIndex ), '121204_raw_2014' )
+    ZCol = -2 * data{4};
+  else
+    ZCol = 2 * data{4};
+  end
   % Time Step
   TCol = data{5};
   % string of precursors
@@ -252,15 +257,6 @@ for dataIndex=startD:endD
     end
   end
   
-  
-  % boundary offset for rendering since the elongation of the
-  % ellipsoids can be quite large; special case for data set 130508
-  offset = 100;
-  if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) ||...
-      strcmp( dataStr( 1, dataIndex ), '131203_raw' )
-    offset = 150;
-  end
-  
   % figure properties
   f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
   % activate orbit rotation by default
@@ -270,18 +266,6 @@ for dataIndex=startD:endD
   cameratoolbar( 'SetCoordSys', 'none' );
   % show camera toolbar by default
   cameratoolbar( 'Show' );
-  
-  % axes properties
-  if equalAspectRatio == 0
-    axis( [ minX-offset maxX+offset minY-offset maxY+offset...
-      minZ-offset*offset maxZ+offset*offset...
-      minZ-offset*offset maxZ+offset*offset ] );
-    axis on
-    daspect( [ 1 1 1 ] );
-  else
-    axis equal
-    axis on
-  end
   
   grid off;
   xlabel('X');
@@ -343,6 +327,7 @@ for dataIndex=startD:endD
   P = [];
   % ellipse instance
   ELLIP = [];
+  ELLIPPATCH = [];
   
   % get stored eigenvectors for the last time step to set the same
   % direction view for each time step
@@ -370,6 +355,12 @@ for dataIndex=startD:endD
     u(1) u(2) u(3)...
     v(1) v(2) v(3) ];
   TF = createBasisTransform3d( 'g', plane );
+  
+  % set axes properties
+  minAxes = projectOnPlane( [ minX minY minZ ], planePos, u, v );
+  minAxes = transformPoint3d( minAxes, TF );
+  maxAxes = projectOnPlane( [ maxX maxY maxZ ], planePos, u, v );
+  maxAxes = transformPoint3d( maxAxes, TF );
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%% Traversal over all time steps and time evolution generation %%%
@@ -459,6 +450,7 @@ for dataIndex=startD:endD
     set( MID, 'Visible', 'off' );
     set( MIN, 'Visible', 'off' );
     set( ELLIP, 'Visible', 'off' );
+    set( ELLIPPATCH, 'Visible', 'off' );
     set( P, 'Visible', 'off' );
     
     % if at least three cells exists in both time steps
@@ -484,6 +476,8 @@ for dataIndex=startD:endD
       minMaxSemiAxisVector = [];
       centerEllipse = [];
       minMaxEigenValueIndex = [];
+      indexColorSet = [];
+      positiveEigenvalueVector = [];
       
       % first get mapping of vertex ids of delaunay triangulation to object
       % ids of raw data set and store the results as a dimx2 matrix
@@ -720,6 +714,9 @@ for dataIndex=startD:endD
         [ SortE, index ] = sort( radii );
         minMaxEigenValueIndex = [ minMaxEigenValueIndex; index(1) index(2) index(3) ];
         
+        positiveEigenvalueVector = [ positiveEigenvalueVector;...
+          positiveEigenvalue(1) positiveEigenvalue(2) positiveEigenvalue(3) ];
+        
         % line color by default black for each line
         lineColor = [ 0 0 0 0 0 0 0 0 0 ];
         % set line colors depending on the computed term and
@@ -749,7 +746,7 @@ for dataIndex=startD:endD
         
         % scaling such that even with small deformation changes
         % the ellipsoids can be identified
-        radii = radii.*5;
+        radii = radii.*scaling;
         
         xEigVec = Q(:, 1);
         yEigVec = Q(:, 2);
@@ -793,6 +790,12 @@ for dataIndex=startD:endD
           semiLines = [ semiLines projLine1 projLine2 ];
         end
         
+        indexColorSet = [ indexColorSet; determineColorAssignment(...
+          [ xEigVec(1) xEigVec(2) xEigVec(3) ;...
+          yEigVec(1) yEigVec(2) yEigVec(3) ;...
+          zEigVec(1) zEigVec(2) zEigVec(3) ], positiveEigenvalue,...
+          [ projLine1 ; projLine2 ] ) ];
+        
         % update semi axes in 3D
         linePos = [ linePos ; semiLines ];
         
@@ -813,10 +816,6 @@ for dataIndex=startD:endD
         centerEllipse = [ centerEllipse ; p1 ];
         minMaxS = determineAxes( X, Y, Z, p1, dir );
         minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];
-        
-%         S(c) = surface( X, Y, Z, 'FaceColor', 'w', 'FaceAlpha', 1,...
-%           'EdgeColor', 'none', 'EdgeAlpha', 0,...
-%           'FaceLighting', 'gouraud' );
       end
       
       % draw principal components
@@ -833,10 +832,15 @@ for dataIndex=startD:endD
         end
       end
       
+      if overlapping == 1
+        zOffset = 1.;
+      else
+        zOffset = 0.;
+      end
+      
       % draw ellipses and lines
-      l = 1;
       dimL = size( centerEllipse, 1 );
-      while l < dimL+1
+      for l=1:dimL
         minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
           minMaxSemiAxisVector( l, 2 )...
           minMaxSemiAxisVector( l, 3 )];
@@ -871,16 +875,40 @@ for dataIndex=startD:endD
         
         % draw ellipse
         hold on;
-        ELLIP(l) = drawEllipse3d( c(1), c(2), c(3), maxLength, minLength, 0, theta );
+        [ ELLIP(l) ELLIPPATCH(l) ] = drawEllipse3d( c(1), c(2), c(3)+l*zOffset+0.2, maxLength, minLength, 0, theta );
         set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
+        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ] );
         
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          colorIndex = indexColorSet( l, 2 );
+          if colorIndex == 0
+            color = [ 0 0 1 ];
+          else
+            color = [ 1 0 0 ];
+          end
+          
+          if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
+             strcmp( termTypeStr( 1, renderTermType ), 'All' )
+            color = [ 0 0 0 ];
+          end
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          colorIndex = indexColorSet( l, 1 );
+          if colorIndex == 0
+            color = [ 0 0 1 ];
+          else
+            color = [ 1 0 0 ];
+          end
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
           hold on;
-          MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'k', 'LineWidth', lineWidth );
+          colorIndex = indexColorSet( l, 2 );
+          if colorIndex == 0
+            color = [ 0 0 1 ];
+          else
+            color = [ 1 0 0 ];
+          end
+          MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
           % get index of longest elongation
@@ -889,35 +917,45 @@ for dataIndex=startD:endD
           lineMaxY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
           lineMaxZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
           color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', color, 'LineWidth', lineWidth );
+          if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
+             strcmp( termTypeStr( 1, renderTermType ), 'All' )
+            color = [ 0 0 0 ];
+          end
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
           % get index of all elongation types
           for el=1:3
+            % TODO
+%             if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+%               positiveEigenvalueVector
+%             end
             index = minMaxEigenValueIndex( l, el );
             lineX = [ linePos( l, (index-1)*6 +1 ), linePos( l, (index-1)*6 +4 ) ];
             lineY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
             lineZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
             color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
-            MIN(l) = line( lineX, lineY, lineZ, 'Color', color, 'LineWidth', lineWidth );
+            if el == 1
+              MIN(l) = line( lineX, lineY, lineZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            elseif el == 2
+              MID(l) = line( lineX, lineY, lineZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            else
+              MAX(l) = line( lineX, lineY, lineZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            end
             hold on;
           end
         end
-        l = l+1;
       end
       
       hold off;
       set( f,'nextplot','replacechildren' );
-      if equalAspectRatio == 0
-        axis( [ minX-offset maxX+offset minY-offset maxY+offset...
-          minZ-offset*offset maxZ+offset*offset...
-          minZ-offset*offset maxZ+offset*offset ] );
-        axis on
-        daspect( [ 1 1 1 ] );
-      else
-        axis equal
-        axis on
-      end
+      viewOffset = viewOffsets( dataIndex );
+      axis( [ minAxes(1)-viewOffset maxAxes(1)+viewOffset...
+        minAxes(2)-viewOffset maxAxes(2)+viewOffset...
+        minAxes(3)-viewOffset maxAxes(3)+viewOffset...
+        minAxes(3)-viewOffset maxAxes(3)+viewOffset ] );
+      axis on
+      daspect( [ 1 1 1 ] );
       
       grid off;
       xlabel('X');

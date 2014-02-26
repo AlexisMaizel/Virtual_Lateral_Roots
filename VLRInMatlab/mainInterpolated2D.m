@@ -14,7 +14,7 @@ addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-data = 1;
+dataId = 2;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -33,15 +33,14 @@ exportTypeStr = { 'SingleFigure' 'AsImages' 'AsVideo' };
 renderSingleCellFile = 1;
 % render principal components
 renderPrincipalComponents = 0;
-% equalAspectRation
-% This is required to use equal axes in order to project the ellipsoids
-% correctly, else the result looks blurred (but only the vis, the computation
-% is still correct)
-equalAspectRatio = 0;
+% vector of view offsets for x/Y/Z coordinates
+viewOffsets = [ 100 100 100 250 250 250 ];
 % line width of ellipses and semi axes
 lineWidth = 1.2;
+% enable z overlapping
+overlapping = 1;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 3;
+lineRenderType = 4;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2: render all three major lines of elongation of the ellipsoids in 3D
@@ -68,9 +67,9 @@ masterCellFile = [ 4 4 4 3 3 0 ];
 % show one specific one
 startD = 1;
 endD = 6;
-if data ~= 7
-  startD = data;
-  endD = data;
+if dataId ~= 7
+  startD = dataId;
+  endD = dataId;
 end
 
 % loop over all data sets
@@ -124,7 +123,11 @@ for dataIndex=startD:endD
   % Y coord
   YCol = data{3};
   % z coord; Note that due to resampling, the z value is multiplied with 2
-  ZCol = 2 * data{4};
+  if strcmp( dataStr( 1, dataIndex ), '121204_raw_2014' )
+    ZCol = -2 * data{4};
+  else
+    ZCol = 2 * data{4};
+  end
   % Time Step
   TCol = data{5};
   % Lineage Tree Id
@@ -244,15 +247,7 @@ for dataIndex=startD:endD
       l = l+1;
     end
   end
-  
-  % boundary offset for rendering since the elongation of the
-  % ellipsoids can be quite large; special case for data set 130508
-  offset = 100;
-  if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) ||...
-     strcmp( dataStr( 1, dataIndex ), '131203_raw' )
-    offset = 150;
-  end
-  
+
   % figure properties
   f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
   % activate orbit rotation by default
@@ -262,18 +257,6 @@ for dataIndex=startD:endD
   cameratoolbar( 'SetCoordSys', 'none' );
   % show camera toolbar by default
   cameratoolbar( 'Show' );
-  
-  % axes properties
-  if equalAspectRatio == 0
-    axis( [ minX-offset maxX+offset minY-offset maxY+offset...
-            minZ-offset*offset maxZ+offset*offset...
-            minZ-offset*offset maxZ+offset*offset ] );
-    axis on
-    daspect( [ 1 1 1 ] );
-  else
-    axis equal
-    axis on
-  end
   
   grid off;
   xlabel('X');
@@ -335,6 +318,7 @@ for dataIndex=startD:endD
   P = [];
   % ellipse instance
   ELLIP = [];
+  ELLIPPATCH = [];
   
   % get stored eigenvectors for the last time step to set the same
   % direction view for each time step
@@ -362,6 +346,12 @@ for dataIndex=startD:endD
     u(1) u(2) u(3)...
     v(1) v(2) v(3) ];
   TF = createBasisTransform3d( 'g', plane );
+  
+  % set axes properties
+  minAxes = projectOnPlane( [ minX minY minZ ], planePos, u, v );
+  minAxes = transformPoint3d( minAxes, TF );
+  maxAxes = projectOnPlane( [ maxX maxY maxZ ], planePos, u, v );
+  maxAxes = transformPoint3d( maxAxes, TF );
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%% Traversal over all time steps and texture field generation %%%
@@ -396,6 +386,7 @@ for dataIndex=startD:endD
     set( MID, 'Visible', 'off' );
     set( MIN, 'Visible', 'off' );
     set( ELLIP, 'Visible', 'off' );
+    set( ELLIPPATCH, 'Visible', 'off' );
     set( P, 'Visible', 'off' );
     
     % if at least three cells exists
@@ -539,11 +530,7 @@ for dataIndex=startD:endD
         p1 = transformPoint3d( p1, TF );
         centerEllipse = [ centerEllipse ; p1 ];
         minMaxS = determineAxes( X, Y, Z, p1, dir );
-        minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];
-        
-%         S(c) = surface( X, Y, Z, 'FaceColor', 'w', 'FaceAlpha', 1,...
-%             'EdgeColor', 'none', 'EdgeAlpha', 0,...
-%             'FaceLighting', 'none' );
+        minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];  
       end
       
       % draw principal components
@@ -560,10 +547,15 @@ for dataIndex=startD:endD
         end
       end
       
-      % draw ellipses and lines
-      l = 1;
+      if overlapping == 1
+        zOffset = 1.;
+      else
+        zOffset = 0.;
+      end
+      
       dimL = size( centerEllipse, 1 );
-      while l < dimL+1
+      % draw ellipses and lines
+      for l=1:dimL
         minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
           minMaxSemiAxisVector( l, 2 )...
           minMaxSemiAxisVector( l, 3 )];
@@ -598,22 +590,23 @@ for dataIndex=startD:endD
         
         % draw ellipse
         hold on;
-        ELLIP(l) = drawEllipse3d( c(1), c(2), c(3), maxLength, minLength, 0, theta );
+        [ ELLIP(l) ELLIPPATCH(l) ] = drawEllipse3d( c(1), c(2), c(3)+l*zOffset+0.2, maxLength, minLength, 0, theta );
         set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
+        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ] );
         
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
-          MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'k', 'LineWidth', lineWidth );
+          MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
           lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
           lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
           lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
           lineMinX = [ linePos( l, 1 ), linePos( l, 4 ) ];
@@ -625,28 +618,24 @@ for dataIndex=startD:endD
           lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
           lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
           lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ, 'Color', 'r', 'LineWidth', lineWidth );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
-          MID(l) = line( lineMidX, lineMidY, lineMidZ, 'Color', 'k', 'LineWidth', lineWidth );
+          MID(l) = line( lineMidX, lineMidY, lineMidZ+l*zOffset+0.2, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
-          MIN(l) = line( lineMinX, lineMinY, lineMinZ, 'Color', 'b', 'LineWidth', lineWidth );
+          MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', 'b', 'LineWidth', lineWidth );
           hold on;
         end
-        l = l+1;
       end
       
       hold off;
       set( f,'nextplot','replacechildren' );
-      if equalAspectRatio == 0
-        axis( [ minX-offset maxX+offset minY-offset maxY+offset...
-          minZ-offset*offset maxZ+offset*offset...
-          minZ-offset*offset maxZ+offset*offset ] );
-        axis on
-        daspect( [ 1 1 1 ] );
-      else
-        axis equal
-        axis on
-      end
+      viewOffset = viewOffsets( dataIndex );
+      axis( [ minAxes(1)-viewOffset maxAxes(1)+viewOffset...
+        minAxes(2)-viewOffset maxAxes(2)+viewOffset...
+        minAxes(3)-viewOffset maxAxes(3)+viewOffset...
+        minAxes(3)-viewOffset maxAxes(3)+viewOffset ] );
+      axis on
+      daspect( [ 1 1 1 ] );
       
       grid off;
       xlabel('X');
