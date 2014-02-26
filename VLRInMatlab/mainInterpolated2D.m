@@ -39,6 +39,13 @@ viewOffsets = [ 100 100 100 250 250 250 ];
 lineWidth = 1.2;
 % enable z overlapping
 overlapping = 1;
+% only render specific ranges of cell numbers
+renderCellRanges = 0;
+% only generate output images if the number of cells are within a desired
+% range
+cellRange = [ 20 40 60 80 100 120 140 ];
+% offset for cell ranges
+epsilon = 2;
 % choose which major lines of the ellipsoids should be rendered
 lineRenderType = 4;
 % vector of line render types
@@ -60,7 +67,7 @@ viewStr = { 'Top' 'Side' 'Radial' '3D' };
 
 % master cell file information taken by the picture made of Daniel located in dropbox
 % and the trackGroup information of the raw data sets
-%masterCellFile = [ 4 3 4 2 3 ];
+%masterCellFile = [ 4 3 4 2 3 0 ];
 masterCellFile = [ 4 4 4 3 3 0 ];
 
 % either loop over all data sets creating five figures or only
@@ -174,7 +181,7 @@ for dataIndex=startD:endD
   maxCF = max( CFCol );
   
   % number of subdivisions for ellipsoids
-  nEllip = 9;
+  nEllip = 10;
   
   l = 1;
   % first determine dimension of cellData
@@ -264,7 +271,6 @@ for dataIndex=startD:endD
   zlabel('Z');
   C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
   title( strcat( C( 1, 1 ), ' Time Step ', num2str(startT) ) );
-  camlight headlight;
   camproj( 'orthographic' )
   
   % number of cell files
@@ -281,7 +287,7 @@ for dataIndex=startD:endD
   set( gca,'nextplot','replacechildren' );
   % gcf is the current figure handle
   %lighting phong
-  %set( gcf, 'Renderer', 'zbuffer' );
+  set( gcf, 'Renderer', 'zbuffer' );
   lighting gouraud
   set( gcf, 'Renderer', 'OpenGL' );
   set( gcf,'nextplot','replacechildren' );
@@ -405,6 +411,22 @@ for dataIndex=startD:endD
       linePos = [];
       minMaxSemiAxisVector = [];
       centerEllipse = [];
+      
+      % check if the current time step should be skipped depending
+      % on the number of cells
+      if renderCellRanges == 1
+        skipTimeStep = 1;
+        for nc=1:size( cellRange, 2 )
+          if numCells - epsilon < cellRange(nc)...
+              && numCells + epsilon > cellRange(nc)
+            skipTimeStep = 0;
+            break;
+          end
+        end
+        if skipTimeStep == 1
+          continue;
+        end
+      end
       
       % draw an ellipsoid for each cell
       for c=1:numCells
@@ -592,7 +614,7 @@ for dataIndex=startD:endD
         hold on;
         [ ELLIP(l) ELLIPPATCH(l) ] = drawEllipse3d( c(1), c(2), c(3)+l*zOffset+0.2, maxLength, minLength, 0, theta );
         set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
-        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ] );
+        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'gouraud' );
         
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
           MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
@@ -634,7 +656,7 @@ for dataIndex=startD:endD
         minAxes(2)-viewOffset maxAxes(2)+viewOffset...
         minAxes(3)-viewOffset maxAxes(3)+viewOffset...
         minAxes(3)-viewOffset maxAxes(3)+viewOffset ] );
-      axis on
+      axis off
       daspect( [ 1 1 1 ] );
       
       grid off;
@@ -644,12 +666,8 @@ for dataIndex=startD:endD
       C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
       title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT) ) );
       
-      % first delete last lightsource
-      delete(findall(gcf, 'Type', 'light'))
-      camlight headlight;
-      
       if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' )
-        writeVideo( writerObj, getframe(f) );
+        writeVideo( writerObj, getframe(gcf) );
       end
       
       % if images instead of a video should be exported
@@ -671,6 +689,10 @@ for dataIndex=startD:endD
         
         imgStart = imgStart + 1;
       end
+      
+      % at last delete lightsource
+      delete(findall(gcf, 'Type', 'light'))
+      camlight headlight;
       
     end
   end

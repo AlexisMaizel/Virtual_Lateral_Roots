@@ -14,7 +14,7 @@ addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 7;
+dataId = 1;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -22,10 +22,10 @@ dataId = 7;
 % 4 -> 3D
 cView = 2;
 % start with the current time step
-startT = 1;
+startT = 100;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
-deltaT = 10;
+deltaT = 5;
 % scaling of ellipses
 scaling = 10;
 % decide which term should be included in the time evolution
@@ -47,7 +47,7 @@ lineWidth = 1.2;
 % enable z overlapping
 overlapping = 1;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 3;
+lineRenderType = 2;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2: render all three major lines of elongation of the ellipsoids in 3D
@@ -273,7 +273,6 @@ for dataIndex=startD:endD
   zlabel('Z');
   C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
   title( strcat( C( 1, 1 ), ' Time Step ', num2str(startT) ) );
-  camlight headlight;
   camproj( 'orthographic' )
   
   % number of cell files
@@ -877,7 +876,7 @@ for dataIndex=startD:endD
         hold on;
         [ ELLIP(l) ELLIPPATCH(l) ] = drawEllipse3d( c(1), c(2), c(3)+l*zOffset+0.2, maxLength, minLength, 0, theta );
         set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
-        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ] );
+        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'gouraud' );
         
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
           colorIndex = indexColorSet( l, 2 );
@@ -895,20 +894,48 @@ for dataIndex=startD:endD
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
           colorIndex = indexColorSet( l, 1 );
+          draw = 1;
+          % negative eigenvalue
           if colorIndex == 0
-            color = [ 0 0 1 ];
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+              % do not draw a line for negative eigenvalue
+              draw = 0;
+            else
+              color = [ 0 0 1 ];
+            end
+            % positive eigenvalue
           else
-            color = [ 1 0 0 ];
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+              color = [ 0 0 0 ];
+            else
+              color = [ 1 0 0 ];
+            end
           end
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          if draw == 1
+            MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          end
           hold on;
           colorIndex = indexColorSet( l, 2 );
+          draw = 1;
+          % negative eigenvalue
           if colorIndex == 0
-            color = [ 0 0 1 ];
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+              % do not draw a line for negative eigenvalue
+              draw = 0;
+            else
+              color = [ 0 0 1 ];
+            end
+            % positive eigenvalue
           else
-            color = [ 1 0 0 ];
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+              color = [ 0 0 0 ];
+            else
+              color = [ 1 0 0 ];
+            end
           end
-          MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          if draw == 1
+            MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          end
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
           % get index of longest elongation
@@ -926,10 +953,6 @@ for dataIndex=startD:endD
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
           % get index of all elongation types
           for el=1:3
-            % TODO
-%             if strcmp( termTypeStr( 1, renderTermType ), 'T' )
-%               positiveEigenvalueVector
-%             end
             index = minMaxEigenValueIndex( l, el );
             lineX = [ linePos( l, (index-1)*6 +1 ), linePos( l, (index-1)*6 +4 ) ];
             lineY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
@@ -954,7 +977,7 @@ for dataIndex=startD:endD
         minAxes(2)-viewOffset maxAxes(2)+viewOffset...
         minAxes(3)-viewOffset maxAxes(3)+viewOffset...
         minAxes(3)-viewOffset maxAxes(3)+viewOffset ] );
-      axis on
+      axis off
       daspect( [ 1 1 1 ] );
       
       grid off;
@@ -973,10 +996,6 @@ for dataIndex=startD:endD
       curT = curT + deltaT;
       continue;
     end
-    
-    % first delete last lightsource
-    delete(findall(gcf, 'Type', 'light'))
-    camlight headlight;
     
     if strcmp( exportTypeStr( 1, exportType ), 'AsVideo' )
       writeVideo( writerObj, getframe(f) );
@@ -998,6 +1017,10 @@ for dataIndex=startD:endD
       
       imgStart = imgStart + 1;
     end
+    
+    % at last delete lightsource
+    delete(findall(gcf, 'Type', 'light'))
+    camlight headlight;
     
     % at last set begin to false
     if begin == 1
