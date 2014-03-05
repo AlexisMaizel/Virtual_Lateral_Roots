@@ -316,6 +316,8 @@ for dataIndex=startD:endD
   
   % surface instance
   S = [];
+  % projected surface instance
+  PS = [];
   % semi axes instances
   MIN = [];
   MID = [];
@@ -340,9 +342,9 @@ for dataIndex=startD:endD
     u = coeff(:,1);
     v = coeff(:,2);
   elseif cView == 3
-    dir = coeff(:,1);
-    u = coeff(:,2);
-    v = coeff(:,3);
+    dir = -coeff(:,1);
+    u = -coeff(:,3);
+    v = coeff(:,2);
   end
   
   % set plane position
@@ -388,6 +390,7 @@ for dataIndex=startD:endD
     % clean figure content by removing the
     % last ellipsoids and lines in the previous time step
     set( S, 'Visible', 'off' );
+    set( PS, 'Visible', 'off' );
     set( MAX, 'Visible', 'off' );
     set( MID, 'Visible', 'off' );
     set( MIN, 'Visible', 'off' );
@@ -503,6 +506,10 @@ for dataIndex=startD:endD
         Y = p1(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
         Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
         
+%         S(c) = surface( X, Y, Z, 'FaceColor', 'r',...
+%           'EdgeColor', 'none', 'EdgeAlpha', 0,...
+%           'FaceLighting', 'none' );
+        
         semiLines = [];
         % draw the three major axes in the origin which are then
         % rotated according to the eigenvectors
@@ -548,10 +555,15 @@ for dataIndex=startD:endD
           end
         end
         
+        PS(c) = surface( X, Y, Z, 'FaceColor', 'r',...
+            'EdgeColor', 'none', 'EdgeAlpha', 0,...
+            'FaceLighting', 'none' );
+        
         p1 = projectOnPlane( p1, planePos, u, v );
         p1 = transformPoint3d( p1, TF );
         centerEllipse = [ centerEllipse ; p1 ];
-        minMaxS = determineAxes( X, Y, Z, p1, dir );
+        % the direction is now the normal of the x-y plane
+        minMaxS = determineAxes( X, Y, Z, p1, [ 0 0 1 ] );
         minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];  
       end
       
@@ -561,11 +573,11 @@ for dataIndex=startD:endD
         %coeff = pca( cellFileMat );
         arrowLength = 150;
         for a=1:3
+          hold on;
           P(a) = quiver3( start(1), start(2), start(3),...
             coeff(1,a), coeff(2,a), coeff(3,a),...
             arrowLength, 'LineWidth', 3,...
             'Color', cm( a, : ) );
-          hold on;
         end
       end
       
@@ -614,22 +626,22 @@ for dataIndex=startD:endD
         hold on;
         [ ELLIP(l) ELLIPPATCH(l) ] = drawEllipse3d( c(1), c(2), c(3)+l*zOffset+0.2, maxLength, minLength, 0, theta );
         set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
-        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'gouraud' );
+        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'none' );
         
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
+          hold on;
           MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
           MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
-          hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
           lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
           lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
           lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
           lineMinX = [ linePos( l, 1 ), linePos( l, 4 ) ];
           lineMinY = [ linePos( l, 2 ), linePos( l, 5 ) ];
@@ -640,12 +652,12 @@ for dataIndex=startD:endD
           lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
           lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
           lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
+          hold on;
           MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
           hold on;
           MID(l) = line( lineMidX, lineMidY, lineMidZ+l*zOffset+0.2, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
           MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', 'b', 'LineWidth', lineWidth );
-          hold on;
         end
       end
       
