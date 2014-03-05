@@ -14,12 +14,12 @@ addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 2;
+dataId = 1;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
 % 3 -> radial
-cView = 2;
+cView = 3;
 % start with the current time step
 startT = 300;
 % draw delaunay tri?
@@ -700,12 +700,7 @@ for dataIndex=startD:endD
         saveas( gcf, char(filePath) );
         
         imgStart = imgStart + 1;
-      end
-      
-      % at last delete lightsource
-      delete(findall(gcf, 'Type', 'light'))
-      camlight headlight;
-      
+      end 
     end
   end
   
