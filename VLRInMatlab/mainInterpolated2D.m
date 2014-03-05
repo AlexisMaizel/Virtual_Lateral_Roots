@@ -14,14 +14,14 @@ addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 1;
+dataId = 4;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
 % 3 -> radial
-cView = 1;
+cView = 2;
 % start with the current time step
-startT = 300;
+startT = 1;
 % draw delaunay tri?
 drawDelaunay = 0;
 % if set to one then only a single time step
@@ -40,7 +40,7 @@ lineWidth = 1.2;
 % enable z overlapping
 overlapping = 1;
 % only render specific ranges of cell numbers
-renderCellRanges = 0;
+renderCellRanges = 1;
 % only generate output images if the number of cells are within a desired
 % range
 cellRange = [ 20 40 60 80 100 120 140 ];
@@ -58,7 +58,10 @@ lineStr = { 'renderLargest3DElongation'...
             'renderAll3DElongation'...
             'renderLargest2DElongation'...
             'renderAll2DElongation' };
-
+% use triangulation based on delaunay or alpha shape
+% 1 -> delaunay
+% 2 -> alpha shape
+triangulationType = 2;
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
 
@@ -371,6 +374,11 @@ for dataIndex=startD:endD
     end
   end
   
+  % get the alpha shape radii for all time steps
+  if triangulationType == 2
+    alphaRadiiVector = getAlphaRadius( dataStr( 1, dataIndex ) );
+  end
+  
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%% Traversal over all time steps and texture field generation %%%
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -398,32 +406,34 @@ for dataIndex=startD:endD
     end
     
     % clean figure content by removing the
-    % last ellipsoids and lines in the previous time step
-    set( S, 'Visible', 'off' );
-    set( PS, 'Visible', 'off' );
-    set( MAX, 'Visible', 'off' );
-    set( MID, 'Visible', 'off' );
-    set( MIN, 'Visible', 'off' );
-    set( ELLIP, 'Visible', 'off' );
-    set( ELLIPPATCH, 'Visible', 'off' );
-    set( P, 'Visible', 'off' );
+    % last ellipsoids and lines in the previous time step   
+    if ishandle( S )
+      set( S, 'Visible', 'off' );
+    end
+    if ishandle( PS )
+      set( PS, 'Visible', 'off' );
+    end
+    if ishandle( MAX )
+      set( MAX, 'Visible', 'off' );
+    end
+    if ishandle( MID )
+      set( MID, 'Visible', 'off' );
+    end
+    if ishandle( MIN )
+      set( MIN, 'Visible', 'off' );
+    end
+    if ishandle( ELLIP )
+      set( ELLIP, 'Visible', 'off' );
+    end
+    if ishandle( ELLIPPATCH )
+      set( ELLIPPATCH, 'Visible', 'off' );
+    end
+    if ishandle( P )
+      set( P, 'Visible', 'off' );
+    end
     
     % if at least three cells exists
     if numCells > 3
-      % delaunay triangulation visualzation
-      tri = delaunayTriangulation( matPos(:,1), matPos(:,2), matPos(:,3) );
-      
-      % number of total links in current time step
-      %numTotalLinks = size( edges(tri), 1 );
-      
-      if drawDelaunay == 1
-        tetramesh(tri, 'FaceColor', cm( 1, : ), 'FaceAlpha', 0.9 );
-      end
-      
-      cellFileMat = [];    
-      linePos = [];
-      minMaxSemiAxisVector = [];
-      centerEllipse = [];
       
       % check if the current time step should be skipped depending
       % on the number of cells
@@ -441,10 +451,35 @@ for dataIndex=startD:endD
         end
       end
       
+      if triangulationType == 1
+        % delaunay triangulation
+        tri = delaunayTriangulation( matPos(:,1), matPos(:,2), matPos(:,3) );
+      else
+        % alpha shape triangulation
+        [Vol,Shape] = alphavol( [ matPos(:,1) matPos(:,2) matPos(:,3) ], sqrt( alphaRadiiVector( curT, 1 )) );
+        tri = Shape.tri;
+      end
+      
+      % number of total links in current time step
+      %numTotalLinks = size( edges(tri), 1 );
+      
+      if drawDelaunay == 1 && triangulationType == 1
+        tetramesh(tri, 'FaceColor', cm( 1, : ), 'FaceAlpha', 0.9 );
+      end
+      
+      cellFileMat = [];    
+      linePos = [];
+      minMaxSemiAxisVector = [];
+      centerEllipse = [];
+      
       % draw an ellipsoid for each cell
       for c=1:numCells
         % get position of current cell
-        p1 = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
+        if triangulationType == 1
+          p1 = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
+        else
+          p1 = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
+        end
         
         % get color for ellipsoid
         if renderSingleCellFile == 0
@@ -460,10 +495,18 @@ for dataIndex=startD:endD
         cellFileMat = [ cellFileMat ; p1(1) p1(2) p1(3) ];
         
         % get neighbor for specific vertex ID = c
-        nVec = getNeighbors( c, tri, numCells );
+        if triangulationType == 1
+          nVec = getNeighbors( c, tri, numCells );
+        else
+          nVec = getAlphaShapeNeighbors( c, tri );
+        end
         
         % number of links of current cell
         numLinks = size( nVec, 2 );
+        
+        if size( nVec, 1 ) == 0
+          continue;
+        end
         
         % initialize texture with zeros for each cell
         M = zeros(3);
@@ -474,7 +517,11 @@ for dataIndex=startD:endD
           verID = nVec(1,n);
           
           % get the corresponding neighbor position
-          p2 = [ tri.Points( verID, 1 ) tri.Points( verID, 2 ) tri.Points( verID, 3 ) ];
+          if triangulationType == 1
+            p2 = [ tri.Points( verID, 1 ) tri.Points( verID, 2 ) tri.Points( verID, 3 ) ];
+          else
+            p2 = [ matPos( verID, 1 ) matPos( verID, 2 ) matPos( verID, 3 ) ];
+          end
           
           % compute link matrix
           lMat = getLinkMatrix( p2-p1, p2-p1 );
@@ -565,9 +612,9 @@ for dataIndex=startD:endD
           end
         end
         
-        PS(c) = surface( X, Y, Z, 'FaceColor', 'r',...
-            'EdgeColor', 'none', 'EdgeAlpha', 0,...
-            'FaceLighting', 'none' );
+%         PS(c) = surface( X, Y, Z, 'FaceColor', 'r',...
+%             'EdgeColor', 'none', 'EdgeAlpha', 0,...
+%             'FaceLighting', 'none' );
         
         p1 = projectOnPlane( p1, planePos, u, v );
         p1 = transformPoint3d( p1, TF );
@@ -592,7 +639,7 @@ for dataIndex=startD:endD
       end
       
       if overlapping == 1
-        zOffset = 1.;
+        zOffset = 1.5;
       else
         zOffset = 0.;
       end
@@ -641,12 +688,12 @@ for dataIndex=startD:endD
         
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
           hold on;
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'k', 'LineWidth', lineWidth );
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
           hold on;
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'k', 'LineWidth', lineWidth );
           hold on;
-          MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
+          MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', 'k', 'LineWidth', lineWidth );
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
           lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
           lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
