@@ -19,7 +19,7 @@ dataId = 1;
 % 1 -> top
 % 2 -> side
 % 3 -> radial
-cView = 3;
+cView = 1;
 % start with the current time step
 startT = 300;
 % draw delaunay tri?
@@ -616,7 +616,8 @@ for dataIndex=startD:endD
         lineMaxZ = [ maxSemiPoint(3), c(3) + c(3)-maxSemiPoint(3) ];
         
         % line of minor semi axis
-        minorSemiAxes = cross( dir, maxSemiPoint-c );
+        % direction have to be here the normal of the x-y plane
+        minorSemiAxes = cross( [ 0 0 1 ], maxSemiPoint-c );
         minorSemiAxes = normalizeVector3d( minorSemiAxes );
         lineMinX = [ c(1) - minLength*minorSemiAxes(1), c(1) + minLength*minorSemiAxes(1) ];
         lineMinY = [ c(2) - minLength*minorSemiAxes(2), c(2) + minLength*minorSemiAxes(2) ];

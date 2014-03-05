@@ -7,13 +7,14 @@ function semiAxes = determineAxes( X, Y, Z, center, dir )
   dim = size( X, 1 );
   for d=1:dim
     for c=1:dim
+      pos = [ X(c,d) Y(c,d) Z(c,d) ];
       % compute length between current point and center
-      length = norm( [ X(c,d) Y(c,d) Z(c,d) ] - center );
+      length = norm( pos - center );
       
       if length > maxLength
         maxLength = length;
-        maxSemiAxis = [ X(c,d) Y(c,d) Z(c,d) ];
-      end
+        maxSemiAxis = pos;
+      end      
     end
   end
   
@@ -35,4 +36,3 @@ function semiAxes = determineAxes( X, Y, Z, center, dir )
   end
   
   semiAxes = [ minSemiAxis maxSemiAxis ];
-end
