@@ -361,6 +361,16 @@ for dataIndex=startD:endD
   maxAxes = projectOnPlane( [ maxX maxY maxZ ], planePos, u, v );
   maxAxes = transformPoint3d( maxAxes, TF );
   
+  % after transformation the individual coords of min and max
+  % may be switched
+  for mm=1:3
+    if minAxes(mm) > maxAxes(mm)
+      tmp = minAxes(mm);
+      minAxes(mm) = maxAxes(mm);
+      maxAxes(mm) = tmp;
+    end
+  end
+  
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%% Traversal over all time steps and texture field generation %%%
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
