@@ -22,10 +22,10 @@ dataId = 1;
 % 4 -> 3D
 cView = 2;
 % start with the current time step
-startT = 100;
+startT = 1;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
-deltaT = 5;
+deltaT = 10;
 % scaling of ellipses
 scaling = 10;
 % decide which term should be included in the time evolution
