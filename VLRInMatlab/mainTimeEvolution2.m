@@ -47,7 +47,7 @@ lineWidth = 1.2;
 % enable z overlapping
 overlapping = 1;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 2;
+lineRenderType = 4;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2: render all three major lines of elongation of the ellipsoids in 3D
@@ -360,6 +360,16 @@ for dataIndex=startD:endD
   minAxes = transformPoint3d( minAxes, TF );
   maxAxes = projectOnPlane( [ maxX maxY maxZ ], planePos, u, v );
   maxAxes = transformPoint3d( maxAxes, TF );
+  
+  % after transformation the individual coords of min and max
+  % may be switched
+  for mm=1:3
+    if minAxes(mm) > maxAxes(mm)
+      tmp = minAxes(mm);
+      minAxes(mm) = maxAxes(mm);
+      maxAxes(mm) = tmp;
+    end
+  end
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%% Traversal over all time steps and time evolution generation %%%
@@ -813,7 +823,8 @@ for dataIndex=startD:endD
         p1 = projectOnPlane( p1, planePos, u, v );
         p1 = transformPoint3d( p1, TF );
         centerEllipse = [ centerEllipse ; p1 ];
-        minMaxS = determineAxes( X, Y, Z, p1, dir );
+        % the direction is now the normal of the x-y plane
+        minMaxS = determineAxes( X, Y, Z, p1, [ 0 0 1 ] );
         minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];
       end
       
@@ -856,7 +867,8 @@ for dataIndex=startD:endD
         lineMaxZ = [ maxSemiPoint(3), c(3) + c(3)-maxSemiPoint(3) ];
         
         % line of minor semi axis
-        minorSemiAxes = cross( dir, maxSemiPoint-c );
+        % direction have to be here the normal of the x-y plane
+        minorSemiAxes = cross( [ 0 0 1 ], maxSemiPoint-c );
         minorSemiAxes = normalizeVector3d( minorSemiAxes );
         lineMinX = [ c(1) - minLength*minorSemiAxes(1), c(1) + minLength*minorSemiAxes(1) ];
         lineMinY = [ c(2) - minLength*minorSemiAxes(2), c(2) + minLength*minorSemiAxes(2) ];
@@ -876,7 +888,7 @@ for dataIndex=startD:endD
         hold on;
         [ ELLIP(l) ELLIPPATCH(l) ] = drawEllipse3d( c(1), c(2), c(3)+l*zOffset+0.2, maxLength, minLength, 0, theta );
         set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
-        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'gouraud' );
+        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'none' );
         
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
           colorIndex = indexColorSet( l, 2 );
@@ -1017,11 +1029,7 @@ for dataIndex=startD:endD
       
       imgStart = imgStart + 1;
     end
-    
-    % at last delete lightsource
-    delete(findall(gcf, 'Type', 'light'))
-    camlight headlight;
-    
+        
     % at last set begin to false
     if begin == 1
       begin = 0;
