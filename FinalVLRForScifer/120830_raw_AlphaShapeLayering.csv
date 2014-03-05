@@ -1,4 +1,4 @@
-45 2 -2 #Rotation x y z
+61 2 -2 #Rotation x y z
 301.8 51.3 -244.4 #Center of root x y z
 555 221 147 #Dimension of raw data set x y z
 ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer DivisionType
