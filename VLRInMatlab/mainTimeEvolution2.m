@@ -14,7 +14,7 @@ addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 1;
+dataId = 7;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -47,7 +47,7 @@ lineWidth = 1.2;
 % enable z overlapping
 overlapping = 1;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 4;
+lineRenderType = 3;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2: render all three major lines of elongation of the ellipsoids in 3D
@@ -58,7 +58,10 @@ lineStr = { 'renderLargest3DElongation'...
   'renderAll3DElongation'...
   'renderLargest2DElongation'...
   'renderAll2DElongation' };
-
+% use triangulation based on delaunay or alpha shape
+% 1 -> convex hull
+% 2 -> alpha shape
+triangulationType = 1;
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
 
@@ -95,7 +98,13 @@ for dataIndex=startD:endD
   end
   
   % path to image output
-  imageDir = strcat( 'images/', dataStr( 1, dataIndex ), 'Deformation' , '/' );
+  if triangulationType == 1
+    imageDir = strcat( 'images/', dataStr( 1, dataIndex ),...
+      'Deformation_CH', '/' );
+  else
+    imageDir = strcat( 'images/', dataStr( 1, dataIndex ),...
+      'Deformation_AS' , '/' );
+  end
   
   % create directory if required
   if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
@@ -318,6 +327,8 @@ for dataIndex=startD:endD
   
   % surface instance
   S = [];
+  % projected surface instance
+  PS = [];
   % semi axes instances
   MIN = [];
   MID = [];
@@ -369,6 +380,11 @@ for dataIndex=startD:endD
       minAxes(mm) = maxAxes(mm);
       maxAxes(mm) = tmp;
     end
+  end
+  
+  % get the alpha shape radii for all time steps
+  if triangulationType == 2
+    alphaRadiiVector = getAlphaRadius( dataStr( 1, dataIndex ) );
   end
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -454,28 +470,68 @@ for dataIndex=startD:endD
     
     % clean figure content by removing the
     % last ellipsoids and lines in the previous time step
-    set( S, 'Visible', 'off' );
-    set( MAX, 'Visible', 'off' );
-    set( MID, 'Visible', 'off' );
-    set( MIN, 'Visible', 'off' );
-    set( ELLIP, 'Visible', 'off' );
-    set( ELLIPPATCH, 'Visible', 'off' );
-    set( P, 'Visible', 'off' );
+    if ishandle( S )
+      set( S, 'Visible', 'off' );
+    end
+    if ishandle( PS )
+      set( PS, 'Visible', 'off' );
+    end
+    if ishandle( MAX )
+      set( MAX, 'Visible', 'off' );
+    end
+    if ishandle( MID )
+      set( MID, 'Visible', 'off' );
+    end
+    if ishandle( MIN )
+      set( MIN, 'Visible', 'off' );
+    end
+    if ishandle( ELLIP )
+      set( ELLIP, 'Visible', 'off' );
+    end
+    if ishandle( ELLIPPATCH )
+      set( ELLIPPATCH, 'Visible', 'off' );
+    end
+    if ishandle( P )
+      set( P, 'Visible', 'off' );
+    end
     
     % if at least three cells exists in both time steps
     if numCellsC > 3 && numCellsN > 3
       % delaunay triangulation
       if begin ~= 1
+        uniqueEdgesC = uniqueEdgesN;
         triC = triN;
-        triN = delaunayTriangulation( matPosN(:,1), matPosN(:,2), matPosN(:,3) );
+        if triangulationType == 1
+          % delaunay triangulation
+          triN = delaunayTriangulation( matPosN(:,1), matPosN(:,2), matPosN(:,3) );
+          uniqueEdgesN = edges(triN);
+        else
+          % alpha shape triangulation
+          [VolN,ShapeN] = alphavol( [ matPosN(:,1) matPosN(:,2) matPosN(:,3) ], sqrt( alphaRadiiVector( curT, 1 )) );
+          triN = ShapeN.tri;
+          uniqueEdgesN = getUniqueEdges( triN );
+        end
         numTotalLinksC = numTotalLinksN;
-        numTotalLinksN = size( edges(triN), 1 );
+        numTotalLinksN = size( uniqueEdgesN, 1 );
         numTotalAveragedLinks = ( numTotalLinksC + numTotalLinksN )/2.;
       else
-        triC = delaunayTriangulation( matPosC(:,1), matPosC(:,2), matPosC(:,3) );
-        triN = delaunayTriangulation( matPosN(:,1), matPosN(:,2), matPosN(:,3) );
-        numTotalLinksC = size( edges(triC), 1 );
-        numTotalLinksN = size( edges(triN), 1 );
+        if triangulationType == 1
+          % delaunay triangulation
+          triC = delaunayTriangulation( matPosC(:,1), matPosC(:,2), matPosC(:,3) );
+          uniqueEdgesC = edges( triC );
+          triN = delaunayTriangulation( matPosN(:,1), matPosN(:,2), matPosN(:,3) );
+          uniqueEdgesN = edges( triN );
+        else
+          % alpha shape triangulation
+          [VolC,ShapeC] = alphavol( [ matPosC(:,1) matPosC(:,2) matPosC(:,3) ], sqrt( alphaRadiiVector( curT, 1 )) );
+          triC = ShapeC.tri;
+          uniqueEdgesC = getUniqueEdges( triC );
+          [VolN,ShapeN] = alphavol( [ matPosN(:,1) matPosN(:,2) matPosN(:,3) ], sqrt( alphaRadiiVector( curT, 1 )) );
+          triN = ShapeN.tri;
+          uniqueEdgesN = getUniqueEdges( triN );
+        end
+        numTotalLinksC = size( uniqueEdgesC, 1 );
+        numTotalLinksN = size( uniqueEdgesN, 1 );
         numTotalAveragedLinks = ( numTotalLinksC + numTotalLinksN )/2.;
       end
       
@@ -491,8 +547,8 @@ for dataIndex=startD:endD
       % first get mapping of vertex ids of delaunay triangulation to object
       % ids of raw data set and store the results as a dimx2 matrix
       % including the link information between two cells
-      objectLinksC = generateLinksBetweenObjectsId( edges( triC ), cellIdsC );
-      objectLinksN = generateLinksBetweenObjectsId( edges( triN ), cellIdsN );
+      objectLinksC = generateLinksBetweenObjectsId( uniqueEdgesC, cellIdsC );
+      objectLinksN = generateLinksBetweenObjectsId( uniqueEdgesN, cellIdsN );
       
       % determine the number of conserved links for all cells
       conservedLinks = intersect( objectLinksC, objectLinksN, 'rows' );
@@ -517,7 +573,11 @@ for dataIndex=startD:endD
         T2 = zeros(3);
         
         % get position of current cell
-        p1 = [ triN.Points( c, 1 ) triN.Points( c, 2 ) triN.Points( c, 3 ) ];
+        if triangulationType == 1
+          p1 = [ triN.Points( c, 1 ) triN.Points( c, 2 ) triN.Points( c, 3 ) ];
+        else
+          p1 = [ matPosN( c, 1 ) matPosN( c, 2 ) matPosN( c, 3 ) ];
+        end
         
         % get objectId of current cell
         objectIdN = cellIdsN( c );
@@ -548,7 +608,8 @@ for dataIndex=startD:endD
         end
         
         % get the position of the previous cell in the previous time step
-        p2 = getCellPosition( objectIdC, triC, cellIdsC );
+        p2 = getCellPosition( objectIdC, triC, cellIdsC,...
+                              triangulationType, matPosC );
         
         cellsInFileMat = [ cellsInFileMat ; p2(1) p2(2) p2(3) ];
         
@@ -587,9 +648,11 @@ for dataIndex=startD:endD
           neighborId = conservedLinksPerCell( 1, n );
           
           % link at time step t
-          l1 = getCellPosition( neighborId, triC, cellIdsC ) - p2;
+          l1 = getCellPosition( neighborId, triC, cellIdsC,...
+                                triangulationType, matPosC ) - p2;
           % link at time step t + deltaT
-          l2 = getCellPosition( neighborId, triN, cellIdsN ) - p1;
+          l2 = getCellPosition( neighborId, triN, cellIdsN,...
+                                triangulationType, matPosN ) - p1;
           
           % compute average of the two links
           la = ( l1 + l2 )/2.;
@@ -621,8 +684,10 @@ for dataIndex=startD:endD
           neighborId = appearedLinksPerCell( 1, a );
           
           % link at time step t + deltaT
-          l = getCellPosition( neighborId, triN, cellIdsN ) -...
-            getCellPosition( objectIdN, triN, cellIdsN );
+          l = getCellPosition( neighborId, triN, cellIdsN,...
+                               triangulationType, matPosN ) -...
+              getCellPosition( objectIdN, triN, cellIdsN,...
+                               triangulationType, matPosN );
           
           % compute link matrix
           m = getLinkMatrix( l, l );
@@ -665,8 +730,10 @@ for dataIndex=startD:endD
           neighborId = disappearedLinksPerCell( 1, d );
           
           % link at time step t
-          l = getCellPosition( neighborId, triC, cellIdsC ) -...
-            getCellPosition( objectIdC, triC, cellIdsC );
+          l = getCellPosition( neighborId, triC, cellIdsC,...
+                               triangulationType, matPosC ) -...
+              getCellPosition( objectIdC, triC, cellIdsC,...
+                               triangulationType, matPosC );
           
           % compute link matrix
           m = getLinkMatrix( l, l );

@@ -1,6 +1,6 @@
 function objectIdLinks = generateLinksBetweenObjectsId( edgeList, objectIdVector )
 
-  dim = size( edgeList( :, 1 ) );
+  dim = size( edgeList, 1 );
   objectIdLinks = [ dim:2 ];
   
   for i=1:dim
