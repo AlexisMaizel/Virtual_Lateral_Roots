@@ -27,9 +27,9 @@ startT = 1;
 % have to be a divider of the max time step value!
 deltaT = 10;
 % scaling of ellipses
-scaling = 10;
+scaling = 5;
 % decide which term should be included in the time evolution
-renderTermType = 1;
+renderTermType = 3;
 termTypeStr = { 'B' 'T' 'All' };
 % if set to one then only a single time step
 % is rendered given by startT
@@ -61,7 +61,7 @@ lineStr = { 'renderLargest3DElongation'...
 % use triangulation based on delaunay or alpha shape
 % 1 -> convex hull
 % 2 -> alpha shape
-triangulationType = 1;
+triangulationType = 2;
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
 
@@ -638,6 +638,11 @@ for dataIndex=startD:endD
         % number of links of current and next cell
         numTotalLinksPerCellC = size( nVecC, 2 );
         numTotalLinksPerCellN = size( nVecN, 2 );
+        
+        if numTotalLinksPerCellC == 0 && numTotalLinksPerCellN == 0
+          continue;
+        end
+        
         % number of averaged links
         numAveragedLinksPerCell = ( numTotalLinksPerCellC + numTotalLinksPerCellN )/2.;
         
