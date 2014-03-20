@@ -413,6 +413,10 @@ for dataIndex=startD:endD
   triC = [];
   triN = [];
   
+  % unique edges in the triangulation
+  uniqueEdgesC = [];
+  uniqueEdgesN = [];
+  
   % number of total links in current and next time step
   numTotalLinksC = 0;
   numTotalLinksN = 0;
@@ -490,7 +494,6 @@ for dataIndex=startD:endD
     
     % if at least three cells exists in both time steps
     if numCellsC > 3 && numCellsN > 3
-      % delaunay triangulation
       if begin ~= 1
         uniqueEdgesC = uniqueEdgesN;
         triC = triN;

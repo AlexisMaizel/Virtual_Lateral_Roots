@@ -46,6 +46,8 @@ for dataIndex=startData:endData
   end
   % Time Step
   TCol = data{5};
+  % string of precursors
+  PCol = data{7};
   % Lineage Tree Id
   LCol = data{9};
   % temporal for data 131203
@@ -97,7 +99,7 @@ for dataIndex=startData:endData
     end
   end
   
-  cellData = cell( dimData( dataIndex ), 7 );
+  cellData = cell( dimData( dataIndex ), 8 );
   cellFileMap{ dataIndex } = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
   
   l = 1;
@@ -107,7 +109,7 @@ for dataIndex=startData:endData
     firstCellId = IdCol(l);
     secondCellId = IdCol(l+1);
     % insert first line
-    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l)};
+    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) PCol(l)};
     nl = nl+1;
     
     % interpolate between cell positions
@@ -124,12 +126,12 @@ for dataIndex=startData:endData
         y = double(1-k) * YCol(l) + double(k) * YCol(l+1);
         z = double(1-k) * ZCol(l) + double(k) * ZCol(l+1);
         % insert all relevant data into main data structure
-        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l)};
+        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) PCol(l)};
         nl = nl+1;
       end
       
       % insert last line
-      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1)};
+      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) PCol(l+1)};
       nl = nl+1;
       % update cell file map
       cellFileMap{ dataIndex }( firstCellId ) = CFCol(l);
@@ -194,8 +196,8 @@ for dataIndex=startData:endData
     TF = createBasisTransform3d( 'g', plane );
     
     % set axes properties
-    minAxes(dataIndex, :) = applyTransformations( [ minX minY minZ ], planePos, u, v, TF, dataStr( 1, dataIndex ), 1 );
-    maxAxes(dataIndex, :) = applyTransformations( [ maxX maxY maxZ ], planePos, u, v, TF, dataStr( 1, dataIndex ), 1 );
+    minAxes(dataIndex, :) = applyTransformations( [ minX minY minZ ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
+    maxAxes(dataIndex, :) = applyTransformations( [ maxX maxY maxZ ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
     
     % after transformation the individual coords of min and max
     % may be switched
