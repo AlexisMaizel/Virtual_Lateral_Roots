@@ -14,7 +14,7 @@ addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 7;
+dataId = 1;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -26,8 +26,6 @@ startT = 1;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
 deltaT = 10;
-% scaling of ellipses
-scaling = 5;
 % decide which term should be included in the time evolution
 renderTermType = 3;
 termTypeStr = { 'B' 'T' 'All' };
@@ -190,10 +188,7 @@ for dataIndex=startD:endD
   % store min and max of cell files
   minCF = min( CFCol );
   maxCF = max( CFCol );
-  
-  % number of subdivisions for ellipsoids
-  nEllip = 10;
-  
+    
   l = 1;
   % first determine dimension of cellData
   % in order to initialize the size of cellData
@@ -341,7 +336,7 @@ for dataIndex=startD:endD
   
   % get stored eigenvectors for the last time step to set the same
   % direction view for each time step
-  coeff = getPrincipalComponents( dataStr( 1, dataIndex ) );
+  coeff = getPrincipalComponents( dataStr( 1, dataIndex ), renderSingleCellFile );
   
   % set PC depending on the viewing direction
   if cView == 1
@@ -367,10 +362,8 @@ for dataIndex=startD:endD
   TF = createBasisTransform3d( 'g', plane );
   
   % set axes properties
-  minAxes = projectOnPlane( [ minX minY minZ ], planePos, u, v );
-  minAxes = transformPoint3d( minAxes, TF );
-  maxAxes = projectOnPlane( [ maxX maxY maxZ ], planePos, u, v );
-  maxAxes = transformPoint3d( maxAxes, TF );
+  minAxes = applyTransformations( [ minX minY minZ ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
+  maxAxes = applyTransformations( [ maxX maxY maxZ ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
   
   % after transformation the individual coords of min and max
   % may be switched
@@ -535,370 +528,13 @@ for dataIndex=startD:endD
         numTotalAveragedLinks = ( numTotalLinksC + numTotalLinksN )/2.;
       end
       
-      cellsInFileMat = [];
-      lineColorIndex = [];
-      linePos = [];
-      minMaxSemiAxisVector = [];
-      centerEllipse = [];
-      minMaxEigenValueIndex = [];
-      indexColorSet = [];
-      positiveEigenvalueVector = [];
-      
-      % first get mapping of vertex ids of delaunay triangulation to object
-      % ids of raw data set and store the results as a dimx2 matrix
-      % including the link information between two cells
-      objectLinksC = generateLinksBetweenObjectsId( uniqueEdgesC, cellIdsC );
-      objectLinksN = generateLinksBetweenObjectsId( uniqueEdgesN, cellIdsN );
-      
-      % determine the number of conserved links for all cells
-      conservedLinks = intersect( objectLinksC, objectLinksN, 'rows' );
-      
-      % disappeared links
-      disappearedLinks = setxor( objectLinksC, conservedLinks, 'rows' );
-      
-      % appeared links
-      appearedLinks = setxor( objectLinksN, conservedLinks, 'rows' );
-      
-      % consider each cell between two time steps
-      % and render the time evolution as an ellipsoid located at the
-      % position of the cell at time step t + deltaT
-      % Note that we consider the TIME STEP t + deltaT and look back at
-      % time step t which cell is related to the second time step
-      for c=1:numCellsN
-        % geometrical term
-        B = zeros(3);
-        
-        % topological term
-        T1 = zeros(3);
-        T2 = zeros(3);
-        
-        % get position of current cell
-        if triangulationType == 1
-          p1 = [ triN.Points( c, 1 ) triN.Points( c, 2 ) triN.Points( c, 3 ) ];
-        else
-          p1 = [ matPosN( c, 1 ) matPosN( c, 2 ) matPosN( c, 3 ) ];
-        end
-        
-        % get objectId of current cell
-        objectIdN = cellIdsN( c );
-        
-        % get objectId of previous cell
-        % which could be in the simplest case the same
-        % as the objectId of the current cell
-        objectIdC = objectIdN;
-        
-        % get color for ellipsoid
-        if renderSingleCellFile == 0
-          color = cm( cellFileMap( objectIdN ), : );
-        else
-          if singleCellFile == cellFileMap( objectIdN )
-            color = cm( 1, : );
-          else
-            continue;
-          end
-        end
-        
-        % check if the current cell already existed in the last time
-        % step; if not then back traverse its precursors until the
-        % corresponding object id is found
-        if isConserved( objectIdN, objectLinksC ) == 0
-          objectIdC = getPrecursorID( objectIdN, cellPrecursorsN( c ), cellIdsC );
-        else
-          objectIdC = objectIdN;
-        end
-        
-        % get the position of the previous cell in the previous time step
-        p2 = getCellPosition( objectIdC, triC, cellIdsC,...
-                              triangulationType, matPosC );
-        
-        cellsInFileMat = [ cellsInFileMat ; p2(1) p2(2) p2(3) ];
-        
-        % get all neighbors for the two found cells
-        nVecC = getNeighborsOfObjectId( objectIdC, objectLinksC );
-        nVecN = getNeighborsOfObjectId( objectIdN, objectLinksN );
-        
-        % vector of objectIds of cells which are conserved in the next time
-        % step
-        conservedLinksPerCell = getNeighborsOfObjectId( objectIdN, conservedLinks );
-        % number of conserved links between two time steps
-        numConservedLinksPerCell = size( conservedLinksPerCell, 2 );
-        
-        % get vector of objectsIds of cell which are added in the next time
-        % step
-        appearedLinksPerCell = getNeighborsOfObjectId( objectIdN, appearedLinks );
-        % number of added links between two time steps
-        numAppearedLinksPerCell = size( appearedLinksPerCell, 2 );
-        
-        % get vector of objectsIds of cell which disappeared in the next time
-        % step
-        disappearedLinksPerCell = getNeighborsOfObjectId( objectIdN, disappearedLinks );
-        % number of added links between two time steps
-        numDisappearedLinksPerCell = size( disappearedLinksPerCell, 2 );
-        
-        % number of links of current and next cell
-        numTotalLinksPerCellC = size( nVecC, 2 );
-        numTotalLinksPerCellN = size( nVecN, 2 );
-        
-        if numTotalLinksPerCellC == 0 && numTotalLinksPerCellN == 0
-          continue;
-        end
-        
-        % number of averaged links
-        numAveragedLinksPerCell = ( numTotalLinksPerCellC + numTotalLinksPerCellN )/2.;
-        
-        % loop over all linked and conserved neighbors
-        % determining B
-        for n=1:numConservedLinksPerCell
-          % current object id of neighbor
-          neighborId = conservedLinksPerCell( 1, n );
-          
-          % link at time step t
-          l1 = getCellPosition( neighborId, triC, cellIdsC,...
-                                triangulationType, matPosC ) - p2;
-          % link at time step t + deltaT
-          l2 = getCellPosition( neighborId, triN, cellIdsN,...
-                                triangulationType, matPosN ) - p1;
-          
-          % compute average of the two links
-          la = ( l1 + l2 )/2.;
-          
-          % compute difference between the two links
-          ld = l2 - l1;
-          
-          % compute link matrix which is the matrix C in the paper (Appendix C1)
-          C = getLinkMatrix( la, ld/deltaT );
-          
-          % sum of C and the transposed one
-          B = B + C + C';
-        end
-        
-        % after processing each neighbor, divide each entry by number
-        % of conserved neighbors -> averaging
-        if numConservedLinksPerCell > 0
-          B = B./numConservedLinksPerCell;
-        end
-        
-        % multiply the factor of N_c/N_tot (see paper in Appendix C1)
-        if numConservedLinksPerCell > 0
-          B = B.*( numConservedLinksPerCell / numAveragedLinksPerCell);
-        end
-        
-        % loop over all appeared linked neighbors determining the first part of T
-        for a=1:numAppearedLinksPerCell
-          % current object id of neighbor
-          neighborId = appearedLinksPerCell( 1, a );
-          
-          % link at time step t + deltaT
-          l = getCellPosition( neighborId, triN, cellIdsN,...
-                               triangulationType, matPosN ) -...
-              getCellPosition( objectIdN, triN, cellIdsN,...
-                               triangulationType, matPosN );
-          
-          % compute link matrix
-          m = getLinkMatrix( l, l );
-          
-          % update matrix T
-          T1 = T1 + m;
-        end
-        
-        % NEW: also add the link between the cell in time step t + deltaT
-        % and the precursor which does not have the same id
-        if isConserved( objectIdN, objectLinksC ) == 0
-          % link between position at time step t and t + deltaT
-          l = p2 - p1;
-          
-          % compute link matrix
-          m = getLinkMatrix( l, l );
-          
-          T1 = T1 + m;
-          
-          numAppearedLinksPerCell = numAppearedLinksPerCell + 1;
-        end
-        
-        % after processing each neighbor, divide each entry by number
-        % of appeared neighbors -> averaging
-        if numAppearedLinksPerCell > 0
-          T1 = T1./numAppearedLinksPerCell;
-        end
-        
-        % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
-        if numAppearedLinksPerCell > 0
-          T1 = T1.*( numAppearedLinksPerCell / numAveragedLinksPerCell);
-        end
-        
-        % divide by deltaT
-        T1 = T1./deltaT;
-        
-        % loop over all disappeared linked neighbors determining the second part of T
-        for d=1:numDisappearedLinksPerCell
-          % current object id of neighbor
-          neighborId = disappearedLinksPerCell( 1, d );
-          
-          % link at time step t
-          l = getCellPosition( neighborId, triC, cellIdsC,...
-                               triangulationType, matPosC ) -...
-              getCellPosition( objectIdC, triC, cellIdsC,...
-                               triangulationType, matPosC );
-          
-          % compute link matrix
-          m = getLinkMatrix( l, l );
-          
-          % update matrix T
-          T2 = T2 + m;
-        end
-        
-        % after processing each neighbor, divide each entry by number
-        % of disappeared neighbors -> averaging
-        if numDisappearedLinksPerCell > 0
-          T2 = T2./numDisappearedLinksPerCell;
-        end
-        
-        % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
-        if numDisappearedLinksPerCell > 0
-          T2 = T2.*( numDisappearedLinksPerCell / numAveragedLinksPerCell);
-        end
-        
-        % divide by deltaT
-        T2 = T2./deltaT;
-        
-        % compute the final texture for the current ellipsoid
-        if strcmp( termTypeStr( 1, renderTermType ), 'B' )
-          M = B;
-        elseif strcmp( termTypeStr( 1, renderTermType ), 'T' )
-          M = T1 - T2;
-        else
-          M = B + T1 - T2;
-        end
-        
-        % check if the matrix is zero then draw no ellipse
-        if all( M == 0 )
-          continue;
-        end
-        
-        % compute the eigenvectors and eigenvalues of matrix M
-        % The columns of Q are the eigenvectors and the diagonal
-        % elements of D are the eigenvalues
-        [Q,D] = eig(M);
-        
-        % check if the eigenvalues are smaller then zero; if so, then do
-        % not draw a line and consider the absolute value of it -> TODO
-        positiveEigenvalue = [ 1 ; 1 ; 1 ];
-        radii = diag(D);
-        for e=1:3
-          if radii(e) < 0.
-            radii(e) = -radii(e);
-            positiveEigenvalue( e, 1 ) = 0;
-          end
-        end
-        
-        % store the order of increasing eigen values
-        [ SortE, index ] = sort( radii );
-        minMaxEigenValueIndex = [ minMaxEigenValueIndex; index(1) index(2) index(3) ];
-        
-        positiveEigenvalueVector = [ positiveEigenvalueVector;...
-          positiveEigenvalue(1) positiveEigenvalue(2) positiveEigenvalue(3) ];
-        
-        % line color by default black for each line
-        lineColor = [ 0 0 0 0 0 0 0 0 0 ];
-        % set line colors depending on the computed term and
-        % eigenvalue
-        if strcmp( termTypeStr( 1, renderTermType ), 'B' )
-          for e=1:3
-            % if the eigenvalue is positive then use a red color
-            if positiveEigenvalue( e, 1 ) == 1
-              lineColor( 1, 1 +3*e-3 ) = 1;
-              lineColor( 1, 2 +3*e-3 ) = 0;
-              lineColor( 1, 3 +3*e-3 ) = 0;
-              % negative eigenvalue
-            elseif positiveEigenvalue( e, 1 ) == 0
-              lineColor( 1, 1 +3*e-3 ) = 0;
-              lineColor( 1, 2 +3*e-3 ) = 0;
-              lineColor( 1, 3 +3*e-3 ) = 1;
-            end
-          end
-        end
-        
-        % store the coloring of lines depending on the sign of the
-        % eigenvalues
-        lineColorIndex = [ lineColorIndex; lineColor ];
-        
-        % radii of the ellipsoid
-        radii = sqrt( radii );
-        
-        % scaling such that even with small deformation changes
-        % the ellipsoids can be identified
-        radii = radii.*scaling;
-        
-        xEigVec = Q(:, 1);
-        yEigVec = Q(:, 2);
-        zEigVec = Q(:, 3);
-        
-        % draw the single cell as ellipsoid
-        [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., nEllip );
-        %ellipPos = (p1+p2)/2.;
-        ellipPos = p1;
-        X = ellipPos(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
-        Y = ellipPos(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
-        Z = ellipPos(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
-        
-        semiLines = [];
-        % draw the three major axes in the origin which are then
-        % rotated according to the eigenvectors
-        for l=1:3
-          if l == 1
-            sX = [ -radii(1)/2., radii(1)/2. ];
-            sY = [ 0, 0 ];
-            sZ = [ 0, 0 ];
-          elseif l == 2
-            sX = [ 0, 0 ];
-            sY = [ -radii(2)/2., radii(2)/2. ];
-            sZ = [ 0, 0 ];
-          else
-            sX = [ 0, 0 ];
-            sY = [ 0, 0 ];
-            sZ = [ -radii(3)/2., radii(3)/2. ];
-          end
-          lineX = p1(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
-          lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
-          lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
-          
-          projLine1 = projectOnPlane( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v );
-          projLine2 = projectOnPlane( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v );
-          projLine1 = transformPoint3d( projLine1, TF );
-          projLine2 = transformPoint3d( projLine2, TF );
-          
-          % and store the start/end points of the lines in linePos
-          semiLines = [ semiLines projLine1 projLine2 ];
-        end
-        
-        indexColorSet = [ indexColorSet; determineColorAssignment(...
-          [ xEigVec(1) xEigVec(2) xEigVec(3) ;...
-          yEigVec(1) yEigVec(2) yEigVec(3) ;...
-          zEigVec(1) zEigVec(2) zEigVec(3) ], positiveEigenvalue,...
-          [ projLine1 ; projLine2 ] ) ];
-        
-        % update semi axes in 3D
-        linePos = [ linePos ; semiLines ];
-        
-        % project each vertex of the ellipsoid onto the plane
-        dimP = size( X, 1 );
-        for q=1:dimP
-          for p=1:dimP
-            curPos = projectOnPlane( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v );
-            curPos = transformPoint3d( [curPos(1) curPos(2) curPos(3)], TF );
-            X(p,q) = curPos(1);
-            Y(p,q) = curPos(2);
-            Z(p,q) = curPos(3);
-          end
-        end
-        
-        p1 = projectOnPlane( p1, planePos, u, v );
-        p1 = transformPoint3d( p1, TF );
-        centerEllipse = [ centerEllipse ; p1 ];
-        % the direction is now the normal of the x-y plane
-        minMaxS = determineAxes( X, Y, Z, p1, [ 0 0 1 ] );
-        minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];
-      end
+      % compute time evolution for current deltaT and time step
+      [cellsInFileMat, lineColorIndex, linePos, minMaxEigenValueIndex,...
+        positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse, indexColorSet ]...
+        = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, singleCellFile,...
+        cellFileMap, cellIdsN, numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN,...
+        triangulationType, renderSingleCellFile, termTypeStr( 1, renderTermType ),...
+        dataStr( 1, dataIndex ), planePos, u, v, TF, deltaT );
       
       % draw principal components
       if renderPrincipalComponents == 1

@@ -7,17 +7,15 @@ addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
 
 %%%%% setting of properties %%%%%%
 % color range for different data sets
-% { 'm' 'c' 'r' 'g' 'b' 'k' };
-colors = [ [ 1 0 1 ]; [ 0 1 1 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ]; [ 0 0 0 ] ];
+% { 'm' 'k' 'r' 'g' 'b' 'c' };
+colors = [ [ 1 0 1 ]; [ 0 0 0 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ] ];
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
 % 3 -> radial
 cView = 2;
-% start with the current time step
-startT = 300;
 % startIndex
-startI = 1;
+startI = 20;
 % endIndex
 endI = 20;
 % draw delaunay tri?
@@ -28,7 +26,7 @@ exportType = 2;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' };
 % render only master file?
-renderSingleCellFile = 0;
+renderSingleCellFile = 1;
 % render principal components
 renderPrincipalComponents = 0;
 % vector of view offsets for x/Y/Z coordinates
@@ -61,7 +59,7 @@ lineStr = { 'renderLargest3DElongation'...
 % use triangulation based on delaunay or alpha shape
 % 1 -> delaunay
 % 2 -> alpha shape
-triangulationType = 1;
+triangulationType = 2;
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
 % vector of view strings
@@ -82,25 +80,11 @@ nEllip = 10;
 % start id of data
 startData = 1;
 % end id of data
-endData = 6;
+endData = 5;
 % num of data
-numData = 6;
+numData = 5;
 % number of cell files
 numCellFiles = 6;%double( maxCF-minCF+1 );
-
-% cellData is the main array with all relevant information
-% for the further analysis:
-% ObjectID X Y Z Timepoint LineageID TrackGroup
-cellDatas = cell( numData );
-cellFileMap = cell( numData );
-maxT = zeros( numData, 1 );
-minAxes = zeros( numData, 3 );
-maxAxes = zeros( numData, 3 );
-centerData = zeros( numData, 3 );
-totalMinAxes = [ 5000 5000 5000 ];
-totalMaxAxes = [ -5000 -5000 -5000 ];
-numCellsPerTimeStep = cell( numData, 1 );
-dimData = zeros( numData, 1 );
 
 % figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
@@ -118,230 +102,9 @@ ylabel('Y');
 zlabel('Z');
 camproj( 'orthographic' );
 
-% preprocessing of data sets to store and determine different properties
-% loop over all data sets
-%for dataIndex=1:numData
-for dataIndex=startData:endData
-    % reading raw data
-    path = strcat( '../FinalVLRForMatlab/', dataStr( 1, dataIndex ), '.csv' );
-    fileID = fopen( char(path) );
-    % format of data sets:
-    % ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer DivisionType
-    formatSpec = '%d %f %f %f %d %d %q %q %d %q %q %d %d %q';
-    if strcmp( dataStr( 1, dataIndex ), '131203_raw' )
-      formatSpec = '%d %f %f %f %d %d %q %q %d %d %d %q';
-    end
-    % read data and ignore the first four header lines
-    data = textscan( fileID, formatSpec, 'HeaderLines', 4, 'Delimiter', ';' );
-    fclose(fileID);
-    
-    % get dimension aka number of lines
-    col = size(data{1});
-    numLines = col(1,1);
-    % store relevant columns in corresponding data structures
-    % and ignore the others
-    % Object Id
-    IdCol = data{1};
-    % X coord
-    XCol = data{2};
-    % Y coord
-    YCol = data{3};
-    % z coord; Note that due to resampling, the z value is multiplied with 2
-    if strcmp( dataStr( 1, dataIndex ), '121204_raw_2014' )
-      ZCol = -2 * data{4};
-    else
-      ZCol = 2 * data{4};
-    end
-    % Time Step
-    TCol = data{5};
-    % Lineage Tree Id
-    LCol = data{9};
-    % temporal for data 131203
-    if strcmp( dataStr( 1, dataIndex ), '131203_raw' )
-      % Cell File Id
-      CFCol = data{10};
-      % Cell Layer Id
-      CLCol = data{11};
-      % Divison Type
-      DCol = data{12};
-    else
-      % Cell File Id
-      CFCol = data{12};
-      % Cell Layer Id
-      CLCol = data{13};
-      % Divison Type
-      %DCol = data{14};
-    end
-    
-%     % get maximum of time steps
-%     % if a movie should be created
-%     if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
-%       maxT( dataIndex ) = max( TCol );
-%       % else only render current time step
-%     else
-%       maxT( dataIndex ) = startT;
-%     end
-    
-    % get bounding box are by determining
-    % min and max of x/y/z values
-    % loop over all time steps
-    minX = min( XCol );
-    minY = min( YCol );
-    minZ = min( ZCol );
-    maxX = max( XCol );
-    maxY = max( YCol );
-    maxZ = max( ZCol );
-    
-    % store min and max of cell files
-    minCF = min( CFCol );
-    maxCF = max( CFCol );
-    
-    l = 1;
-    % first determine dimension of cellData
-    % in order to initialize the size of cellData
-    % -> huge performance speed up
-    while (l < numLines+1)
-      firstCellId = IdCol(l);
-      secondCellId = IdCol(l+1);
-      if firstCellId == secondCellId
-        firstTS = TCol(l);
-        secondTS = TCol(l+1);
-        deltaTS = secondTS - firstTS;
-        dimData( dataIndex ) = dimData( dataIndex ) + deltaTS + 1;
-        l = l+2;
-      else
-        dimData( dataIndex ) = dimData( dataIndex )+1;
-        l = l+1;
-      end
-    end
-    
-    cellData = cell( dimData( dataIndex ), 7 );
-    cellFileMap{ dataIndex } = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
-    
-    l = 1;
-    nl = 1;
-    % interpolate the missing positions in between
-    while (l < numLines+1)
-      firstCellId = IdCol(l);
-      secondCellId = IdCol(l+1);
-      % insert first line
-      cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l)};
-      nl = nl+1;
-      
-      % interpolate between cell positions
-      if firstCellId == secondCellId
-        firstTS = TCol(l);
-        secondTS = TCol(l+1);
-        deltaTS = secondTS - firstTS;
-        steps = double( 1./double(deltaTS) );
-        
-        for s=1:deltaTS-1
-          t = firstTS + s;
-          k = double( double(s)*steps );
-          x = double(1-k) * XCol(l) + double(k) * XCol(l+1);
-          y = double(1-k) * YCol(l) + double(k) * YCol(l+1);
-          z = double(1-k) * ZCol(l) + double(k) * ZCol(l+1);
-          % insert all relevant data into main data structure
-          cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l)};
-          nl = nl+1;
-        end
-        
-        % insert last line
-        cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1)};
-        nl = nl+1;
-        % update cell file map
-        cellFileMap{ dataIndex }( firstCellId ) = CFCol(l);
-        
-        % increment loop index
-        l = l+2;
-        % else cell exists only for one time step
-      else
-        % update cell file map
-        cellFileMap{ dataIndex }( firstCellId ) = CFCol(l);
-        
-        l = l+1;
-      end
-    end
-    
-    cellDatas{ dataIndex } = cellData;
-    
-    % initialize number of rows depending on the number of time steps of
-    % current data set
-    maxT( dataIndex ) = max( TCol );
-    numCellsPerTimeStep{dataIndex} = zeros(maxT(dataIndex), 1);
-    
-    % get maximum number of cells for each data set and time step
-    for j=1:dimData( dataIndex )
-      timeStep = cellDatas{dataIndex}{j, 5};
-      numCellsPerTimeStep{dataIndex}(timeStep, 1) = numCellsPerTimeStep{dataIndex}(timeStep, 1) + 1;
-    end
-    
-    if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
-        strcmp( visualizationType( 1, visType ), 'Contour' )
-      coeff = getPrincipalComponents( dataStr( 1, dataIndex ), renderSingleCellFile );
-      
-      % set PC depending on the viewing direction
-      if cView == 1
-        dir = coeff(:,2);
-        u = coeff(:,1);
-        v = coeff(:,3);
-      elseif cView == 2
-        dir = coeff(:,3);
-        u = coeff(:,1);
-        v = coeff(:,2);
-        if strcmp( dataStr( 1, dataIndex ), '121211_raw' )
-          v = -v;
-        end
-        if strcmp( dataStr( 1, dataIndex ), '120830_raw' ) &&...
-           renderSingleCellFile == 0
-         v = -v;
-        end
-      elseif cView == 3
-        dir = -coeff(:,1);
-        u = -coeff(:,3);
-        v = coeff(:,2);
-        if strcmp( dataStr( 1, dataIndex ), '121211_raw' )
-          v = -v;
-        end
-      end
-      
-      % set plane position
-      planePos = dir * 1;
-      
-      plane = [ planePos(1) planePos(2) planePos(3)...
-        u(1) u(2) u(3)...
-        v(1) v(2) v(3) ];
-      TF = createBasisTransform3d( 'g', plane );
-
-      % set axes properties
-      minAxes(dataIndex, :) = projectOnPlane( [ minX minY minZ ], planePos, u, v );
-      minAxes(dataIndex, :) = transformPoint3d( minAxes(dataIndex, :), TF );
-      maxAxes(dataIndex, :) = projectOnPlane( [ maxX maxY maxZ ], planePos, u, v );
-      maxAxes(dataIndex, :) = transformPoint3d( maxAxes(dataIndex, :), TF );
-      
-      % after transformation the individual coords of min and max
-      % may be switched
-      for mm=1:3
-        if minAxes(dataIndex, mm) > maxAxes(dataIndex, mm)
-          tmp = minAxes(dataIndex, mm);
-          minAxes(dataIndex, mm) = maxAxes(dataIndex, mm);
-          maxAxes(dataIndex, mm) = tmp;
-        end
-      end      
-    elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
-      minAxes(dataIndex, :) = [ minX minY minZ ];
-      maxAxes(dataIndex, :) = [ maxX maxY maxZ ];
-    end
-    
-    for mm=1:3
-      if minAxes(dataIndex, mm) < totalMinAxes(mm)
-        totalMinAxes(mm) = minAxes(dataIndex, mm);
-      end
-      if maxAxes(dataIndex, mm) >= totalMaxAxes(mm)
-        totalMaxAxes(mm) = maxAxes(dataIndex, mm);
-      end
-    end
-end
+% apply preprocessing step of data
+[ cellDatas, dimData, maxT, numCellsPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
+  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderSingleCellFile, cView );
 
 % get center of total min and max values of data sets
 centerAllData = [ (totalMaxAxes(1) + totalMinAxes(1))/2. ...
@@ -438,8 +201,6 @@ for curI=startI:endI
     end
   end
   
-  leg = zeros( numData, 1 );
-  
   % loop over all data sets
   for dataIndex=startData:endData
     % get stored eigenvectors for the last time step to set the same
@@ -487,16 +248,6 @@ for curI=startI:endI
       alphaRadiiVector = getAlphaRadius( dataStr( 1, dataIndex ) );
     end
     
-    % number of cells for the current time step
-    numCells = 0;
-    
-    % matrix of positions for current time step
-    matPos = [];
-    
-    % vector of object ids in order to access the cell
-    % file information in the cell file map
-    idToCF = [];
-    
     % NEW: only continue with this time step that is synchronized in
     % number of cells for each data set
     numNormCells = getNormalizedCellNumber( curI, 18, 143, 1, 20 );
@@ -509,18 +260,26 @@ for curI=startI:endI
       end
     end
     
+    % number of cells for current time step and data set
+    numCells = numCellsPerTimeStep{dataIndex}(curT, 1);
+    % matrix of positions for current time step
+    matPos = zeros( numCells, 3 );
+    % vector of object ids in order to access the cell
+    % file information in the cell file map
+    idToCF = zeros( numCells, 3 );
+    
+    nc = 1;
     for j=1:dimData( dataIndex )
       if cellDatas{ dataIndex }{ j, 5 } == curT
         pos = [ cellDatas{ dataIndex }{ j, 2 } cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
-        matPos = [matPos; pos];
-        numCells = numCells +1;
-        idToCF = [ idToCF ; cellDatas{ dataIndex }{ j, 1 } ];
+        matPos(nc, :) = pos;
+        idToCF(nc, :) = cellDatas{ dataIndex }{ j, 1 };
+        nc = nc + 1;
       end
     end
     
     % if at least three cells exists
     if numCells > 3
-      
       % check if the current time step should be skipped depending
       % on the number of cells
       if renderCellRanges == 1
@@ -546,17 +305,9 @@ for curI=startI:endI
         tri = Shape.tri;
       end
       
-      % number of total links in current time step
-      %numTotalLinks = size( edges(tri), 1 );
-      
       if drawDelaunay == 1 && triangulationType == 1
         tetramesh( tri, 'FaceColor', cm( 1, : ), 'FaceAlpha', 0.9 );
       end
-      
-      cellFileMat = [];
-      linePos = [];
-      minMaxSemiAxisVector = [];
-      centerEllipse = [];
       
       % compute center of data
       centerData = [ 0 0 0 ];
@@ -587,6 +338,12 @@ for curI=startI:endI
         centerData = centerData./numConsideredCells;
       end
       
+      cellFileMat = zeros( numConsideredCells, 3 );
+      linePos = zeros( numConsideredCells, 18 );
+      minMaxSemiAxisVector = zeros( numConsideredCells, 6 );
+      centerEllipse = zeros( numConsideredCells, 3 );
+      
+      nc = 1;
       % draw an ellipsoid for each cell
       for c=1:numCells
         % get position of current cell
@@ -605,7 +362,7 @@ for curI=startI:endI
           end
         end
         
-        cellFileMat = [ cellFileMat ; p1(1) p1(2) p1(3) ];
+        cellFileMat(nc, :) = [ p1(1) p1(2) p1(3) ];
         
         % get neighbor for specific vertex ID = c
         if triangulationType == 1
@@ -613,41 +370,13 @@ for curI=startI:endI
         else
           nVec = getAlphaShapeNeighbors( c, tri );
         end
-        
-        % number of links of current cell
-        numLinks = size( nVec, 2 );
-        
+
         if size( nVec, 1 ) == 0
           continue;
         end
         
-        % initialize texture with zeros for each cell
-        M = zeros(3);
-        
-        % loop over all linked neighbors
-        for n=1:numLinks
-          % vertex ID
-          verID = nVec(1,n);
-          
-          % get the corresponding neighbor position
-          if triangulationType == 1
-            p2 = [ tri.Points( verID, 1 ) tri.Points( verID, 2 ) tri.Points( verID, 3 ) ];
-          else
-            p2 = [ matPos( verID, 1 ) matPos( verID, 2 ) matPos( verID, 3 ) ];
-          end
-          
-          p2 = p2 - centerData;
-          
-          % compute link matrix
-          lMat = getLinkMatrix( p2-p1, p2-p1 );
-          
-          % update texture matrix
-          M = M + lMat;
-        end
-        
-        % after processing each neighbor, divide each entry by number
-        % of neighbors -> averaging
-        M = M./numLinks;
+        % compute the static link matrix
+        M = computeStaticLink( p1, nVec, centerData, tri, matPos, triangulationType );
         
         % compute the eigenvectors and eigenvalues of matrix M
         % The columns of Q are the eigenvectors and the diagonal
@@ -684,7 +413,7 @@ for curI=startI:endI
             'FaceLighting', 'gouraud' );
         end
         
-        semiLines = [];
+        semiLines = zeros( 1, 18 );
         % draw the three major axes in the origin which are then
         % rotated according to the eigenvectors
         for l=1:3
@@ -705,24 +434,23 @@ for curI=startI:endI
           lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
           lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
           
-          projLine1 = projectOnPlane( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v );
-          projLine2 = projectOnPlane( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v );
-          projLine1 = transformPoint3d( projLine1, TF );
-          projLine2 = transformPoint3d( projLine2, TF );
+          projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
+          projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
           
           % and store the start/end points of the lines in linePos
-          semiLines = [ semiLines projLine1 projLine2 ];
+          index = 6*(l-1) + 1;
+          semiLines( 1, index:index+2 ) = projLine1;
+          semiLines( 1, index+3:index+5 ) = projLine2;
         end
         
         % update semi axes in 3D
-        linePos = [ linePos ; semiLines ];
+        linePos(nc, :) = semiLines;
         
         % project each vertex of the ellipsoid onto the plane
         dimP = size( X, 1 );
         for q=1:dimP
           for p=1:dimP
-            curPos = projectOnPlane( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v );
-            curPos = transformPoint3d( [curPos(1) curPos(2) curPos(3)], TF );
+            curPos = applyTransformations( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
             X(p,q) = curPos(1);
             Y(p,q) = curPos(2);
             Z(p,q) = curPos(3);
@@ -733,12 +461,12 @@ for curI=startI:endI
 %           'EdgeColor', 'none', 'EdgeAlpha', 0,...
 %           'FaceLighting', 'none' );
         
-        p1 = projectOnPlane( p1, planePos, u, v );
-        p1 = transformPoint3d( p1, TF );
-        centerEllipse = [ centerEllipse ; p1 ];
+        p1 = applyTransformations( p1, planePos, u, v, TF, dataStr( 1, dataIndex ) );
+        centerEllipse(nc, :) = p1;
         % the direction is now the normal of the x-y plane
         minMaxS = determineAxes( X, Y, Z, p1, [ 0 0 1 ] );
-        minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];
+        minMaxSemiAxisVector(nc, :) = minMaxS;
+        nc = nc + 1;
       end
       
       % draw principal components
@@ -747,15 +475,13 @@ for curI=startI:endI
         %coeff = pca( cellFileMat )
         if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
             strcmp( visualizationType( 1, visType ), 'Contour' )
-          start = projectOnPlane( start, planePos, u, v );
-          start = transformPoint3d( start, TF );
+          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ) );
         end
         arrowLength = 150;
         for a=1:3
           if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
               strcmp( visualizationType( 1, visType ), 'Contour' )
-            endP = projectOnPlane( coeff(:, a), planePos, u, v );
-            endP = transformPoint3d( endP, TF );
+            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ) );
           elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
             endP = coeff(:, a);
           end
@@ -884,9 +610,10 @@ for curI=startI:endI
   
   % legend
   hold on;
-  leg = legend( '120830', '121204', '121211', '130508', '130607', '131203' );
+  %leg = legend( '120830', '121204', '121211', '130508', '130607', '131203' );
+  leg = legend( '120830', '121204', '121211', '130508', '130607' );
   set(leg, 'Location', 'NorthWestOutside');
-  linecolors = { [ 1 0 1 ], [ 0 1 1 ], [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ], [ 0 0 0 ] };
+  linecolors = { [ 1 0 1 ], [ 0 1 1 ], [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ] };
   legendlinestyles( leg, {}, {}, linecolors );
   
   grid off;
