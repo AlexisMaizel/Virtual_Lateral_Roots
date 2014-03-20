@@ -1,9 +1,9 @@
 function [cellsInFileMat, lineColorIndex, linePos, minMaxEigenValueIndex,...
   positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse, indexColorSet ]...
-  = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, singleCellFile,...
-  cellFileMap, cellIdsN, numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN,...
-  triangulationType, renderSingleCellFile, termTypeStr, dataStr,...
-  planePos, u, v, TF, deltaT )
+  = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, cellIdsN,...
+  numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN, triangulationType,...
+  termTypeStr, dataStr, planePos, u, v, TF, deltaT,...
+  renderSingleCellFile, singleCellFile, cellFileMap )
 cellsInFileMat = [];
 lineColorIndex = [];
 linePos = [];
@@ -33,12 +33,24 @@ disappearedLinks = setxor( objectLinksC, conservedLinks, 'rows' );
 % appeared links
 appearedLinks = setxor( objectLinksN, conservedLinks, 'rows' );
 
+% center of data set for the two different time steps
+centerC = [ 0 0 0 ];
+centerN = [ 0 0 0 ];
+
 % consider each cell between two time steps
 % and render the time evolution as an ellipsoid located at the
 % position of the cell at time step t + deltaT
 % Note that we consider the TIME STEP t + deltaT and look back at
 % time step t which cell is related to the second time step
 for c=1:numCellsN
+  % get objectId of current cell
+  objectIdN = cellIdsN( c );
+  % only render the master cell file if required
+  if renderSingleCellFile == 1 &&...
+      singleCellFile ~= cellFileMap( objectIdN )
+    continue;
+  end
+  
   % get position of current cell
   if triangulationType == 1
     p1 = [ triN.Points( c, 1 ) triN.Points( c, 2 ) triN.Points( c, 3 ) ];
@@ -46,30 +58,13 @@ for c=1:numCellsN
     p1 = [ matPosN( c, 1 ) matPosN( c, 2 ) matPosN( c, 3 ) ];
   end
   
-  % get objectId of current cell
-  objectIdN = cellIdsN( c );
-  
-  % get objectId of previous cell
-  % which could be in the simplest case the same
-  % as the objectId of the current cell
-  %objectIdC = objectIdN;
-  
-  % get color for ellipsoid
-  if renderSingleCellFile == 0
-    %color = cm( cellFileMap( objectIdN ), : );
-  else
-    if singleCellFile == cellFileMap( objectIdN )
-      %color = cm( 1, : );
-    else
-      continue;
-    end
-  end
+
   
   % check if the current cell already existed in the last time
   % step; if not then back traverse its precursors until the
   % corresponding object id is found
   if isConserved( objectIdN, objectLinksC ) == 0
-    objectIdC = getPrecursorID( objectIdN, cellPrecursorsN( c ), cellIdsC );
+    objectIdC = getPrecursorID( objectIdN, cellPrecursorsN{ c }, cellIdsC );
   else
     objectIdC = objectIdN;
   end

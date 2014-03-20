@@ -188,7 +188,7 @@ for dataIndex=startD:endD
   % store min and max of cell files
   minCF = min( CFCol );
   maxCF = max( CFCol );
-    
+  
   l = 1;
   % first determine dimension of cellData
   % in order to initialize the size of cellData
@@ -534,10 +534,10 @@ for dataIndex=startD:endD
       % compute time evolution for current deltaT and time step
       [cellsInFileMat, lineColorIndex, linePos, minMaxEigenValueIndex,...
         positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse, indexColorSet ]...
-        = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, singleCellFile,...
-        cellFileMap, cellIdsN, numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN,...
-        triangulationType, renderSingleCellFile, termTypeStr( 1, renderTermType ),...
-        dataStr( 1, dataIndex ), planePos, u, v, TF, deltaT );
+        = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, cellIdsN,...
+        numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN, triangulationType,...
+        termTypeStr( 1, renderTermType ), dataStr( 1, dataIndex ), planePos, u, v, TF, deltaT,...
+        renderSingleCellFile, singleCellFile, cellFileMap );
       
       % draw principal components
       if renderPrincipalComponents == 1
@@ -561,7 +561,7 @@ for dataIndex=startD:endD
       
       % draw ellipses and lines
       dimL = size( centerEllipse, 1 );
-      for l=1:dimL
+      for l=1:dimL        
         minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
           minMaxSemiAxisVector( l, 2 )...
           minMaxSemiAxisVector( l, 3 )];
@@ -610,7 +610,7 @@ for dataIndex=startD:endD
           end
           
           if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
-             strcmp( termTypeStr( 1, renderTermType ), 'All' )
+              strcmp( termTypeStr( 1, renderTermType ), 'All' )
             color = [ 0 0 0 ];
           end
           MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
@@ -668,7 +668,7 @@ for dataIndex=startD:endD
           lineMaxZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
           color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
           if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
-             strcmp( termTypeStr( 1, renderTermType ), 'All' )
+              strcmp( termTypeStr( 1, renderTermType ), 'All' )
             color = [ 0 0 0 ];
           end
           MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
@@ -740,7 +740,7 @@ for dataIndex=startD:endD
       
       imgStart = imgStart + 1;
     end
-        
+    
     % at last set begin to false
     if begin == 1
       begin = 0;

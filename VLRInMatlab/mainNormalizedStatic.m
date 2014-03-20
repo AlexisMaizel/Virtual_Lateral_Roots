@@ -313,6 +313,12 @@ for curI=startI:endI
       centerData = [ 0 0 0 ];
       numConsideredCells = 0;
       for c=1:numCells
+        % only consider the master cell file if required
+        if renderSingleCellFile == 1 &&...
+            singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
+          continue;
+        end
+        
         % get position of current cell
         if triangulationType == 1
           p1 = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
@@ -320,18 +326,8 @@ for curI=startI:endI
           p1 = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
         end
         
-        % get color for ellipsoid
-        if renderSingleCellFile == 1
-          if singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
-            continue;
-          else
-            numConsideredCells = numConsideredCells + 1;
-          end
-        else
-          numConsideredCells = numConsideredCells + 1;
-        end
-        
          centerData = centerData + p1;
+         numConsideredCells = numConsideredCells + 1;
       end
       
       if numConsideredCells > 0
@@ -346,6 +342,12 @@ for curI=startI:endI
       nc = 1;
       % draw an ellipsoid for each cell
       for c=1:numCells
+        % only consider the master cell file if required
+        if renderSingleCellFile == 1 &&...
+            singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
+          continue;
+        end
+        
         % get position of current cell
         if triangulationType == 1
           p1 = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
@@ -354,14 +356,7 @@ for curI=startI:endI
         end
         
         p1 = p1 - centerData;
-        
-        % get color for ellipsoid
-        if renderSingleCellFile == 1
-          if singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
-            continue;
-          end
-        end
-        
+
         cellFileMat(nc, :) = [ p1(1) p1(2) p1(3) ];
         
         % get neighbor for specific vertex ID = c
@@ -575,7 +570,8 @@ for curI=startI:endI
           end
         end
       elseif strcmp( visualizationType( 1, visType ), 'Contour' )
-        if size( centerEllipse, 1 ) > 2
+        dimL = size( centerEllipse, 1 );        
+        if dimL > 2
           if triangulationType == 1
             K = convhull( centerEllipse( :, 1 ), centerEllipse( :, 2 ) );
             CONTOUR(dataIndex) = line( centerEllipse( K, 1 ), centerEllipse( K, 2 ), centerEllipse( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
