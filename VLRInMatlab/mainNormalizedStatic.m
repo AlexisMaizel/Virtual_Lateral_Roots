@@ -26,11 +26,9 @@ exportType = 2;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' };
 % render only master file?
-renderSingleCellFile = 1;
+renderSingleCellFile = 0;
 % render principal components
 renderPrincipalComponents = 0;
-% vector of view offsets for x/Y/Z coordinates
-viewOffsets = [ 100 100 100 250 250 250 ];
 % line width of ellipses and semi axes
 lineWidth = 1.2;
 % enable z overlapping
@@ -87,7 +85,7 @@ numData = 5;
 numCellFiles = 6;%double( maxCF-minCF+1 );
 
 % figure properties
-f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
+f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 1200 800] );
 % activate orbit rotation by default
 cameratoolbar( 'SetMode', 'orbit' );
 % activate none coord system by default for not resetting the camera up
@@ -103,17 +101,8 @@ zlabel('Z');
 camproj( 'orthographic' );
 
 % apply preprocessing step of data
-[ cellDatas, dimData, maxT, numCellsPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
+[ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderSingleCellFile, cView );
-
-% get center of total min and max values of data sets
-centerAllData = [ (totalMaxAxes(1) + totalMinAxes(1))/2. ...
-  (totalMaxAxes(2) + totalMinAxes(2))/2. ...
-  (totalMaxAxes(3) + totalMinAxes(3))/2. ];
-
-% and translate total min and max values according to center
-totalMinAxes = totalMinAxes - centerAllData;
-totalMaxAxes = totalMaxAxes - centerAllData;
 
 if strcmp( visualizationType( 1, visType ), 'Contour' )
   % contour instance
@@ -591,17 +580,12 @@ for curI=startI:endI
   
   hold off;
   set( f,'nextplot','replacechildren' );
-  viewOffset = 100;%viewOffsets( dataIndex );
-%   axis( [ totalMinAxes(1)-viewOffset totalMaxAxes(1)+viewOffset...
-%     totalMinAxes(2)-viewOffset totalMaxAxes(2)+viewOffset...
-%     totalMinAxes(3)-viewOffset*3 totalMaxAxes(3)+viewOffset*3 ...
-%     totalMinAxes(3)-viewOffset totalMaxAxes(3)+viewOffset ] );
-    axis( [ totalMinAxes(1)-viewOffset totalMaxAxes(1)+viewOffset...
-    -120 120 ...
-    totalMinAxes(3)-viewOffset*3 totalMaxAxes(3)+viewOffset*3 ...
-    totalMinAxes(3)-viewOffset totalMaxAxes(3)+viewOffset ] );
-  %axis equal;
-  axis off
+  viewOffset = 100;
+  axis( [ totalMinAxes(1) totalMaxAxes(1)...
+    totalMinAxes(2) totalMaxAxes(2)...
+    totalMinAxes(3)-viewOffset totalMaxAxes(3)+viewOffset ...
+    totalMinAxes(3) totalMaxAxes(3) ] );
+  axis on
   daspect( [ 1 1 1 ] );
   
   % legend
@@ -609,7 +593,7 @@ for curI=startI:endI
   %leg = legend( '120830', '121204', '121211', '130508', '130607', '131203' );
   leg = legend( '120830', '121204', '121211', '130508', '130607' );
   set(leg, 'Location', 'NorthWestOutside');
-  linecolors = { [ 1 0 1 ], [ 0 1 1 ], [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ] };
+  linecolors = { [ 1 0 1 ], [ 0 0 0 ], [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ] };
   legendlinestyles( leg, {}, {}, linecolors );
   
   grid off;

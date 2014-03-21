@@ -58,8 +58,6 @@ for c=1:numCellsN
     p1 = [ matPosN( c, 1 ) matPosN( c, 2 ) matPosN( c, 3 ) ];
   end
   
-
-  
   % check if the current cell already existed in the last time
   % step; if not then back traverse its precursors until the
   % corresponding object id is found

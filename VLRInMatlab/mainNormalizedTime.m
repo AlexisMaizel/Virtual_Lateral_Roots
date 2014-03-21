@@ -105,7 +105,7 @@ zlabel('Z');
 camproj( 'orthographic' );
 
 % apply preprocessing step of data
-[ cellDatas, dimData, maxT, numCellsPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
+[ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderSingleCellFile, cView );
 
 % get center of total min and max values of data sets
