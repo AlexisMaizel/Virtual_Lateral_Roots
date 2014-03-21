@@ -625,7 +625,7 @@ while curI < endI-deltaI+1
   end
   
   hold on;
-  generate2DGrid( [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], 10 );
+  generate2DGrid( [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], 20 );
   
   hold off;
   set( f,'nextplot','replacechildren' );
