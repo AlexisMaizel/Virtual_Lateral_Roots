@@ -100,9 +100,11 @@ ylabel('Y');
 zlabel('Z');
 camproj( 'orthographic' );
 
+cpuT = cputime;
 % apply preprocessing step of data
 [ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderSingleCellFile, cView );
+ElapsedTimeDataPreparation = cputime - cpuT
 
 if strcmp( visualizationType( 1, visType ), 'Contour' )
   % contour instance
@@ -152,6 +154,7 @@ set( gcf, 'Renderer', 'OpenGL' );
 set( gcf,'nextplot','replacechildren' );
 set( gcf, 'color', [ 1 1 1 ] );
 
+cpuT = cputime;
 % loop over all normalized steps
 for curI=startI:endI
   
@@ -299,29 +302,29 @@ for curI=startI:endI
       end
       
       % compute center of data
-      centerData = [ 0 0 0 ];
-      numConsideredCells = 0;
-      for c=1:numCells
-        % only consider the master cell file if required
-        if renderSingleCellFile == 1 &&...
-            singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
-          continue;
-        end
-        
-        % get position of current cell
-        if triangulationType == 1
-          p1 = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
-        else
-          p1 = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
-        end
-        
-         centerData = centerData + p1;
-         numConsideredCells = numConsideredCells + 1;
-      end
-      
-      if numConsideredCells > 0
-        centerData = centerData./numConsideredCells;
-      end
+%       centerData = [ 0 0 0 ];
+%       numConsideredCells = 0;
+%       for c=1:numCells
+%         % only consider the master cell file if required
+%         if renderSingleCellFile == 1 &&...
+%             singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
+%           continue;
+%         end
+%         
+%         % get position of current cell
+%         if triangulationType == 1
+%           p1 = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
+%         else
+%           p1 = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
+%         end
+%         
+%          centerData = centerData + p1;
+%          numConsideredCells = numConsideredCells + 1;
+%       end
+%       
+%       if numConsideredCells > 0
+%         centerData = centerData./numConsideredCells;
+%       end
       
       cellFileMat = zeros( numConsideredCells, 3 );
       linePos = zeros( numConsideredCells, 18 );
@@ -344,7 +347,7 @@ for curI=startI:endI
           p1 = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
         end
         
-        p1 = p1 - centerData;
+        p1 = p1 - centerPosPerTimeStep{dataIndex}(curT,:);
 
         cellFileMat(nc, :) = [ p1(1) p1(2) p1(3) ];
         
@@ -360,7 +363,8 @@ for curI=startI:endI
         end
         
         % compute the static link matrix
-        M = computeStaticLink( p1, nVec, centerData, tri, matPos, triangulationType );
+        M = computeStaticLink( p1, nVec, centerPosPerTimeStep{dataIndex}(curT,:),...
+          tri, matPos, triangulationType );
         
         % compute the eigenvectors and eigenvalues of matrix M
         % The columns of Q are the eigenvectors and the diagonal
@@ -624,3 +628,4 @@ for curI=startI:endI
     saveas( gcf, char(filePath) );
   end
 end
+ElapsedTimeIndexLoop = cputime - cpuT
