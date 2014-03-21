@@ -521,9 +521,10 @@ while curI < endI-deltaI+1
         
         % draw ellipse
         hold on;
-        [ ELLIP(l) ELLIPPATCH(l) ] = drawEllipse3d( c(1), c(2), c(3)+l*zOffset+0.2, maxLength, minLength, 0, theta );
-        set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
-        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'none' );
+        ind = l+(dataIndex-1)*dimL;
+        [ ELLIP(ind) ELLIPPATCH(ind) ] = drawEllipse3d( c(1), c(2), c(3)+ind*zOffset+0.2, maxLength, minLength, 0, theta );
+        set( ELLIP(ind), 'color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+        set( ELLIPPATCH(ind), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'none' );
         
         if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
           colorIndex = indexColorSet( l, 2 );
@@ -535,9 +536,9 @@ while curI < endI-deltaI+1
           
           if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
               strcmp( termTypeStr( 1, renderTermType ), 'All' )
-            color = [ 0 0 0 ];
+            color = colors( dataIndex, : );
           end
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          MAX(ind) = line( lineMaxX, lineMaxY, lineMaxZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
           colorIndex = indexColorSet( l, 1 );
@@ -559,7 +560,7 @@ while curI < endI-deltaI+1
             end
           end
           if draw == 1
-            MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            MAX(ind) = line( lineMaxX, lineMaxY, lineMaxZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
           end
           hold on;
           colorIndex = indexColorSet( l, 2 );
@@ -581,7 +582,7 @@ while curI < endI-deltaI+1
             end
           end
           if draw == 1
-            MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            MIN(ind) = line( lineMinX, lineMinY, lineMinZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
           end
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
@@ -595,7 +596,7 @@ while curI < endI-deltaI+1
               strcmp( termTypeStr( 1, renderTermType ), 'All' )
             color = [ 0 0 0 ];
           end
-          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          MAX(ind) = line( lineMaxX, lineMaxY, lineMaxZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
           hold on;
         elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
           % get index of all elongation types
@@ -606,11 +607,11 @@ while curI < endI-deltaI+1
             lineZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
             color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
             if el == 1
-              MIN(l) = line( lineX, lineY, lineZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+              MIN(ind) = line( lineX, lineY, lineZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
             elseif el == 2
-              MID(l) = line( lineX, lineY, lineZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+              MID(ind) = line( lineX, lineY, lineZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
             else
-              MAX(l) = line( lineX, lineY, lineZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+              MAX(ind) = line( lineX, lineY, lineZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
             end
             hold on;
           end
@@ -622,6 +623,9 @@ while curI < endI-deltaI+1
       continue;
     end
   end
+  
+  hold on;
+  generate2DGrid( [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], 10 );
   
   hold off;
   set( f,'nextplot','replacechildren' );
