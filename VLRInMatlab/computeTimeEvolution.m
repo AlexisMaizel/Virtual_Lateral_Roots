@@ -1,10 +1,9 @@
-function [cellsInFileMat, lineColorIndex, linePos, minMaxEigenValueIndex,...
+function [lineColorIndex, linePos, minMaxEigenValueIndex,...
   positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse, indexColorSet ]...
   = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, cellIdsN,...
   numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN, triangulationType,...
-  termTypeStr, dataStr, planePos, u, v, TF, deltaT,...
-  renderSingleCellFile, singleCellFile, cellFileMap )
-cellsInFileMat = [];
+  termTypeStr, dataStr, planePos, u, v, TF, deltaT, centerPosPerTimeStep,...
+  curTC, curTN, renderSingleCellFile, singleCellFile, cellFileMap )
 lineColorIndex = [];
 linePos = [];
 minMaxSemiAxisVector = [];
@@ -33,10 +32,6 @@ disappearedLinks = setxor( objectLinksC, conservedLinks, 'rows' );
 % appeared links
 appearedLinks = setxor( objectLinksN, conservedLinks, 'rows' );
 
-% center of data set for the two different time steps
-centerC = [ 0 0 0 ];
-centerN = [ 0 0 0 ];
-
 % consider each cell between two time steps
 % and render the time evolution as an ellipsoid located at the
 % position of the cell at time step t + deltaT
@@ -58,6 +53,8 @@ for c=1:numCellsN
     p1 = [ matPosN( c, 1 ) matPosN( c, 2 ) matPosN( c, 3 ) ];
   end
   
+  p1 = p1 - centerPosPerTimeStep(curTN,:);
+  
   % check if the current cell already existed in the last time
   % step; if not then back traverse its precursors until the
   % corresponding object id is found
@@ -71,7 +68,7 @@ for c=1:numCellsN
   p2 = getCellPosition( objectIdC, triC, cellIdsC,...
     triangulationType, matPosC );
   
-  cellsInFileMat = [ cellsInFileMat ; p2(1) p2(2) p2(3) ];
+  p2 = p2 - centerPosPerTimeStep(curTC,:);
   
   % get all neighbors for the two found cells
   nVecC = getNeighborsOfObjectId( objectIdC, objectLinksC );
@@ -106,7 +103,8 @@ for c=1:numCellsN
   if strcmp( termTypeStr, 'B' ) || strcmp( termTypeStr, 'All' )
     B = computeGeometricalLink( p1, p2, triC, triN, matPosC, matPosN,...
       cellIdsC, cellIdsN, deltaT, conservedLinksPerCell, numConservedLinksPerCell,...
-      numAveragedLinksPerCell, triangulationType );
+      numAveragedLinksPerCell, triangulationType,...
+      centerPosPerTimeStep, curTC, curTN );
   end
   
   % topological term
@@ -114,7 +112,8 @@ for c=1:numCellsN
     T = computeTopologicalLink( p1, p2, triC, triN, matPosC, matPosN,...
       cellIdsC, cellIdsN, objectIdC, objectIdN, objectLinksC, deltaT,...
       appearedLinksPerCell, disappearedLinksPerCell,...
-      numAveragedLinksPerCell, triangulationType );
+      numAveragedLinksPerCell, triangulationType,...
+      centerPosPerTimeStep, curTC, curTN );
   end
   
   % compute the final texture for the current ellipsoid

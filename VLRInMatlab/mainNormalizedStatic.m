@@ -100,11 +100,9 @@ ylabel('Y');
 zlabel('Z');
 camproj( 'orthographic' );
 
-cpuT = cputime;
 % apply preprocessing step of data
 [ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderSingleCellFile, cView );
-ElapsedTimeDataPreparation = cputime - cpuT
 
 if strcmp( visualizationType( 1, visType ), 'Contour' )
   % contour instance

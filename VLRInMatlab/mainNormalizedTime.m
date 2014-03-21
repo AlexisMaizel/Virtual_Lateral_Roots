@@ -47,7 +47,7 @@ visualizationType = { 'Ellipsoids' 'Ellipses' 'Contour' };
 visType = 2;
 % offset for cell ranges
 epsilon = 3;
-lineRenderType = 4;
+lineRenderType = 3;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2: render all three major lines of elongation of the ellipsoids in 3D
@@ -107,15 +107,6 @@ camproj( 'orthographic' );
 % apply preprocessing step of data
 [ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderSingleCellFile, cView );
-
-% get center of total min and max values of data sets
-centerAllData = [ (totalMaxAxes(1) + totalMinAxes(1))/2. ...
-  (totalMaxAxes(2) + totalMinAxes(2))/2. ...
-  (totalMaxAxes(3) + totalMinAxes(3))/2. ];
-
-% and translate total min and max values according to center
-totalMinAxes = totalMinAxes - centerAllData;
-totalMaxAxes = totalMaxAxes - centerAllData;
 
 if strcmp( visualizationType( 1, visType ), 'Contour' )
   % contour instance
@@ -207,6 +198,7 @@ numTotalLinksC = zeros( numData, 1 );
 numTotalLinksN = zeros( numData, 1 );
 numTotalAveragedLinks = zeros( numData, 1 );
 
+cpuT = cputime;
 % loop over all normalized steps
 curI=startI;
 while curI < endI-deltaI+1
@@ -430,300 +422,200 @@ while curI < endI-deltaI+1
       deltaT = curTN(dataIndex) - curTC(dataIndex);
       
       % compute time evolution for current deltaT and time step
-      [cellsInFileMat, lineColorIndex, linePos, minMaxEigenValueIndex,...
+      [ lineColorIndex, linePos, minMaxEigenValueIndex,...
         positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse, indexColorSet ]...
-        = computeTimeEvolution( uniqueEdgesC{dataIndex}, uniqueEdgesN{dataIndex},...
-        cellIdsC{dataIndex}, cellIdsN{dataIndex}, numCellsN(dataIndex),...
-        triC{dataIndex}, triN{dataIndex}, matPosC{dataIndex},...
-        matPosN{dataIndex}, cellPrecursorsN{dataIndex}, triangulationType,...
-        termTypeStr( 1, renderTermType ), dataStr( 1, dataIndex ),...
-        planePos, u, v, TF, deltaT,...
-        renderSingleCellFile, singleCellFile, cellFileMap{dataIndex} );
+        = computeTimeEvolution(...
+        uniqueEdgesC{dataIndex},...
+        uniqueEdgesN{dataIndex},...
+        cellIdsC{dataIndex},...
+        cellIdsN{dataIndex},...
+        numCellsN(dataIndex),...
+        triC{dataIndex},...
+        triN{dataIndex},...
+        matPosC{dataIndex},...
+        matPosN{dataIndex},...
+        cellPrecursorsN{dataIndex},...
+        triangulationType,...
+        termTypeStr( 1, renderTermType ),...
+        dataStr( 1, dataIndex ),...
+        planePos, u, v, TF,...
+        deltaT,...
+        centerPosPerTimeStep{dataIndex},...
+        curTC(dataIndex),...
+        curTN(dataIndex),...
+        renderSingleCellFile,...
+        singleCellFile,...
+        cellFileMap{dataIndex} );
       
-      
-      
-%       
-%       % compute center of data
-%       centerData = [ 0 0 0 ];
-%       numConsideredCells = 0;
-%       for c=1:numCells
-%         % get position of current cell
-%         if triangulationType == 1
-%           p1 = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
-%         else
-%           p1 = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
-%         end
-%         
-%         % get color for ellipsoid
-%         if renderSingleCellFile == 1
-%           if singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
-%             continue;
-%           else
-%             numConsideredCells = numConsideredCells + 1;
-%           end
-%         else
-%           numConsideredCells = numConsideredCells + 1;
-%         end
-%         
-%          centerData = centerData + p1;
-%       end
-%       
-%       if numConsideredCells > 0
-%         centerData = centerData./numConsideredCells;
-%       end
-%       
+%      
+%       TODO in computeTimeEvolution for speedup
 %       cellFileMat = zeros( numConsideredCells, 3 );
 %       linePos = zeros( numConsideredCells, 18 );
 %       minMaxSemiAxisVector = zeros( numConsideredCells, 6 );
 %       centerEllipse = zeros( numConsideredCells, 3 );
 %       
-%       nc = 1;
-%       % draw an ellipsoid for each cell
-%       for c=1:numCells
-%         % get position of current cell
-%         if triangulationType == 1
-%           p1 = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
-%         else
-%           p1 = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
-%         end
-%         
-%         p1 = p1 - centerData;
-%         
-%         % get color for ellipsoid
-%         if renderSingleCellFile == 1
-%           if singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
-%             continue;
-%           end
-%         end
-%         
-%         cellFileMat(nc, :) = [ p1(1) p1(2) p1(3) ];
-%         
-%         % get neighbor for specific vertex ID = c
-%         if triangulationType == 1
-%           nVec = getNeighbors( c, tri, numCells );
-%         else
-%           nVec = getAlphaShapeNeighbors( c, tri );
-%         end
-% 
-%         if size( nVec, 1 ) == 0
-%           continue;
-%         end
-%         
-%         % compute the static link matrix
-%         M = computeStaticLink( p1, nVec, centerData, tri, matPos, triangulationType );
-%         
-%         % compute the eigenvectors and eigenvalues of matrix M
-%         % The columns of Q are the eigenvectors and the diagonal
-%         % elements of D are the eigenvalues
-%         [Q,D] = eig(M);
-%         
-%         % check if the eigenvalues are smaller then zero; if so, then do
-%         % not draw a line and consider the absolute value of it -> TODO
-%         positiveEigenvalue = [ 1 ; 1 ; 1 ];
-%         radii = diag(D);
-%         for e=1:3
-%           if radii(e) < 0.
-%             radii(e) = -radii(e);
-%             positiveEigenvalue( e, 1 ) = 0;
-%           end
-%         end
-%         
-%         % radii of the ellipsoid
-%         radii = sqrt( radii );
-%         
-%         xEigVec = Q(:, 1);
-%         yEigVec = Q(:, 2);
-%         zEigVec = Q(:, 3);
-%         
-%         % draw the single cell as ellipsoid
-%         [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., nEllip );
-%         X = p1(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
-%         Y = p1(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
-%         Z = p1(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
-%         
-%         if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
-%           S(c) = surface( X, Y, Z, 'FaceColor', colors( dataIndex, : ),...
-%             'EdgeColor', 'none', 'EdgeAlpha', 0,...
-%             'FaceLighting', 'gouraud' );
-%         end
-%         
-%         semiLines = zeros( 1, 18 );
-%         % draw the three major axes in the origin which are then
-%         % rotated according to the eigenvectors
-%         for l=1:3
-%           if l == 1
-%             sX = [ -radii(1)/2., radii(1)/2. ];
-%             sY = [ 0, 0 ];
-%             sZ = [ 0, 0 ];
-%           elseif l == 2
-%             sX = [ 0, 0 ];
-%             sY = [ -radii(2)/2., radii(2)/2. ];
-%             sZ = [ 0, 0 ];
-%           else
-%             sX = [ 0, 0 ];
-%             sY = [ 0, 0 ];
-%             sZ = [ -radii(3)/2., radii(3)/2. ];
-%           end
-%           lineX = p1(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
-%           lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
-%           lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
-%           
-%           projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
-%           projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
-%           
-%           % and store the start/end points of the lines in linePos
-%           index = 6*(l-1) + 1;
-%           semiLines( 1, index:index+2 ) = projLine1;
-%           semiLines( 1, index+3:index+5 ) = projLine2;
-%         end
-%         
-%         % update semi axes in 3D
-%         linePos(nc, :) = semiLines;
-%         
-%         % project each vertex of the ellipsoid onto the plane
-%         dimP = size( X, 1 );
-%         for q=1:dimP
-%           for p=1:dimP
-%             curPos = applyTransformations( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
-%             X(p,q) = curPos(1);
-%             Y(p,q) = curPos(2);
-%             Z(p,q) = curPos(3);
-%           end
-%         end
-%         
-% %         PS(c) = surface( X, Y, Z, 'FaceColor', colors( dataIndex, : ),...
-% %           'EdgeColor', 'none', 'EdgeAlpha', 0,...
-% %           'FaceLighting', 'none' );
-%         
-%         p1 = applyTransformations( p1, planePos, u, v, TF, dataStr( 1, dataIndex ) );
-%         centerEllipse(nc, :) = p1;
-%         % the direction is now the normal of the x-y plane
-%         minMaxS = determineAxes( X, Y, Z, p1, [ 0 0 1 ] );
-%         minMaxSemiAxisVector(nc, :) = minMaxS;
-%         nc = nc + 1;
-%       end
-%       
-%       % draw principal components
-%       if renderPrincipalComponents == 1
-%         start = mean( cellFileMat );
-%         %coeff = pca( cellFileMat )
-%         if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
-%             strcmp( visualizationType( 1, visType ), 'Contour' )
-%           start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ) );
-%         end
-%         arrowLength = 150;
-%         for a=1:3
-%           if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
-%               strcmp( visualizationType( 1, visType ), 'Contour' )
-%             endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ) );
-%           elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
-%             endP = coeff(:, a);
-%           end
-%           hold on;
-%           P(a) = quiver3( start(1), start(2), start(3),...
-%             endP(1), endP(2), endP(3),...
-%             arrowLength, 'LineWidth', 3,...
-%             'Color', cm( a, : ) );
-%         end
-%       end
-%       
-%       if overlapping == 1
-%         zOffset = 0.5;
-%       else
-%         zOffset = 0.;
-%       end
-%       
-%       if strcmp( visualizationType( 1, visType ), 'Ellipses' )
-%         dimL = size( centerEllipse, 1 );
-%         % draw ellipses and lines
-%         for l=1:dimL
-%           minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
-%             minMaxSemiAxisVector( l, 2 )...
-%             minMaxSemiAxisVector( l, 3 )];
-%           maxSemiPoint = [minMaxSemiAxisVector( l, 4 )...
-%             minMaxSemiAxisVector( l, 5 )...
-%             minMaxSemiAxisVector( l, 6 )];
-%           c = centerEllipse( l, : );
-%           minLength = norm( minSemiPoint - c );
-%           maxLength = norm( maxSemiPoint - c );
-%           
-%           % line of major semi axis
-%           lineMaxX = [ maxSemiPoint(1), c(1) + c(1)-maxSemiPoint(1) ];
-%           lineMaxY = [ maxSemiPoint(2), c(2) + c(2)-maxSemiPoint(2) ];
-%           lineMaxZ = [ maxSemiPoint(3), c(3) + c(3)-maxSemiPoint(3) ];
-%           
-%           % line of minor semi axis
-%           % direction have to be here the normal of the x-y plane
-%           minorSemiAxes = cross( [ 0 0 1 ], maxSemiPoint-c );
-%           minorSemiAxes = normalizeVector3d( minorSemiAxes );
-%           lineMinX = [ c(1) - minLength*minorSemiAxes(1), c(1) + minLength*minorSemiAxes(1) ];
-%           lineMinY = [ c(2) - minLength*minorSemiAxes(2), c(2) + minLength*minorSemiAxes(2) ];
-%           %lineMinZ = [ c(3) - minLength*minorSemiAxes(3), c(3) + minLength*minorSemiAxes(3) ];
-%           lineMinZ = [ 0., 0. ];
-%           
-%           theta = acos( dot(maxSemiPoint - c, [ 1 0 0 ])/norm(maxSemiPoint - c) );
-%           theta = theta*180/pi;
-%           
-%           % check y values because this is required for
-%           % a correct rotation of the ellipses around the z axis
-%           if lineMaxY(1) <= lineMaxY(2)
-%             theta = -theta;
-%           end
-%           
-%           % draw ellipse
-%           hold on;
-%           [ ELLIP(l) ELLIPPATCH(l) ] = drawEllipse3d( c(1), c(2), c(3)+l*zOffset+0.2, maxLength, minLength, 0, theta );
-%           set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
-%           set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'none' );
-%           
-%           if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
-%             hold on;
-%             MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'k', 'LineWidth', lineWidth );
-%           elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
-%             hold on;
-%             MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'k', 'LineWidth', lineWidth );
-%             hold on;
-%             MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', 'k', 'LineWidth', lineWidth );
-%           elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
-%             lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
-%             lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
-%             lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
-%             hold on;
-%             MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
-%           elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
-%             lineMinX = [ linePos( l, 1 ), linePos( l, 4 ) ];
-%             lineMinY = [ linePos( l, 2 ), linePos( l, 5 ) ];
-%             lineMinZ = [ linePos( l, 3 ), linePos( l, 6 ) ];
-%             lineMidX = [ linePos( l, 7 ), linePos( l, 10 ) ];
-%             lineMidY = [ linePos( l, 8 ), linePos( l, 11 ) ];
-%             lineMidZ = [ linePos( l, 9 ), linePos( l, 12 ) ];
-%             lineMaxX = [ linePos( l, 13 ), linePos( l, 16 ) ];
-%             lineMaxY = [ linePos( l, 14 ), linePos( l, 17 ) ];
-%             lineMaxZ = [ linePos( l, 15 ), linePos( l, 18 ) ];
-%             hold on;
-%             MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', 'r', 'LineWidth', lineWidth );
-%             hold on;
-%             MID(l) = line( lineMidX, lineMidY, lineMidZ+l*zOffset+0.2, 'Color', 'k', 'LineWidth', lineWidth );
-%             hold on;
-%             MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', 'b', 'LineWidth', lineWidth );
-%           end
-%         end
-%       elseif strcmp( visualizationType( 1, visType ), 'Contour' )
-%         if size( centerEllipse, 1 ) > 2
-%           if triangulationType == 1
-%             K = convhull( centerEllipse( :, 1 ), centerEllipse( :, 2 ) );
-%             CONTOUR(dataIndex) = line( centerEllipse( K, 1 ), centerEllipse( K, 2 ), centerEllipse( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
-%           else
-%             [VolC,ShapeC] = alphavol( [ centerEllipse( :, 1 ), centerEllipse( :, 2 ) ], sqrt( alphaRadiiVector( curT, 1 )) );
-%             K = ShapeC.bnd(:,1);
-%             dimK = size( K, 1 );
-%             if dimK > 1
-%               K(dimK+1,:) = K(1,:);
-%               CONTOUR(dataIndex) = line( centerEllipse( K, 1 ), centerEllipse( K, 2 ), centerEllipse( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
-%             end
-%           end
-%         end
-%       end
+      % draw principal components
+      if renderPrincipalComponents == 1
+        start = mean( cellFileMat );
+        %coeff = pca( cellFileMat )
+        if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
+            strcmp( visualizationType( 1, visType ), 'Contour' )
+          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ) );
+        end
+        arrowLength = 150;
+        for a=1:3
+          if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
+              strcmp( visualizationType( 1, visType ), 'Contour' )
+            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ) );
+          elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
+            endP = coeff(:, a);
+          end
+          hold on;
+          P(a) = quiver3( start(1), start(2), start(3),...
+            endP(1), endP(2), endP(3),...
+            arrowLength, 'LineWidth', 3,...
+            'Color', cm( a, : ) );
+        end
+      end
+      
+      if overlapping == 1
+        zOffset = 0.5;
+      else
+        zOffset = 0.;
+      end
+      
+      dimL = size( centerEllipse, 1 );
+      for l=1:dimL
+        minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
+          minMaxSemiAxisVector( l, 2 )...
+          minMaxSemiAxisVector( l, 3 )];
+        maxSemiPoint = [minMaxSemiAxisVector( l, 4 )...
+          minMaxSemiAxisVector( l, 5 )...
+          minMaxSemiAxisVector( l, 6 )];
+        c = centerEllipse( l, : );
+        minLength = norm( minSemiPoint - c );
+        maxLength = norm( maxSemiPoint - c );
+        
+        % line of major semi axis
+        lineMaxX = [ maxSemiPoint(1), c(1) + c(1)-maxSemiPoint(1) ];
+        lineMaxY = [ maxSemiPoint(2), c(2) + c(2)-maxSemiPoint(2) ];
+        lineMaxZ = [ maxSemiPoint(3), c(3) + c(3)-maxSemiPoint(3) ];
+        
+        % line of minor semi axis
+        % direction have to be here the normal of the x-y plane
+        minorSemiAxes = cross( [ 0 0 1 ], maxSemiPoint-c );
+        minorSemiAxes = normalizeVector3d( minorSemiAxes );
+        lineMinX = [ c(1) - minLength*minorSemiAxes(1), c(1) + minLength*minorSemiAxes(1) ];
+        lineMinY = [ c(2) - minLength*minorSemiAxes(2), c(2) + minLength*minorSemiAxes(2) ];
+        %lineMinZ = [ c(3) - minLength*minorSemiAxes(3), c(3) + minLength*minorSemiAxes(3) ];
+        lineMinZ = [ 0., 0. ];
+        
+        theta = acos( dot(maxSemiPoint - c, [ 1 0 0 ])/norm(maxSemiPoint - c) );
+        theta = theta*180/pi;
+        
+        % check y values because this is required for
+        % a correct rotation of the ellipses around the z axis
+        if lineMaxY(1) <= lineMaxY(2)
+          theta = -theta;
+        end
+        
+        % draw ellipse
+        hold on;
+        [ ELLIP(l) ELLIPPATCH(l) ] = drawEllipse3d( c(1), c(2), c(3)+l*zOffset+0.2, maxLength, minLength, 0, theta );
+        set( ELLIP(l), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
+        set( ELLIPPATCH(l), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'none' );
+        
+        if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
+          colorIndex = indexColorSet( l, 2 );
+          if colorIndex == 0
+            color = [ 0 0 1 ];
+          else
+            color = [ 1 0 0 ];
+          end
+          
+          if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
+              strcmp( termTypeStr( 1, renderTermType ), 'All' )
+            color = [ 0 0 0 ];
+          end
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          hold on;
+        elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
+          colorIndex = indexColorSet( l, 1 );
+          draw = 1;
+          % negative eigenvalue
+          if colorIndex == 0
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+              % do not draw a line for negative eigenvalue
+              draw = 0;
+            else
+              color = [ 0 0 1 ];
+            end
+            % positive eigenvalue
+          else
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+              color = [ 0 0 0 ];
+            else
+              color = [ 1 0 0 ];
+            end
+          end
+          if draw == 1
+            MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          end
+          hold on;
+          colorIndex = indexColorSet( l, 2 );
+          draw = 1;
+          % negative eigenvalue
+          if colorIndex == 0
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+              % do not draw a line for negative eigenvalue
+              draw = 0;
+            else
+              color = [ 0 0 1 ];
+            end
+            % positive eigenvalue
+          else
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+              color = [ 0 0 0 ];
+            else
+              color = [ 1 0 0 ];
+            end
+          end
+          if draw == 1
+            MIN(l) = line( lineMinX, lineMinY, lineMinZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          end
+          hold on;
+        elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
+          % get index of longest elongation
+          index = minMaxEigenValueIndex( l, 3 );
+          lineMaxX = [ linePos( l, (index-1)*6 +1 ), linePos( l, (index-1)*6 +4 ) ];
+          lineMaxY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
+          lineMaxZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
+          color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
+          if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
+              strcmp( termTypeStr( 1, renderTermType ), 'All' )
+            color = [ 0 0 0 ];
+          end
+          MAX(l) = line( lineMaxX, lineMaxY, lineMaxZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          hold on;
+        elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
+          % get index of all elongation types
+          for el=1:3
+            index = minMaxEigenValueIndex( l, el );
+            lineX = [ linePos( l, (index-1)*6 +1 ), linePos( l, (index-1)*6 +4 ) ];
+            lineY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
+            lineZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
+            color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
+            if el == 1
+              MIN(l) = line( lineX, lineY, lineZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            elseif el == 2
+              MID(l) = line( lineX, lineY, lineZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            else
+              MAX(l) = line( lineX, lineY, lineZ+l*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            end
+            hold on;
+          end
+        end
+      end
     else
       % if too few cells are available for PCA then just continue
       curI = curI + deltaI;
@@ -733,26 +625,13 @@ while curI < endI-deltaI+1
   
   hold off;
   set( f,'nextplot','replacechildren' );
-  viewOffset = 100;%viewOffsets( dataIndex );
-%   axis( [ totalMinAxes(1)-viewOffset totalMaxAxes(1)+viewOffset...
-%     totalMinAxes(2)-viewOffset totalMaxAxes(2)+viewOffset...
-%     totalMinAxes(3)-viewOffset*3 totalMaxAxes(3)+viewOffset*3 ...
-%     totalMinAxes(3)-viewOffset totalMaxAxes(3)+viewOffset ] );
-    axis( [ totalMinAxes(1)-viewOffset totalMaxAxes(1)+viewOffset...
-    -120 120 ...
-    totalMinAxes(3)-viewOffset*3 totalMaxAxes(3)+viewOffset*3 ...
-    totalMinAxes(3)-viewOffset totalMaxAxes(3)+viewOffset ] );
-  %axis equal;
-  axis off
+  viewOffset = 100;
+  axis( [ totalMinAxes(1) totalMaxAxes(1)...
+    totalMinAxes(2) totalMaxAxes(2)...
+    totalMinAxes(3)-viewOffset totalMaxAxes(3)+viewOffset ...
+    totalMinAxes(3) totalMaxAxes(3) ] );
+  axis on
   daspect( [ 1 1 1 ] );
-  
-  % legend
-  hold on;
-  %leg = legend( '120830', '121204', '121211', '130508', '130607', '131203' );
-  leg = legend( '120830', '121204', '121211', '130508', '130607' );
-  set(leg, 'Location', 'NorthWestOutside');
-  linecolors = { [ 1 0 1 ], [ 0 1 1 ], [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ] };
-  legendlinestyles( leg, {}, {}, linecolors );
   
   grid off;
   xlabel('X');
@@ -784,3 +663,4 @@ while curI < endI-deltaI+1
   % at last increment the current index loop parameter
   curI = curI + deltaI;
 end
+ElapsedTimeIndexLoop = cputime - cpuT

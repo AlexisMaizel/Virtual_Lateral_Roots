@@ -1,7 +1,8 @@
 function T = computeTopologicalLink( p1, p2, triC, triN, matPosC, matPosN,...
   cellIdsC, cellIdsN, objectIdC, objectIdN, objectLinksC, deltaT,...
   appearedLinksPerCell, disappearedLinksPerCell,...
-  numAveragedLinksPerCell, triangulationType )
+  numAveragedLinksPerCell, triangulationType,...
+  centerPosPerTimeStep, curTC, curTN )
   % topological term
   T1 = zeros(3);
   T2 = zeros(3);
@@ -15,11 +16,16 @@ for a=1:numAppearedLinksPerCell
   neighborId = appearedLinksPerCell( 1, a );
   
   % link at time step t + deltaT
-  l = getCellPosition( neighborId, triN, cellIdsN,...
-    triangulationType, matPosN ) -...
-    getCellPosition( objectIdN, triN, cellIdsN,...
+  pos1 = getCellPosition( neighborId, triN, cellIdsN,...
     triangulationType, matPosN );
+  pos1 = pos1 - centerPosPerTimeStep(curTN,:);
   
+  pos2 = getCellPosition( objectIdN, triN, cellIdsN,...
+    triangulationType, matPosN );
+  pos2 = pos2 - centerPosPerTimeStep(curTN,:);
+  
+  l = pos1 - pos2;
+    
   % compute link matrix
   m = getLinkMatrix( l, l );
   
@@ -64,10 +70,15 @@ for d=1:numDisappearedLinksPerCell
   neighborId = disappearedLinksPerCell( 1, d );
   
   % link at time step t
-  l = getCellPosition( neighborId, triC, cellIdsC,...
-    triangulationType, matPosC ) -...
-    getCellPosition( objectIdC, triC, cellIdsC,...
+  pos1 = getCellPosition( neighborId, triC, cellIdsC,...
     triangulationType, matPosC );
+  pos1 = pos1 - centerPosPerTimeStep(curTC,:);
+  
+  pos2 = getCellPosition( objectIdC, triC, cellIdsC,...
+    triangulationType, matPosC );
+  pos2 = pos2 - centerPosPerTimeStep(curTC,:);
+  
+  l = pos1 - pos2;
   
   % compute link matrix
   m = getLinkMatrix( l, l );

@@ -1,6 +1,7 @@
 function [ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep,...
   totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType, renderSingleCellFile, cView )
+cpuT = cputime;
 % cellData is the main array with all relevant information
 % for the further analysis:
 % ObjectID X Y Z Timepoint LineageID TrackGroup
@@ -239,3 +240,4 @@ for dataIndex=startData:endData
     end
   end
 end
+ElapsedTimeDataPreparation = cputime - cpuT

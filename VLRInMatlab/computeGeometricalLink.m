@@ -1,6 +1,7 @@
 function B = computeGeometricalLink( p1, p2, triC, triN, matPosC, matPosN,...
   cellIdsC, cellIdsN, deltaT, conservedLinksPerCell, numConservedLinksPerCell,...
-  numAveragedLinksPerCell, triangulationType )
+  numAveragedLinksPerCell, triangulationType,...
+  centerPosPerTimeStep, curTC, curTN )
 B = zeros(3);
 % loop over all linked and conserved neighbors
 % determining B
@@ -14,6 +15,10 @@ for n=1:numConservedLinksPerCell
   % link at time step t + deltaT
   l2 = getCellPosition( neighborId, triN, cellIdsN,...
     triangulationType, matPosN ) - p1;
+  
+  % translate points to center
+  l1 = l1 - centerPosPerTimeStep(curTC,:);
+  l2 = l2 - centerPosPerTimeStep(curTN,:);
   
   % compute average of the two links
   la = ( l1 + l2 )/2.;
