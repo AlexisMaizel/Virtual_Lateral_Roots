@@ -1,17 +1,10 @@
 function [lineColorIndex, linePos, minMaxEigenValueIndex,...
-  positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse, indexColorSet ]...
+  positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse,...
+  timePositions, indexColorSet ]...
   = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, cellIdsN,...
   numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN, triangulationType,...
   termTypeStr, dataStr, planePos, u, v, TF, deltaT, centerPosPerTimeStep,...
   curTC, curTN, renderSingleCellFile, singleCellFile, cellFileMap )
-lineColorIndex = [];
-linePos = [];
-minMaxSemiAxisVector = [];
-centerEllipse = [];
-minMaxEigenValueIndex = [];
-indexColorSet = [];
-positiveEigenvalueVector = [];
-
 % scaling of ellipses
 scaling = 5;
 % number of subdivisions for ellipsoids
@@ -32,11 +25,36 @@ disappearedLinks = setxor( objectLinksC, conservedLinks, 'rows' );
 % appeared links
 appearedLinks = setxor( objectLinksN, conservedLinks, 'rows' );
 
+% iterating over the loop in order to determine the number of considered
+% cells
+numConsideredCells = 0;
+for c=1:numCellsN
+  % get objectId of current cell
+  objectIdN = cellIdsN( c );
+  % only render the master cell file if required
+  if renderSingleCellFile == 1 &&...
+      singleCellFile ~= cellFileMap( objectIdN )
+    continue;
+  end
+  
+  numConsideredCells = numConsideredCells + 1;
+end
+
+lineColorIndex = zeros( numConsideredCells, 9 );
+linePos = zeros( numConsideredCells, 18 );
+minMaxSemiAxisVector = zeros( numConsideredCells, 6 );
+centerEllipse = zeros( numConsideredCells, 3 );
+timePositions = zeros( numConsideredCells, 6 );
+minMaxEigenValueIndex = zeros( numConsideredCells, 3 );
+indexColorSet = zeros( numConsideredCells, 2 );
+positiveEigenvalueVector = zeros( numConsideredCells, 3 );
+
 % consider each cell between two time steps
 % and render the time evolution as an ellipsoid located at the
 % position of the cell at time step t + deltaT
 % Note that we consider the TIME STEP t + deltaT and look back at
 % time step t which cell is related to the second time step
+nc = 1;
 for c=1:numCellsN
   % get objectId of current cell
   objectIdN = cellIdsN( c );
@@ -148,10 +166,10 @@ for c=1:numCellsN
   
   % store the order of increasing eigen values
   [ ~, index ] = sort( radii );
-  minMaxEigenValueIndex = [ minMaxEigenValueIndex; index(1) index(2) index(3) ];
+  minMaxEigenValueIndex(nc, :) = [ index(1) index(2) index(3) ];
   
-  positiveEigenvalueVector = [ positiveEigenvalueVector;...
-    positiveEigenvalue(1) positiveEigenvalue(2) positiveEigenvalue(3) ];
+  positiveEigenvalueVector(nc, :) = [ positiveEigenvalue(1)...
+    positiveEigenvalue(2) positiveEigenvalue(3) ];
   
   % line color by default black for each line
   lineColor = [ 0 0 0 0 0 0 0 0 0 ];
@@ -175,7 +193,7 @@ for c=1:numCellsN
   
   % store the coloring of lines depending on the sign of the
   % eigenvalues
-  lineColorIndex = [ lineColorIndex; lineColor ];
+  lineColorIndex(nc, :) = lineColor;
   
   % radii of the ellipsoid
   radii = sqrt( radii );
@@ -190,13 +208,13 @@ for c=1:numCellsN
   
   % draw the single cell as ellipsoid
   [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., nEllip );
-  %ellipPos = (p1+p2)/2.;
-  ellipPos = p1;
+  ellipPos = (p1+p2)/2.;
+  %ellipPos = p1;
   X = ellipPos(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
   Y = ellipPos(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
   Z = ellipPos(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);
   
-  semiLines = [];
+  semiLines = zeros( 1, 18 );
   % draw the three major axes in the origin which are then
   % rotated according to the eigenvectors
   for l=1:3
@@ -213,25 +231,31 @@ for c=1:numCellsN
       sY = [ 0, 0 ];
       sZ = [ -radii(3)/2., radii(3)/2. ];
     end
-    lineX = p1(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
-    lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
-    lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
+    lineX = ellipPos(1) + sX*xEigVec(1) + sY*yEigVec(1) + sZ*zEigVec(1);
+    lineY = ellipPos(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
+    lineZ = ellipPos(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
     
     projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr );
     projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr );
     
     % and store the start/end points of the lines in linePos
-    semiLines = [ semiLines projLine1 projLine2 ];
+    if l == 1
+      semiLines(1, 1:6) = [ projLine1 projLine2 ];
+    elseif l == 2
+      semiLines(1, 7:12) = [ projLine1 projLine2 ];
+    else
+      semiLines(1, 13:18) = [ projLine1 projLine2 ];
+    end
   end
   
-  indexColorSet = [ indexColorSet; determineColorAssignment(...
+  indexColorSet(nc, :) = determineColorAssignment(...
     [ xEigVec(1) xEigVec(2) xEigVec(3) ;...
     yEigVec(1) yEigVec(2) yEigVec(3) ;...
     zEigVec(1) zEigVec(2) zEigVec(3) ], positiveEigenvalue,...
-    [ projLine1 ; projLine2 ] ) ];
+    [ projLine1 ; projLine2 ] );
   
   % update semi axes in 3D
-  linePos = [ linePos ; semiLines ];
+  linePos(nc, :) = semiLines;
   
   % project each vertex of the ellipsoid onto the plane
   dimP = size( X, 1 );
@@ -244,9 +268,13 @@ for c=1:numCellsN
     end
   end
   
-  p1 = applyTransformations( p1, planePos, u, v, TF, dataStr );
-  centerEllipse = [ centerEllipse ; p1 ];
+  ellipPos = applyTransformations( ellipPos, planePos, u, v, TF, dataStr );
+  pStart = applyTransformations( p2, planePos, u, v, TF, dataStr );
+  pEnd = applyTransformations( p1, planePos, u, v, TF, dataStr );
+  timePositions(nc, :) = [ pStart pEnd ];
+  centerEllipse(nc, :) = ellipPos;
   % the direction is now the normal of the x-y plane
-  minMaxS = determineAxes( X, Y, Z, p1, [ 0 0 1 ] );
-  minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];
+  minMaxS = determineAxes( X, Y, Z, ellipPos, [ 0 0 1 ] );
+  minMaxSemiAxisVector(nc, :) = minMaxS;
+  nc = nc + 1;
 end

@@ -6,7 +6,7 @@ elseif strcmp( dataStr, '121204_raw_2014' )
 elseif strcmp( dataStr, '121211_raw' )
   angle = 0;
 elseif strcmp( dataStr, '130508_raw' )
-  angle = -2;
+  angle = -3;
 elseif strcmp( dataStr, '130607_raw' )
   angle = 4;
 elseif strcmp( dataStr, '131203_raw' )

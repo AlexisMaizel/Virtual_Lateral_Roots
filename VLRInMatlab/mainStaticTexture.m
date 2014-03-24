@@ -73,7 +73,7 @@ viewStr = { 'Top' 'Side' 'Radial' '3D' };
 % master cell file information taken by the picture made of Daniel located in dropbox
 % and the trackGroup information of the raw data sets
 %masterCellFile = [ 4 3 4 2 3 0 ];
-masterCellFile = [ 4 4 4 3 3 0 ];
+masterCellFile = [ 4 5 4 3 3 0 ];
 
 % either loop over all data sets creating five figures or only
 % show one specific one

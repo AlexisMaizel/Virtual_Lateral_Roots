@@ -26,7 +26,7 @@ exportType = 2;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' };
 % render only master file?
-renderSingleCellFile = 0;
+renderSingleCellFile = 1;
 % render principal components
 renderPrincipalComponents = 0;
 % line width of ellipses and semi axes
@@ -65,7 +65,7 @@ viewStr = { 'Top' 'Side' 'Radial' '3D' };
 % master cell file information taken by the picture made of Daniel located in dropbox
 % and the trackGroup information of the raw data sets
 %masterCellFile = [ 4 3 4 2 3 0 ];
-masterCellFile = [ 4 4 4 3 3 0 ];
+masterCellFile = [ 4 5 4 3 3 0 ];
 % number of subdivisions for ellipsoids
 nEllip = 10;
 % data Index:
@@ -76,13 +76,15 @@ nEllip = 10;
 % 5 -> 130607
 % 6 -> 131203
 % start id of data
-startData = 1;
+startData = 5;
 % end id of data
 endData = 5;
 % num of data
 numData = 5;
 % number of cell files
 numCellFiles = 6;%double( maxCF-minCF+1 );
+% resolution of grid
+resGrid = 50;
 
 % figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 1200 800] );
@@ -152,6 +154,9 @@ set( gcf, 'Renderer', 'OpenGL' );
 set( gcf,'nextplot','replacechildren' );
 set( gcf, 'color', [ 1 1 1 ] );
 
+hold on;
+[ rows, columns ] = generate2DGrid( [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid );
+
 cpuT = cputime;
 % loop over all normalized steps
 for curI=startI:endI
@@ -195,7 +200,7 @@ for curI=startI:endI
   for dataIndex=startData:endData
     % get stored eigenvectors for the last time step to set the same
     % direction view for each time step
-    coeff = getPrincipalComponents( dataStr( 1, dataIndex ), renderSingleCellFile );
+    coeff = getNormalizedPrincipalComponents( dataStr( 1, dataIndex ), renderSingleCellFile );
     
     % set PC depending on the viewing direction
     if cView == 1
@@ -299,30 +304,15 @@ for curI=startI:endI
         tetramesh( tri, 'FaceColor', cm( 1, : ), 'FaceAlpha', 0.9 );
       end
       
-      % compute center of data
-%       centerData = [ 0 0 0 ];
-%       numConsideredCells = 0;
-%       for c=1:numCells
-%         % only consider the master cell file if required
-%         if renderSingleCellFile == 1 &&...
-%             singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
-%           continue;
-%         end
-%         
-%         % get position of current cell
-%         if triangulationType == 1
-%           p1 = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
-%         else
-%           p1 = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
-%         end
-%         
-%          centerData = centerData + p1;
-%          numConsideredCells = numConsideredCells + 1;
-%       end
-%       
-%       if numConsideredCells > 0
-%         centerData = centerData./numConsideredCells;
-%       end
+      numConsideredCells = 0;
+      for c=1:numCells
+        % only consider the master cell file if required
+        if renderSingleCellFile == 1 &&...
+            singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
+          continue;
+        end
+         numConsideredCells = numConsideredCells + 1;
+      end
       
       cellFileMat = zeros( numConsideredCells, 3 );
       linePos = zeros( numConsideredCells, 18 );
@@ -458,7 +448,7 @@ for curI=startI:endI
       % draw principal components
       if renderPrincipalComponents == 1
         start = mean( cellFileMat );
-        %coeff = pca( cellFileMat )
+        %coeffMat = pca( cellFileMat )
         if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
             strcmp( visualizationType( 1, visType ), 'Contour' )
           start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ) );

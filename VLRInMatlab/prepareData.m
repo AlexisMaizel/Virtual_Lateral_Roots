@@ -15,6 +15,7 @@ totalMaxAxes = [ -5000 -5000 -5000 ];
 numCellsPerTimeStep = cell( numData, 1 );
 dimData = zeros( numData, 1 );
 centerPosPerTimeStep = cell( numData, 1 );
+manualMinMax = 1;
 % preprocessing of data sets to store and determine different properties
 for dataIndex=startData:endData
   % reading raw data
@@ -197,19 +198,21 @@ for dataIndex=startData:endData
     centerPosPerTimeStep{dataIndex}(t, :) = centerPosPerTimeStep{dataIndex}(t, :)./numCellsPerTimeStep{dataIndex}(t, 1);
   end
   
-  for j=1:dimData( dataIndex )
-    timeStep = cellDatas{dataIndex}{j, 5};
-    pos = [ cellDatas{dataIndex}{j, 2} cellDatas{dataIndex}{j, 3} cellDatas{dataIndex}{j, 4} ];
-    pos = pos - centerPosPerTimeStep{dataIndex}(timeStep, :);
-    pos = applyTransformations( pos, planePos, u, v, TF, dataStr( 1, dataIndex ) );
-    
-    % determine min and max values for each time step
-    for m=1:3
-      if pos(m) < MIN(m)
-        MIN(m) = pos(m);
-      end
-      if pos(m) >= MAX(m)
-        MAX(m) = pos(m);
+  if manualMinMax == 0
+    for j=1:dimData( dataIndex )
+      timeStep = cellDatas{dataIndex}{j, 5};
+      pos = [ cellDatas{dataIndex}{j, 2} cellDatas{dataIndex}{j, 3} cellDatas{dataIndex}{j, 4} ];
+      pos = pos - centerPosPerTimeStep{dataIndex}(timeStep, :);
+      pos = applyTransformations( pos, planePos, u, v, TF, dataStr( 1, dataIndex ) );
+      
+      % determine min and max values for each time step
+      for m=1:3
+        if pos(m) < MIN(m)
+          MIN(m) = pos(m);
+        end
+        if pos(m) >= MAX(m)
+          MAX(m) = pos(m);
+        end
       end
     end
   end
@@ -231,13 +234,21 @@ for dataIndex=startData:endData
     maxAxes(dataIndex, :) = [ maxX maxY maxZ ];
   end
   
-  for mm=1:3
-    if minAxes(dataIndex, mm) < totalMinAxes(mm)
-      totalMinAxes(mm) = minAxes(dataIndex, mm);
-    end
-    if maxAxes(dataIndex, mm) >= totalMaxAxes(mm)
-      totalMaxAxes(mm) = maxAxes(dataIndex, mm);
+  if manualMinMax == 0
+    for mm=1:3
+      if minAxes(dataIndex, mm) < totalMinAxes(mm)
+        totalMinAxes(mm) = minAxes(dataIndex, mm);
+      end
+      if maxAxes(dataIndex, mm) >= totalMaxAxes(mm)
+        totalMaxAxes(mm) = maxAxes(dataIndex, mm);
+      end
     end
   end
 end
+
+if manualMinMax == 1
+  totalMinAxes = [ -407.171475765079 -92.7388088827015 -5.01820807130571e-14 ];
+  totalMaxAxes = [ 450.801610841287 123.611342722626 4.39648317751562e-14 ];
+end
+
 ElapsedTimeDataPreparation = cputime - cpuT

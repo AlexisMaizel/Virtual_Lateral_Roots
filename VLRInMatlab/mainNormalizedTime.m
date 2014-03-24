@@ -15,7 +15,7 @@ colors = [ [ 1 0 1 ]; [ 0 0 0 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ] ];
 % 3 -> radial
 cView = 2;
 % decide which term should be included in the time evolution
-renderTermType = 3;
+renderTermType = 1;
 termTypeStr = { 'B' 'T' 'All' };
 % startIndex
 startI = 1;
@@ -64,12 +64,13 @@ lineStr = { 'renderLargest3DElongation'...
 triangulationType = 2;
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
+pureDataStr = { '120830', '121204', '121211', '130508', '130607', '131203' };
 % vector of view strings
 viewStr = { 'Top' 'Side' 'Radial' '3D' };
 % master cell file information taken by the picture made of Daniel located in dropbox
 % and the trackGroup information of the raw data sets
 %masterCellFile = [ 4 3 4 2 3 0 ];
-masterCellFile = [ 4 4 4 3 3 0 ];
+masterCellFile = [ 4 5 4 3 3 0 ];
 % number of subdivisions for ellipsoids
 nEllip = 10;
 % data Index:
@@ -82,11 +83,16 @@ nEllip = 10;
 % start id of data
 startData = 1;
 % end id of data
-endData = 1;
+endData = 5;
 % num of data
 numData = 5;
 % number of cell files
 numCellFiles = 6;%double( maxCF-minCF+1 );
+% resolution of grid
+resGrid = 30;
+% render average lines or not
+renderAverage = 1;
+renderAveragePerTimeStep = 0;
 
 % figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
@@ -108,10 +114,7 @@ camproj( 'orthographic' );
 [ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderSingleCellFile, cView );
 
-if strcmp( visualizationType( 1, visType ), 'Contour' )
-  % contour instance
-  CONTOUR = [];
-elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
+if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
   % surface instance
   S = [];
   % projected surface instance
@@ -124,6 +127,13 @@ elseif strcmp( visualizationType( 1, visType ), 'Ellipses' )
   % ellipse instance
   ELLIP = [];
   ELLIPPATCH = [];
+end
+
+if renderAverage == 1
+  % contour instance
+  CONTOUR = [];
+  % average line instance
+  L = [];
 end
 
 if renderPrincipalComponents == 1
@@ -199,14 +209,16 @@ numTotalLinksN = zeros( numData, 1 );
 numTotalAveragedLinks = zeros( numData, 1 );
 
 cpuT = cputime;
+
+hold on;
+[ rows, columns ] = generate2DGrid( [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid );
+% initialize grid size consisting of tiles
+tileGrid = cell( numData, rows*columns );
+
 % loop over all normalized steps
 curI=startI;
 while curI < endI-deltaI+1
-  if strcmp( visualizationType( 1, visType ), 'Contour' )
-    if ishandle( CONTOUR )
-      set( CONTOUR, 'Visible', 'off' );
-    end
-  elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
+  if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
     if ishandle( S )
       set( S, 'Visible', 'off' );
     end
@@ -231,6 +243,15 @@ while curI < endI-deltaI+1
     end
   end
   
+  if renderAverage == 1
+%     if ishandle( L )
+%       set( L, 'Visible', 'off' );
+%     end
+    if ishandle( CONTOUR )
+      set( CONTOUR, 'Visible', 'off' );
+    end
+  end
+  
   if renderPrincipalComponents == 1
     if ishandle( P )
       set( P, 'Visible', 'off' );
@@ -241,7 +262,7 @@ while curI < endI-deltaI+1
   for dataIndex=startData:endData
     % get stored eigenvectors for the last time step to set the same
     % direction view for each time step
-    coeff = getPrincipalComponents( dataStr( 1, dataIndex ), renderSingleCellFile );
+    coeff = getNormalizedPrincipalComponents( dataStr( 1, dataIndex ), renderSingleCellFile );
     
     % set PC depending on the viewing direction
     if cView == 1
@@ -423,7 +444,8 @@ while curI < endI-deltaI+1
       
       % compute time evolution for current deltaT and time step
       [ lineColorIndex, linePos, minMaxEigenValueIndex,...
-        positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse, indexColorSet ]...
+        positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse,...
+        timePositions, indexColorSet ]...
         = computeTimeEvolution(...
         uniqueEdgesC{dataIndex},...
         uniqueEdgesN{dataIndex},...
@@ -484,136 +506,187 @@ while curI < endI-deltaI+1
         zOffset = 0.;
       end
       
-      dimL = size( centerEllipse, 1 );
-      for l=1:dimL
-        minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
-          minMaxSemiAxisVector( l, 2 )...
-          minMaxSemiAxisVector( l, 3 )];
-        maxSemiPoint = [minMaxSemiAxisVector( l, 4 )...
-          minMaxSemiAxisVector( l, 5 )...
-          minMaxSemiAxisVector( l, 6 )];
-        c = centerEllipse( l, : );
-        minLength = norm( minSemiPoint - c );
-        maxLength = norm( maxSemiPoint - c );
-        
-        % line of major semi axis
-        lineMaxX = [ maxSemiPoint(1), c(1) + c(1)-maxSemiPoint(1) ];
-        lineMaxY = [ maxSemiPoint(2), c(2) + c(2)-maxSemiPoint(2) ];
-        lineMaxZ = [ maxSemiPoint(3), c(3) + c(3)-maxSemiPoint(3) ];
-        
-        % line of minor semi axis
-        % direction have to be here the normal of the x-y plane
-        minorSemiAxes = cross( [ 0 0 1 ], maxSemiPoint-c );
-        minorSemiAxes = normalizeVector3d( minorSemiAxes );
-        lineMinX = [ c(1) - minLength*minorSemiAxes(1), c(1) + minLength*minorSemiAxes(1) ];
-        lineMinY = [ c(2) - minLength*minorSemiAxes(2), c(2) + minLength*minorSemiAxes(2) ];
-        %lineMinZ = [ c(3) - minLength*minorSemiAxes(3), c(3) + minLength*minorSemiAxes(3) ];
-        lineMinZ = [ 0., 0. ];
-        
-        theta = acos( dot(maxSemiPoint - c, [ 1 0 0 ])/norm(maxSemiPoint - c) );
-        theta = theta*180/pi;
-        
-        % check y values because this is required for
-        % a correct rotation of the ellipses around the z axis
-        if lineMaxY(1) <= lineMaxY(2)
-          theta = -theta;
-        end
-        
-        % draw ellipse
-        hold on;
-        ind = l+(dataIndex-1)*dimL;
-        [ ELLIP(ind) ELLIPPATCH(ind) ] = drawEllipse3d( c(1), c(2), c(3)+ind*zOffset+0.2, maxLength, minLength, 0, theta );
-        set( ELLIP(ind), 'color', colors( dataIndex, : ), 'LineWidth', lineWidth );
-        set( ELLIPPATCH(ind), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'none' );
-        
-        if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
-          colorIndex = indexColorSet( l, 2 );
-          if colorIndex == 0
-            color = [ 0 0 1 ];
+      if renderAverage == 1
+        dimL = size( centerEllipse, 1 );
+        for l=1:dimL
+          maxSemiPoint = [minMaxSemiAxisVector( l, 4 )...
+            minMaxSemiAxisVector( l, 5 )...
+            minMaxSemiAxisVector( l, 6 )];
+          c = centerEllipse( l, : );
+          
+          % line coords of major semi axis
+          lineX = [ maxSemiPoint(1), c(1) + c(1)-maxSemiPoint(1) ];
+          lineY = [ maxSemiPoint(2), c(2) + c(2)-maxSemiPoint(2) ];
+          
+          % check which start/end point of the line is nearest to pStart or
+          % pEnd of the two cell positions that are compared between the
+          % two time steps/indexes deltaT/deltaI
+          dist1 = distancePoints3d( [ timePositions(l,1) timePositions(l,2) 0.0 ],...
+            [ lineX(1) lineY(1) 0.0 ] );
+          dist2 = distancePoints3d( [ timePositions(l,1) timePositions(l,2) 0.0 ],...
+            [ lineX(2) lineY(2) 0.0 ] );
+          
+          if dist1 < dist2
+            lineDirection = [ lineX(2)-lineX(1) lineY(2)-lineY(1) 0.0 ];
           else
-            color = [ 1 0 0 ];
+            lineDirection = [ lineX(1)-lineX(2) lineY(1)-lineY(2) 0.0 ];
           end
           
-          if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
-              strcmp( termTypeStr( 1, renderTermType ), 'All' )
-            color = colors( dataIndex, : );
+          % determine tileIndex of current ellipse position and add it to the
+          % tile grid in order to average all deformations occurring in each
+          % tile
+          tileIndex = getTileIndex( c, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
+          tileGrid{ dataIndex, tileIndex } = [ tileGrid{ dataIndex, tileIndex }; lineDirection ];
+        end
+        
+        % render contour
+%         if dimL > 2
+%           if triangulationType == 1
+%             K = convhull( timePositions( :, 4 ), timePositions( :, 5 ) );
+%             CONTOUR(dataIndex) = line( timePositions( K, 4 ), timePositions( K, 5 ), timePositions( K, 6 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+%           else
+%             [VolC,ShapeC] = alphavol( [ timePositions( :, 4 ), timePositions( :, 5 ) ], sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
+%             K = ShapeC.bnd(:,1);
+%             dimK = size( K, 1 );
+%             if dimK > 1
+%               K(dimK+1,:) = K(1,:);
+%               CONTOUR(dataIndex) = line( timePositions( K, 4 ), timePositions( K, 5 ), timePositions( K, 6 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+%             end
+%           end
+%         end
+        
+      else
+        dimL = size( centerEllipse, 1 );
+        for l=1:dimL
+          minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
+            minMaxSemiAxisVector( l, 2 )...
+            minMaxSemiAxisVector( l, 3 )];
+          maxSemiPoint = [minMaxSemiAxisVector( l, 4 )...
+            minMaxSemiAxisVector( l, 5 )...
+            minMaxSemiAxisVector( l, 6 )];
+          c = centerEllipse( l, : );
+          minLength = norm( minSemiPoint - c );
+          maxLength = norm( maxSemiPoint - c );
+          
+          % line of major semi axis
+          lineMaxX = [ maxSemiPoint(1), c(1) + c(1)-maxSemiPoint(1) ];
+          lineMaxY = [ maxSemiPoint(2), c(2) + c(2)-maxSemiPoint(2) ];
+          lineMaxZ = [ maxSemiPoint(3), c(3) + c(3)-maxSemiPoint(3) ];
+          
+          % line of minor semi axis
+          % direction have to be here the normal of the x-y plane
+          minorSemiAxes = cross( [ 0 0 1 ], maxSemiPoint-c );
+          minorSemiAxes = normalizeVector3d( minorSemiAxes );
+          lineMinX = [ c(1) - minLength*minorSemiAxes(1), c(1) + minLength*minorSemiAxes(1) ];
+          lineMinY = [ c(2) - minLength*minorSemiAxes(2), c(2) + minLength*minorSemiAxes(2) ];
+          %lineMinZ = [ c(3) - minLength*minorSemiAxes(3), c(3) + minLength*minorSemiAxes(3) ];
+          lineMinZ = [ 0., 0. ];
+          
+          theta = acos( dot(maxSemiPoint - c, [ 1 0 0 ])/norm(maxSemiPoint - c) );
+          theta = theta*180/pi;
+          
+          % check y values because this is required for
+          % a correct rotation of the ellipses around the z axis
+          if lineMaxY(1) <= lineMaxY(2)
+            theta = -theta;
           end
-          MAX(ind) = line( lineMaxX, lineMaxY, lineMaxZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+          
+          % draw ellipse
           hold on;
-        elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
-          colorIndex = indexColorSet( l, 1 );
-          draw = 1;
-          % negative eigenvalue
-          if colorIndex == 0
-            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
-              % do not draw a line for negative eigenvalue
-              draw = 0;
-            else
+          ind = l+(dataIndex-1)*dimL;
+          [ ELLIP(ind) ELLIPPATCH(ind) ] = drawEllipse3d( c(1), c(2), c(3)+ind*zOffset+0.2, maxLength, minLength, 0, theta );
+          set( ELLIP(ind), 'color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+          set( ELLIPPATCH(ind), 'FaceColor', [ 1 1 1 ], 'FaceLighting', 'none' );
+          
+          if strcmp( lineStr( 1, lineRenderType ), 'renderLargest2DElongation' )
+            colorIndex = indexColorSet( l, 2 );
+            if colorIndex == 0
               color = [ 0 0 1 ];
-            end
-            % positive eigenvalue
-          else
-            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
-              color = [ 0 0 0 ];
             else
               color = [ 1 0 0 ];
             end
-          end
-          if draw == 1
+            
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
+                strcmp( termTypeStr( 1, renderTermType ), 'All' )
+              color = colors( dataIndex, : );
+            end
             MAX(ind) = line( lineMaxX, lineMaxY, lineMaxZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
-          end
-          hold on;
-          colorIndex = indexColorSet( l, 2 );
-          draw = 1;
-          % negative eigenvalue
-          if colorIndex == 0
-            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
-              % do not draw a line for negative eigenvalue
-              draw = 0;
+            hold on;
+          elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll2DElongation' )
+            colorIndex = indexColorSet( l, 1 );
+            draw = 1;
+            % negative eigenvalue
+            if colorIndex == 0
+              if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+                % do not draw a line for negative eigenvalue
+                draw = 0;
+              else
+                color = [ 0 0 1 ];
+              end
+              % positive eigenvalue
             else
-              color = [ 0 0 1 ];
+              if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+                color = [ 0 0 0 ];
+              else
+                color = [ 1 0 0 ];
+              end
             end
-            % positive eigenvalue
-          else
-            if strcmp( termTypeStr( 1, renderTermType ), 'T' )
-              color = [ 0 0 0 ];
-            else
-              color = [ 1 0 0 ];
-            end
-          end
-          if draw == 1
-            MIN(ind) = line( lineMinX, lineMinY, lineMinZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
-          end
-          hold on;
-        elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
-          % get index of longest elongation
-          index = minMaxEigenValueIndex( l, 3 );
-          lineMaxX = [ linePos( l, (index-1)*6 +1 ), linePos( l, (index-1)*6 +4 ) ];
-          lineMaxY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
-          lineMaxZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
-          color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
-          if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
-              strcmp( termTypeStr( 1, renderTermType ), 'All' )
-            color = [ 0 0 0 ];
-          end
-          MAX(ind) = line( lineMaxX, lineMaxY, lineMaxZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
-          hold on;
-        elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
-          % get index of all elongation types
-          for el=1:3
-            index = minMaxEigenValueIndex( l, el );
-            lineX = [ linePos( l, (index-1)*6 +1 ), linePos( l, (index-1)*6 +4 ) ];
-            lineY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
-            lineZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
-            color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
-            if el == 1
-              MIN(ind) = line( lineX, lineY, lineZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
-            elseif el == 2
-              MID(ind) = line( lineX, lineY, lineZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
-            else
-              MAX(ind) = line( lineX, lineY, lineZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            if draw == 1
+              MAX(ind) = line( lineMaxX, lineMaxY, lineMaxZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
             end
             hold on;
+            colorIndex = indexColorSet( l, 2 );
+            draw = 1;
+            % negative eigenvalue
+            if colorIndex == 0
+              if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+                % do not draw a line for negative eigenvalue
+                draw = 0;
+              else
+                color = [ 0 0 1 ];
+              end
+              % positive eigenvalue
+            else
+              if strcmp( termTypeStr( 1, renderTermType ), 'T' )
+                color = [ 0 0 0 ];
+              else
+                color = [ 1 0 0 ];
+              end
+            end
+            if draw == 1
+              MIN(ind) = line( lineMinX, lineMinY, lineMinZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            end
+            hold on;
+          elseif strcmp( lineStr( 1, lineRenderType ), 'renderLargest3DElongation' )
+            % get index of longest elongation
+            index = minMaxEigenValueIndex( l, 3 );
+            lineMaxX = [ linePos( l, (index-1)*6 +1 ), linePos( l, (index-1)*6 +4 ) ];
+            lineMaxY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
+            lineMaxZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
+            color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
+            if strcmp( termTypeStr( 1, renderTermType ), 'T' ) ||...
+                strcmp( termTypeStr( 1, renderTermType ), 'All' )
+              color = [ 0 0 0 ];
+            end
+            MAX(ind) = line( lineMaxX, lineMaxY, lineMaxZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+            hold on;
+          elseif strcmp( lineStr( 1, lineRenderType ), 'renderAll3DElongation' )
+            % get index of all elongation types
+            for el=1:3
+              index = minMaxEigenValueIndex( l, el );
+              lineX = [ linePos( l, (index-1)*6 +1 ), linePos( l, (index-1)*6 +4 ) ];
+              lineY = [ linePos( l, (index-1)*6 +2 ), linePos( l, (index-1)*6 +5 ) ];
+              lineZ = [ linePos( l, (index-1)*6 +3 ), linePos( l, (index-1)*6 +6 ) ];
+              color = [ lineColorIndex( l, (index-1)*3 +1 ) lineColorIndex( l, (index-1)*3 +2 ) lineColorIndex( l, (index-1)*3 +3 ) ];
+              if el == 1
+                MIN(ind) = line( lineX, lineY, lineZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+              elseif el == 2
+                MID(ind) = line( lineX, lineY, lineZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+              else
+                MAX(ind) = line( lineX, lineY, lineZ+ind*zOffset+0.2, 'Color', color, 'LineWidth', lineWidth );
+              end
+              hold on;
+            end
           end
         end
       end
@@ -624,8 +697,20 @@ while curI < endI-deltaI+1
     end
   end
   
-  hold on;
-  generate2DGrid( [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], 20 );
+  % after all data are processed determine the average visualization
+  if renderAverage == 1 && renderAveragePerTimeStep == 1
+    for dataIndex=startData:endData
+      for gt=1:rows*columns
+        averageDirection = determineAverageDirection( tileGrid{ dataIndex, gt } );
+      if all(averageDirection == 0)
+        continue;
+      else
+        L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ) );
+      end
+      end
+    end
+  end
   
   hold off;
   set( f,'nextplot','replacechildren' );
@@ -660,11 +745,50 @@ while curI < endI-deltaI+1
     end
     
     % output with number of cells
-    filePath = strcat( imageDir, digit, num2str(curI+deltaI), '-Cells', num2str(numNormCellsN), '.png' );
+    filePath = strcat( imageDir, digit, num2str(curI), '-Cells', num2str(numNormCellsN), '.png' );
     
     saveas( gcf, char(filePath) );
   end
   % at last increment the current index loop parameter
   curI = curI + deltaI;
 end
+
+% after all data are processed determine the average visualization
+if renderAverage == 1 && renderAveragePerTimeStep == 0
+  hold off;
+  set( f,'nextplot','replacechildren' );
+  viewOffset = 100;
+  axis( [ totalMinAxes(1) totalMaxAxes(1)...
+    totalMinAxes(2) totalMaxAxes(2)...
+    totalMinAxes(3)-viewOffset totalMaxAxes(3)+viewOffset ...
+    totalMinAxes(3) totalMaxAxes(3) ] );
+  axis on
+  daspect( [ 1 1 1 ] );
+  
+%   % legend
+%   hold on;
+%   %leg = legend( '120830', '121204', '121211', '130508', '130607', '131203' );
+%   leg = legend( '120830', '121204', '121211', '130508', '130607' );
+%   set(leg, 'Location', 'NorthWestOutside');
+%   linecolors = { [ 1 0 1 ], [ 0 0 0 ], [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ] };
+%   legendlinestyles( leg, {}, {}, linecolors );
+  
+  for dataIndex=startData:endData
+    for gt=1:rows*columns
+      averageDirection = determineAverageDirection( tileGrid{ dataIndex, gt } );
+      if all(averageDirection == 0)
+        continue;
+      else
+        L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ) );
+      end
+    end
+  end
+  
+  if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
+    filePath = strcat( imageDir, pureDataStr{dataIndex}, '-AverageLines.png' );
+    saveas( gcf, char(filePath) );
+  end
+end
+
 ElapsedTimeIndexLoop = cputime - cpuT
