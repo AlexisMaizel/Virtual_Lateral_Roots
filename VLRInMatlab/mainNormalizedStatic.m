@@ -26,7 +26,7 @@ exportType = 2;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' };
 % render only master file?
-renderSingleCellFile = 1;
+renderMasterFile = 0;
 % render principal components
 renderPrincipalComponents = 0;
 % line width of ellipses and semi axes
@@ -76,7 +76,7 @@ nEllip = 10;
 % 5 -> 130607
 % 6 -> 131203
 % start id of data
-startData = 5;
+startData = 1;
 % end id of data
 endData = 5;
 % num of data
@@ -84,10 +84,10 @@ numData = 5;
 % number of cell files
 numCellFiles = 6;%double( maxCF-minCF+1 );
 % resolution of grid
-resGrid = 50;
+resGrid = 30;
 
 % figure properties
-f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 1200 800] );
+f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 1600 1200] );
 % activate orbit rotation by default
 cameratoolbar( 'SetMode', 'orbit' );
 % activate none coord system by default for not resetting the camera up
@@ -104,7 +104,7 @@ camproj( 'orthographic' );
 
 % apply preprocessing step of data
 [ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
-  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderSingleCellFile, cView );
+  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView );
 
 if strcmp( visualizationType( 1, visType ), 'Contour' )
   % contour instance
@@ -200,7 +200,7 @@ for curI=startI:endI
   for dataIndex=startData:endData
     % get stored eigenvectors for the last time step to set the same
     % direction view for each time step
-    coeff = getNormalizedPrincipalComponents( dataStr( 1, dataIndex ), renderSingleCellFile );
+    coeff = getNormalizedPrincipalComponents( dataStr( 1, dataIndex ), 1 );
     
     % set PC depending on the viewing direction
     if cView == 1
@@ -212,10 +212,6 @@ for curI=startI:endI
       u = coeff(:,1);
       v = coeff(:,2);
       if strcmp( dataStr( 1, dataIndex ), '121211_raw' )
-        v = -v;
-      end
-      if strcmp( dataStr( 1, dataIndex ), '120830_raw' ) &&...
-          renderSingleCellFile == 0
         v = -v;
       end
     elseif cView == 3
@@ -307,7 +303,7 @@ for curI=startI:endI
       numConsideredCells = 0;
       for c=1:numCells
         % only consider the master cell file if required
-        if renderSingleCellFile == 1 &&...
+        if renderMasterFile == 1 &&...
             singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
           continue;
         end
@@ -323,7 +319,7 @@ for curI=startI:endI
       % draw an ellipsoid for each cell
       for c=1:numCells
         % only consider the master cell file if required
-        if renderSingleCellFile == 1 &&...
+        if renderMasterFile == 1 &&...
             singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
           continue;
         end
@@ -410,8 +406,8 @@ for curI=startI:endI
           lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
           lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
           
-          projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
-          projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
+          projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
+          projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
           
           % and store the start/end points of the lines in linePos
           index = 6*(l-1) + 1;
@@ -426,7 +422,7 @@ for curI=startI:endI
         dimP = size( X, 1 );
         for q=1:dimP
           for p=1:dimP
-            curPos = applyTransformations( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
+            curPos = applyTransformations( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
             X(p,q) = curPos(1);
             Y(p,q) = curPos(2);
             Z(p,q) = curPos(3);
@@ -437,7 +433,7 @@ for curI=startI:endI
 %           'EdgeColor', 'none', 'EdgeAlpha', 0,...
 %           'FaceLighting', 'none' );
         
-        p1 = applyTransformations( p1, planePos, u, v, TF, dataStr( 1, dataIndex ) );
+        p1 = applyTransformations( p1, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         centerEllipse(nc, :) = p1;
         % the direction is now the normal of the x-y plane
         minMaxS = determineAxes( X, Y, Z, p1, [ 0 0 1 ] );
@@ -451,13 +447,13 @@ for curI=startI:endI
         %coeffMat = pca( cellFileMat )
         if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
             strcmp( visualizationType( 1, visType ), 'Contour' )
-          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ) );
+          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         end
         arrowLength = 150;
         for a=1:3
           if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
               strcmp( visualizationType( 1, visType ), 'Contour' )
-            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ) );
+            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
           elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
             endP = coeff(:, a);
           end

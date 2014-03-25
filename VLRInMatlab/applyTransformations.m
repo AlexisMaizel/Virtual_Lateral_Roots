@@ -1,8 +1,8 @@
-function tp = applyTransformations( p, planePos, u, v, TF, dataStr )
+function tp = applyTransformations( p, planePos, u, v, TF, dataStr, renderMasterFile )
 tp = projectOnPlane( p, planePos, u, v );
 tp = transformPoint3d( tp, TF );
-rotMat = getManualRotationMatrix( dataStr );
-transMat = getManualTranslationMatrix( dataStr );
+rotMat = getManualRotationMatrix( dataStr, renderMasterFile );
+transMat = getManualTranslationMatrix( dataStr, renderMasterFile );
 tp = [tp 1];
 tp = transMat * tp';
 tp = rotMat * tp;

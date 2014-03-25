@@ -1,4 +1,4 @@
-function L = drawAverageLines( averageDirection, tileIndex, min, max, res, rows, columns, color )
+function L = drawAverageLines( averageDirection, tileIndex, min, max, res, rows, columns, color, renderArrows )
 topleft = [ min(1) max(2) 0 ];
 topright = [ max(1) max(2) 0 ];
 bottomleft = [ min(1) min(2) 0 ];
@@ -29,9 +29,14 @@ tileRightTop = [ min(1)+cSize+tilesizeX min(2)+rSize+tilesizeY ];
 averageDirection = averageDirection.*tilesizeX/2.;
 
 centerTilePos = [ (tileRightTop(1) + tileLeftBottom(1))/2. (tileRightTop(2) + tileLeftBottom(2))/2. ];
-lineX = [ centerTilePos(1)+averageDirection(1), centerTilePos(1)-averageDirection(1) ];
-lineY = [ centerTilePos(2)+averageDirection(2), centerTilePos(2)-averageDirection(2) ];
+lineX = [ centerTilePos(1)-averageDirection(1), centerTilePos(1)+averageDirection(1) ];
+lineY = [ centerTilePos(2)-averageDirection(2), centerTilePos(2)+averageDirection(2) ];
 
 hold on;
-L = line( lineX, lineY, [ 50 50 ], 'Color', color, 'LineWidth', 1.2 );
-
+if renderArrows == 0
+  L = line( lineX, lineY, [ 50 50 ], 'Color', color, 'LineWidth', 1.2 );
+else
+  averageDirection = normalizeVector3d( averageDirection );
+  L = quiver3( lineX(1), lineY(1), 50, averageDirection(1), averageDirection(2), 0,...
+    tilesizeX, 'LineWidth', 1.2, 'Color', color, 'MaxHeadSize', 1.0 );
+end

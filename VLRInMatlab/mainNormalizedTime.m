@@ -32,18 +32,16 @@ exportType = 2;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' };
 % render only master file?
-renderSingleCellFile = 1;
+renderMasterFile = 1;
 % render principal components
 renderPrincipalComponents = 0;
-% vector of view offsets for x/Y/Z coordinates
-viewOffsets = [ 100 100 100 250 250 250 ];
 % line width of ellipses and semi axes
 lineWidth = 1.2;
 % enable z overlapping
 overlapping = 1;
 % only render specific ranges of cell numbers
 % render contour (=convexHull) instead of ellipses
-visualizationType = { 'Ellipsoids' 'Ellipses' 'Contour' };
+visualizationType = { 'Ellipsoids' 'Ellipses' };
 visType = 2;
 % offset for cell ranges
 epsilon = 3;
@@ -83,11 +81,9 @@ nEllip = 10;
 % start id of data
 startData = 1;
 % end id of data
-endData = 5;
+endData = 1;
 % num of data
 numData = 5;
-% number of cell files
-numCellFiles = 6;%double( maxCF-minCF+1 );
 % resolution of grid
 resGrid = 30;
 % render average lines or not
@@ -95,7 +91,7 @@ renderAverage = 1;
 renderAveragePerTimeStep = 0;
 
 % figure properties
-f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 800 800] );
+f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 1600 1200] );
 % activate orbit rotation by default
 cameratoolbar( 'SetMode', 'orbit' );
 % activate none coord system by default for not resetting the camera up
@@ -112,7 +108,7 @@ camproj( 'orthographic' );
 
 % apply preprocessing step of data
 [ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
-  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderSingleCellFile, cView );
+  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView );
 
 if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
   % surface instance
@@ -151,10 +147,6 @@ end
 
 % output format of values
 format longG
-
-% set colormap and colorbar depending on the number of cell files
-cm = hsv( numCellFiles );
-colormap( cm );
 
 % gca is the current axes handle
 set( gca,'nextplot','replacechildren' );
@@ -262,7 +254,7 @@ while curI < endI-deltaI+1
   for dataIndex=startData:endData
     % get stored eigenvectors for the last time step to set the same
     % direction view for each time step
-    coeff = getNormalizedPrincipalComponents( dataStr( 1, dataIndex ), renderSingleCellFile );
+    coeff = getNormalizedPrincipalComponents( dataStr( 1, dataIndex ), 1 );
     
     % set PC depending on the viewing direction
     if cView == 1
@@ -274,10 +266,6 @@ while curI < endI-deltaI+1
       u = coeff(:,1);
       v = coeff(:,2);
       if strcmp( dataStr( 1, dataIndex ), '121211_raw' )
-        v = -v;
-      end
-      if strcmp( dataStr( 1, dataIndex ), '120830_raw' ) &&...
-          renderSingleCellFile == 0
         v = -v;
       end
     elseif cView == 3
@@ -465,7 +453,7 @@ while curI < endI-deltaI+1
         centerPosPerTimeStep{dataIndex},...
         curTC(dataIndex),...
         curTN(dataIndex),...
-        renderSingleCellFile,...
+        renderMasterFile,...
         singleCellFile,...
         cellFileMap{dataIndex} );
       
@@ -480,15 +468,16 @@ while curI < endI-deltaI+1
       if renderPrincipalComponents == 1
         start = mean( cellFileMat );
         %coeff = pca( cellFileMat )
-        if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
-            strcmp( visualizationType( 1, visType ), 'Contour' )
-          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ) );
+        if strcmp( visualizationType( 1, visType ), 'Ellipses' )
+          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         end
         arrowLength = 150;
+        % set colormap
+        cm = hsv( 3 );
+        %colormap( cm );
         for a=1:3
-          if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
-              strcmp( visualizationType( 1, visType ), 'Contour' )
-            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ) );
+          if strcmp( visualizationType( 1, visType ), 'Ellipses' )
+            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
           elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
             endP = coeff(:, a);
           end
@@ -706,7 +695,7 @@ while curI < endI-deltaI+1
         continue;
       else
         L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
-          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ) );
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 0 );
       end
       end
     end
@@ -780,7 +769,7 @@ if renderAverage == 1 && renderAveragePerTimeStep == 0
         continue;
       else
         L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
-          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ) );
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 1 );
       end
     end
   end

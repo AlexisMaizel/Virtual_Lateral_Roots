@@ -4,7 +4,7 @@ function [lineColorIndex, linePos, minMaxEigenValueIndex,...
   = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, cellIdsN,...
   numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN, triangulationType,...
   termTypeStr, dataStr, planePos, u, v, TF, deltaT, centerPosPerTimeStep,...
-  curTC, curTN, renderSingleCellFile, singleCellFile, cellFileMap )
+  curTC, curTN, renderMasterFile, singleCellFile, cellFileMap )
 % scaling of ellipses
 scaling = 5;
 % number of subdivisions for ellipsoids
@@ -32,7 +32,7 @@ for c=1:numCellsN
   % get objectId of current cell
   objectIdN = cellIdsN( c );
   % only render the master cell file if required
-  if renderSingleCellFile == 1 &&...
+  if renderMasterFile == 1 &&...
       singleCellFile ~= cellFileMap( objectIdN )
     continue;
   end
@@ -59,7 +59,7 @@ for c=1:numCellsN
   % get objectId of current cell
   objectIdN = cellIdsN( c );
   % only render the master cell file if required
-  if renderSingleCellFile == 1 &&...
+  if renderMasterFile == 1 &&...
       singleCellFile ~= cellFileMap( objectIdN )
     continue;
   end
@@ -235,8 +235,8 @@ for c=1:numCellsN
     lineY = ellipPos(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
     lineZ = ellipPos(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
     
-    projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr );
-    projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr );
+    projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr, renderMasterFile );
+    projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr, renderMasterFile );
     
     % and store the start/end points of the lines in linePos
     if l == 1
@@ -261,16 +261,16 @@ for c=1:numCellsN
   dimP = size( X, 1 );
   for q=1:dimP
     for p=1:dimP
-      curPos = applyTransformations( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v, TF, dataStr );
+      curPos = applyTransformations( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v, TF, dataStr, renderMasterFile );
       X(p,q) = curPos(1);
       Y(p,q) = curPos(2);
       Z(p,q) = curPos(3);
     end
   end
   
-  ellipPos = applyTransformations( ellipPos, planePos, u, v, TF, dataStr );
-  pStart = applyTransformations( p2, planePos, u, v, TF, dataStr );
-  pEnd = applyTransformations( p1, planePos, u, v, TF, dataStr );
+  ellipPos = applyTransformations( ellipPos, planePos, u, v, TF, dataStr, renderMasterFile );
+  pStart = applyTransformations( p2, planePos, u, v, TF, dataStr, renderMasterFile );
+  pEnd = applyTransformations( p1, planePos, u, v, TF, dataStr, renderMasterFile );
   timePositions(nc, :) = [ pStart pEnd ];
   centerEllipse(nc, :) = ellipPos;
   % the direction is now the normal of the x-y plane
