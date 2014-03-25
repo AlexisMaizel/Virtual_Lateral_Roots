@@ -235,8 +235,9 @@ for c=1:numCellsN
     lineY = ellipPos(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
     lineZ = ellipPos(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
     
-    projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr, renderMasterFile );
-    projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr, renderMasterFile );
+    % TODO
+    projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr, renderMasterFile, 1 );
+    projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr, renderMasterFile, 1 );
     
     % and store the start/end points of the lines in linePos
     if l == 1
@@ -261,16 +262,16 @@ for c=1:numCellsN
   dimP = size( X, 1 );
   for q=1:dimP
     for p=1:dimP
-      curPos = applyTransformations( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v, TF, dataStr, renderMasterFile );
+      curPos = applyTransformations( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v, TF, dataStr, renderMasterFile, 1 );
       X(p,q) = curPos(1);
       Y(p,q) = curPos(2);
       Z(p,q) = curPos(3);
     end
   end
   
-  ellipPos = applyTransformations( ellipPos, planePos, u, v, TF, dataStr, renderMasterFile );
-  pStart = applyTransformations( p2, planePos, u, v, TF, dataStr, renderMasterFile );
-  pEnd = applyTransformations( p1, planePos, u, v, TF, dataStr, renderMasterFile );
+  ellipPos = applyTransformations( ellipPos, planePos, u, v, TF, dataStr, renderMasterFile, 1 );
+  pStart = applyTransformations( p2, planePos, u, v, TF, dataStr, renderMasterFile, 1 );
+  pEnd = applyTransformations( p1, planePos, u, v, TF, dataStr, renderMasterFile, 1 );
   timePositions(nc, :) = [ pStart pEnd ];
   centerEllipse(nc, :) = ellipPos;
   % the direction is now the normal of the x-y plane

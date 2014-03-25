@@ -1,6 +1,6 @@
 function [ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep,...
   totalMinAxes, totalMaxAxes, cellFileMap ] =...
-  prepareData( dataStr, startData, endData, numData, visualizationType, renderSingleCellFile, cView )
+  prepareData( dataStr, startData, endData, numData, visualizationType, renderMasterFile, cView )
 cpuT = cputime;
 % cellData is the main array with all relevant information
 % for the further analysis:
@@ -15,6 +15,8 @@ totalMaxAxes = [ -5000 -5000 -5000 ];
 numCellsPerTimeStep = cell( numData, 1 );
 dimData = zeros( numData, 1 );
 centerPosPerTimeStep = cell( numData, 1 );
+% initialize set of lineage trees
+trees = cell( numData, 1 );
 manualMinMax = 1;
 % preprocessing of data sets to store and determine different properties
 for dataIndex=startData:endData
@@ -32,7 +34,7 @@ for dataIndex=startData:endData
   fclose(fileID);
   
   % set PC depending on the viewing direction
-  coeff = getPrincipalComponents( dataStr( 1, dataIndex ), renderSingleCellFile );
+  coeff = getPrincipalComponents( dataStr( 1, dataIndex ), 1 );
   if cView == 1
     dir = coeff(:,2);
     u = coeff(:,1);
@@ -42,10 +44,6 @@ for dataIndex=startData:endData
     u = coeff(:,1);
     v = coeff(:,2);
     if strcmp( dataStr( 1, dataIndex ), '121211_raw' )
-      v = -v;
-    end
-    if strcmp( dataStr( 1, dataIndex ), '120830_raw' ) &&...
-        renderSingleCellFile == 0
       v = -v;
     end
   elseif cView == 3
@@ -130,15 +128,38 @@ for dataIndex=startData:endData
   cellData = cell( dimData( dataIndex ), 8 );
   cellFileMap{ dataIndex } = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
   
+  % get number of trees of current data set
+%   UL = unique(LCol);
+%   numTrees = size(UL, 1)
+%   
+%   % initialize empty set of trees for current data set
+%   treeData = cell( numTrees, 1 );
+  
   l = 1;
   nl = 1;
-  % interpolate the missing positions in between
+  trI = 1;
+  % interpolate the missing positions in between and store the results in a
+  % tree structure as well as a cellData array
   while (l < numLines+1)
     firstCellId = IdCol(l);
     secondCellId = IdCol(l+1);
     % insert first line
     cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) PCol(l)};
     nl = nl+1;
+    
+%     lastPre = getLastPrecursorID( PCol(l) );
+%     % is the precursors string is empty then generate a new tree
+%     % and strore the cell id and time step
+%     if lastPre == -1
+%       treeData{trI} = tree( [ firstCellId TCol(l) ]);
+%       % initial index when a new tree is generated
+%       lastIndex = 1;
+%       trI = trI + 1;
+%     else
+%       % else search for the precursor leaf index in order to append
+%       % the new cell movement
+%       lastIndex = find( treeData, [ lastPre TCol(l)-1 ]);
+%     end
     
     % interpolate between cell positions
     if firstCellId == secondCellId
@@ -156,10 +177,14 @@ for dataIndex=startData:endData
         % insert all relevant data into main data structure
         cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) PCol(l)};
         nl = nl+1;
+%         [ treeData, curIndex ] = treeData.addnode( lastIndex, [ firstCellId t ] );
+%         % update index for the tree structure
+%         lastIndex = curIndex;
       end
       
       % insert last line
       cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) PCol(l+1)};
+      %[ treeData, curIndex ] = treeData.addnode( lastIndex, [ firstCellId TCol(l+1) ] );
       nl = nl+1;
       % update cell file map
       cellFileMap{ dataIndex }( firstCellId ) = CFCol(l);
@@ -175,6 +200,10 @@ for dataIndex=startData:endData
     end
   end
   
+  % assign set of trees to trees
+  %trees{ dataIndex } = treeData;
+  
+  % assign cell data to set of cell data for all data sets
   cellDatas{ dataIndex } = cellData;
   
   % initialize number of rows depending on the number of time steps of
@@ -203,7 +232,8 @@ for dataIndex=startData:endData
       timeStep = cellDatas{dataIndex}{j, 5};
       pos = [ cellDatas{dataIndex}{j, 2} cellDatas{dataIndex}{j, 3} cellDatas{dataIndex}{j, 4} ];
       pos = pos - centerPosPerTimeStep{dataIndex}(timeStep, :);
-      pos = applyTransformations( pos, planePos, u, v, TF, dataStr( 1, dataIndex ) );
+      % TODO last argument
+      pos = applyTransformations( pos, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
       
       % determine min and max values for each time step
       for m=1:3

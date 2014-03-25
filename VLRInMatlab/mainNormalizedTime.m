@@ -4,6 +4,7 @@
 %%%% pp 349 -- 369, 2008
 
 addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
+%addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/tree', 'end' );
 
 %%%%% setting of properties %%%%%%
 % color range for different data sets
@@ -17,10 +18,18 @@ cView = 2;
 % decide which term should be included in the time evolution
 renderTermType = 1;
 termTypeStr = { 'B' 'T' 'All' };
+% render average lines or not
+renderAverage = 1;
+renderAveragePerTimeStep = 1;
+% take the average over the data set or over the time
+averageOverData = 1;
 % startIndex
 startI = 1;
 % endIndex
-endI = 20;
+endI = 5;
+% min and max index
+minI = 1;
+maxI = 5;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max index
 deltaI = 1;
@@ -81,14 +90,11 @@ nEllip = 10;
 % start id of data
 startData = 1;
 % end id of data
-endData = 1;
+endData = 5;
 % num of data
 numData = 5;
 % resolution of grid
 resGrid = 30;
-% render average lines or not
-renderAverage = 1;
-renderAveragePerTimeStep = 0;
 
 % figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 1600 1200] );
@@ -200,16 +206,28 @@ numTotalLinksC = zeros( numData, 1 );
 numTotalLinksN = zeros( numData, 1 );
 numTotalAveragedLinks = zeros( numData, 1 );
 
+% storage for dividing cells plus division direction
+cellDivisions = cell( numData, endI-deltaI+1-startI );
+
 cpuT = cputime;
 
 hold on;
 [ rows, columns ] = generate2DGrid( [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid );
+
 % initialize grid size consisting of tiles
-tileGrid = cell( numData, rows*columns );
+if averageOverData == 0
+  tileGrid = cell( numData, rows*columns );
+end
 
 % loop over all normalized steps
 curI=startI;
 while curI < endI-deltaI+1
+  % if averaging over all data sets then we initialize the tile grid 
+  % for each normalized step
+  if averageOverData == 1
+    tileGrid = cell( rows*columns, 1 );
+  end
+  
   if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
     if ishandle( S )
       set( S, 'Visible', 'off' );
@@ -236,9 +254,9 @@ while curI < endI-deltaI+1
   end
   
   if renderAverage == 1
-%     if ishandle( L )
-%       set( L, 'Visible', 'off' );
-%     end
+    if ishandle( L )
+      set( L, 'Visible', 'off' );
+    end
     if ishandle( CONTOUR )
       set( CONTOUR, 'Visible', 'off' );
     end
@@ -296,7 +314,7 @@ while curI < endI-deltaI+1
     % NEW: only continue with this time step that is synchronized in
     % number of cells for each data set
     if begin ~= 1
-      numNormCellsN = getNormalizedCellNumber( curI+deltaI, 18, 143, 1, 20 );
+      numNormCellsN = getNormalizedCellNumber( curI+deltaI, 18, 143, minI, maxI );
       curTC(dataIndex) = curTN(dataIndex);
       curTN(dataIndex) = 1;
       for j=1:maxT(dataIndex)
@@ -307,8 +325,8 @@ while curI < endI-deltaI+1
         end
       end
     else
-      numNormCellsC = getNormalizedCellNumber( curI, 18, 143, 1, 20 );
-      numNormCellsN = getNormalizedCellNumber( curI+deltaI, 18, 143, 1, 20 );
+      numNormCellsC = getNormalizedCellNumber( curI, 18, 143, minI, maxI );
+      numNormCellsN = getNormalizedCellNumber( curI+deltaI, 18, 143, minI, maxI );
       curTC(dataIndex) = 1;
       for j=1:maxT(dataIndex)
         if numNormCellsC - epsilon < numCellsPerTimeStep{dataIndex}(j,1)...
@@ -326,6 +344,9 @@ while curI < endI-deltaI+1
         end
       end
     end
+    
+    % determine all cell divisions in between curTC and curTN
+    %cellDivisions{dataIndex,curI} = determineCellDivisions( curTC, curTN );
     
     % update cell information
     if begin ~= 1
@@ -457,19 +478,12 @@ while curI < endI-deltaI+1
         singleCellFile,...
         cellFileMap{dataIndex} );
       
-%      
-%       TODO in computeTimeEvolution for speedup
-%       cellFileMat = zeros( numConsideredCells, 3 );
-%       linePos = zeros( numConsideredCells, 18 );
-%       minMaxSemiAxisVector = zeros( numConsideredCells, 6 );
-%       centerEllipse = zeros( numConsideredCells, 3 );
-%       
       % draw principal components
       if renderPrincipalComponents == 1
         start = mean( cellFileMat );
         %coeff = pca( cellFileMat )
         if strcmp( visualizationType( 1, visType ), 'Ellipses' )
-          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
+          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
         end
         arrowLength = 150;
         % set colormap
@@ -477,7 +491,7 @@ while curI < endI-deltaI+1
         %colormap( cm );
         for a=1:3
           if strcmp( visualizationType( 1, visType ), 'Ellipses' )
-            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
+            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
           elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
             endP = coeff(:, a);
           end
@@ -495,8 +509,8 @@ while curI < endI-deltaI+1
         zOffset = 0.;
       end
       
+      dimL = size( centerEllipse, 1 );
       if renderAverage == 1
-        dimL = size( centerEllipse, 1 );
         for l=1:dimL
           maxSemiPoint = [minMaxSemiAxisVector( l, 4 )...
             minMaxSemiAxisVector( l, 5 )...
@@ -525,9 +539,12 @@ while curI < endI-deltaI+1
           % tile grid in order to average all deformations occurring in each
           % tile
           tileIndex = getTileIndex( c, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
-          tileGrid{ dataIndex, tileIndex } = [ tileGrid{ dataIndex, tileIndex }; lineDirection ];
+          if averageOverData == 0
+            tileGrid{ dataIndex, tileIndex } = [ tileGrid{ dataIndex, tileIndex }; lineDirection ];
+          else
+            tileGrid{ tileIndex } = [ tileGrid{ tileIndex }; lineDirection ];
+          end
         end
-        
         % render contour
 %         if dimL > 2
 %           if triangulationType == 1
@@ -543,9 +560,7 @@ while curI < endI-deltaI+1
 %             end
 %           end
 %         end
-        
       else
-        dimL = size( centerEllipse, 1 );
         for l=1:dimL
           minSemiPoint = [minMaxSemiAxisVector( l, 1 )...
             minMaxSemiAxisVector( l, 2 )...
@@ -687,7 +702,7 @@ while curI < endI-deltaI+1
   end
   
   % after all data are processed determine the average visualization
-  if renderAverage == 1 && renderAveragePerTimeStep == 1
+  if renderAverage == 1 && renderAveragePerTimeStep == 1 && averageOverData == 0
     for dataIndex=startData:endData
       for gt=1:rows*columns
         averageDirection = determineAverageDirection( tileGrid{ dataIndex, gt } );
@@ -697,6 +712,16 @@ while curI < endI-deltaI+1
         L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
           [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 0 );
       end
+      end
+    end
+  elseif renderAverage == 1 && renderAveragePerTimeStep == 1 && averageOverData == 1
+    for gt=1:rows*columns
+      averageDirection = determineAverageDirection( tileGrid{ gt } );
+      if all(averageDirection == 0)
+        continue;
+      else
+        L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 1 );
       end
     end
   end
@@ -711,11 +736,20 @@ while curI < endI-deltaI+1
   axis on
   daspect( [ 1 1 1 ] );
   
+%   % legend
+%   hold on;
+%   %leg = legend( '120830', '121204', '121211', '130508', '130607', '131203' );
+%   leg = legend( '120830', '121204', '121211', '130508', '130607' );
+%   set(leg, 'Location', 'NorthWestOutside');
+%   linecolors = { [ 1 0 1 ], [ 0 0 0 ], [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ] };
+%   legendlinestyles( leg, {}, {}, linecolors );
+  
   grid off;
   xlabel('X');
   ylabel('Y');
   zlabel('Z');
-  title( strcat( 'Normalized Step ', num2str(curI+deltaI), '-Cells', num2str(numNormCellsN) ) );
+  title( strcat( 'Between Normalized Step ', num2str(curI), 'and',...
+    num2str(curI+deltaI), '-Cells', num2str(numNormCellsN) ) );
   
   if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
     % first delete last lightsource
@@ -724,7 +758,8 @@ while curI < endI-deltaI+1
   end
   
   % if images instead of a video should be exported
-  if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
+  if strcmp( exportTypeStr( 1, exportType ), 'AsImages' ) &&...
+      renderAveragePerTimeStep == 1
     if curI < 10
       digit = strcat( viewStr( 1, cView ), '_00' );
     elseif curI < 100
@@ -743,7 +778,7 @@ while curI < endI-deltaI+1
 end
 
 % after all data are processed determine the average visualization
-if renderAverage == 1 && renderAveragePerTimeStep == 0
+if renderAverage == 1 && renderAveragePerTimeStep == 0 && averageOverData == 0
   hold off;
   set( f,'nextplot','replacechildren' );
   viewOffset = 100;
@@ -754,13 +789,13 @@ if renderAverage == 1 && renderAveragePerTimeStep == 0
   axis on
   daspect( [ 1 1 1 ] );
   
-%   % legend
-%   hold on;
-%   %leg = legend( '120830', '121204', '121211', '130508', '130607', '131203' );
-%   leg = legend( '120830', '121204', '121211', '130508', '130607' );
-%   set(leg, 'Location', 'NorthWestOutside');
-%   linecolors = { [ 1 0 1 ], [ 0 0 0 ], [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ] };
-%   legendlinestyles( leg, {}, {}, linecolors );
+  % legend
+  hold on;
+  %leg = legend( '120830', '121204', '121211', '130508', '130607', '131203' );
+  leg = legend( '120830', '121204', '121211', '130508', '130607' );
+  set(leg, 'Location', 'NorthWestOutside');
+  linecolors = { [ 1 0 1 ], [ 0 0 0 ], [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ] };
+  legendlinestyles( leg, {}, {}, linecolors );
   
   for dataIndex=startData:endData
     for gt=1:rows*columns

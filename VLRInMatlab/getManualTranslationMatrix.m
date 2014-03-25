@@ -1,4 +1,4 @@
-function transMat = getManualTranslationMatrix( dataStr, renderMasterFile )
+function transMat = getManualTranslationMatrix( dataStr, renderMasterFile, index )
 if renderMasterFile == 1
   if strcmp( dataStr, '120830_raw' )
     translation = [ -29 9 0 ];

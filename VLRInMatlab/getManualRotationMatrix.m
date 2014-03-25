@@ -1,4 +1,4 @@
-function rotMat = getManualRotationMatrix( dataStr, renderMasterFile )
+function rotMat = getManualRotationMatrix( dataStr, renderMasterFile, index )
 if renderMasterFile == 1
   if strcmp( dataStr, '120830_raw' )
     angle = 0;
