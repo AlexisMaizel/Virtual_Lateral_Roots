@@ -26,10 +26,10 @@ averageOverData = 1;
 % startIndex
 startI = 1;
 % endIndex
-endI = 20;
+endI = 5;
 % min and max index
 minI = 1;
-maxI = 20;
+maxI = 5;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max index
 deltaI = 1;
@@ -132,6 +132,8 @@ if renderAverage == 1
   CONTOUR = [];
   % average line instance
   L = [];
+  LSD = [];
+  RSD = [];
 end
 
 if renderPrincipalComponents == 1
@@ -252,6 +254,12 @@ while curI < endI-deltaI+1
   if renderAverage == 1
     if ishandle( L )
       set( L, 'Visible', 'off' );
+    end
+    if ishandle( LSD )
+      set( LSD, 'Visible', 'off' );
+    end
+    if ishandle( RSD )
+      set( RSD, 'Visible', 'off' );
     end
     if ishandle( CONTOUR )
       set( CONTOUR, 'Visible', 'off' );
@@ -702,18 +710,23 @@ while curI < endI-deltaI+1
         continue;
       else
         L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
-          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 0 );
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 1.0, 0 );
       end
       end
     end
   elseif renderAverage == 1 && renderAveragePerTimeStep == 1 && averageOverData == 1
     for gt=1:rows*columns
       averageDirection = determineAverageDirection( tileGrid{ gt } );
+      [ sdLeft, sdRight ] = determineSDDirections( tileGrid{ gt } );
       if all(averageDirection == 0)
         continue;
       else
         L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
-          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 1 );
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 1.0, 1 );
+        LSD(gt) = drawAverageLines( sdLeft, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ], 0.2, 1 );
+        RSD(gt) = drawAverageLines( sdRight, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ], 0.2, 1 );
       end
     end
   end
@@ -796,7 +809,7 @@ if renderAverage == 1 && renderAveragePerTimeStep == 0 && averageOverData == 0
         continue;
       else
         L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
-          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 1 );
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 1.0, 1 );
       end
     end
   end

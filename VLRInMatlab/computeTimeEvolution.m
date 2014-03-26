@@ -208,8 +208,8 @@ for c=1:numCellsN
   
   % draw the single cell as ellipsoid
   [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., nEllip );
-  ellipPos = (p1+p2)/2.;
-  %ellipPos = p1;
+  %ellipPos = (p1+p2)/2.;
+  ellipPos = p1;
   X = ellipPos(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
   Y = ellipPos(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);
   Z = ellipPos(3) + x*xEigVec(3) + y*yEigVec(3) + z*zEigVec(3);

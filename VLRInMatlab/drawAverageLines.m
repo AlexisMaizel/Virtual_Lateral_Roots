@@ -1,4 +1,5 @@
-function L = drawAverageLines( averageDirection, tileIndex, min, max, res, rows, columns, color, renderArrows )
+function L = drawAverageLines( averageDirection, tileIndex, min, max, res,...
+  rows, columns, color, alpha, renderArrows )
 topleft = [ min(1) max(2) 0 ];
 topright = [ max(1) max(2) 0 ];
 bottomleft = [ min(1) min(2) 0 ];
