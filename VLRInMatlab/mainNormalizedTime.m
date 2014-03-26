@@ -16,7 +16,7 @@ colors = [ [ 1 0 1 ]; [ 0 0 0 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ] ];
 % 3 -> radial
 cView = 2;
 % decide which term should be included in the time evolution
-renderTermType = 1;
+renderTermType = 3;
 termTypeStr = { 'B' 'T' 'All' };
 % render average lines or not
 renderAverage = 1;
@@ -26,10 +26,10 @@ averageOverData = 1;
 % startIndex
 startI = 1;
 % endIndex
-endI = 5;
+endI = 20;
 % min and max index
 minI = 1;
-maxI = 5;
+maxI = 20;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max index
 deltaI = 1;
@@ -74,10 +74,6 @@ dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw
 pureDataStr = { '120830', '121204', '121211', '130508', '130607', '131203' };
 % vector of view strings
 viewStr = { 'Top' 'Side' 'Radial' '3D' };
-% master cell file information taken by the picture made of Daniel located in dropbox
-% and the trackGroup information of the raw data sets
-%masterCellFile = [ 4 3 4 2 3 0 ];
-masterCellFile = [ 4 5 4 3 3 0 ];
 % number of subdivisions for ellipsoids
 nEllip = 10;
 % data Index:
@@ -303,9 +299,6 @@ while curI < endI-deltaI+1
       v(1) v(2) v(3) ];
     TF = createBasisTransform3d( 'g', plane );
     
-    % render the corresponding master cell file
-    singleCellFile = masterCellFile( 1, dataIndex );
-    
     % get the alpha shape radii for all time steps
     if triangulationType == 2
       alphaRadiiVector = getAlphaRadius( dataStr( 1, dataIndex ) );
@@ -475,7 +468,6 @@ while curI < endI-deltaI+1
         curTC(dataIndex),...
         curTN(dataIndex),...
         renderMasterFile,...
-        singleCellFile,...
         cellFileMap{dataIndex} );
       
       % draw principal components

@@ -4,7 +4,7 @@ function [lineColorIndex, linePos, minMaxEigenValueIndex,...
   = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, cellIdsN,...
   numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN, triangulationType,...
   termTypeStr, dataStr, planePos, u, v, TF, deltaT, centerPosPerTimeStep,...
-  curTC, curTN, renderMasterFile, singleCellFile, cellFileMap )
+  curTC, curTN, renderMasterFile, cellFileMap )
 % scaling of ellipses
 scaling = 5;
 % number of subdivisions for ellipsoids
@@ -33,7 +33,7 @@ for c=1:numCellsN
   objectIdN = cellIdsN( c );
   % only render the master cell file if required
   if renderMasterFile == 1 &&...
-      singleCellFile ~= cellFileMap( objectIdN )
+      0 ~= cellFileMap( objectIdN )
     continue;
   end
   
@@ -60,7 +60,7 @@ for c=1:numCellsN
   objectIdN = cellIdsN( c );
   % only render the master cell file if required
   if renderMasterFile == 1 &&...
-      singleCellFile ~= cellFileMap( objectIdN )
+      0 ~= cellFileMap( objectIdN )
     continue;
   end
   

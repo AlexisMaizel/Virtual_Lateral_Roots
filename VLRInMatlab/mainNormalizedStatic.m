@@ -30,7 +30,7 @@ exportType = 2;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' };
 % render only master file?
-renderMasterFile = 1;
+renderMasterFile = 0;
 % render principal components
 renderPrincipalComponents = 0;
 % line width of ellipses and semi axes
@@ -66,10 +66,6 @@ triangulationType = 2;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
 % vector of view strings
 viewStr = { 'Top' 'Side' 'Radial' '3D' };
-% master cell file information taken by the picture made of Daniel located in dropbox
-% and the trackGroup information of the raw data sets
-%masterCellFile = [ 4 3 4 2 3 0 ];
-masterCellFile = [ 4 5 4 3 3 0 ];
 % number of subdivisions for ellipsoids
 nEllip = 10;
 % data Index:
@@ -80,7 +76,7 @@ nEllip = 10;
 % 5 -> 130607
 % 6 -> 131203
 % start id of data
-startData = 1;
+startData = 5;
 % end id of data
 endData = 5;
 % num of data
@@ -235,9 +231,6 @@ for curI=startI:endI
       v(1) v(2) v(3) ];
     TF = createBasisTransform3d( 'g', plane );
     
-    % render the corresponding master cell file
-    singleCellFile = masterCellFile( 1, dataIndex );
-    
     % get the alpha shape radii for all time steps
     if triangulationType == 2
       alphaRadiiVector = getAlphaRadius( dataStr( 1, dataIndex ) );
@@ -308,7 +301,7 @@ for curI=startI:endI
       for c=1:numCells
         % only consider the master cell file if required
         if renderMasterFile == 1 &&...
-            singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
+            0 ~= cellFileMap{ dataIndex }( idToCF(c,1) )
           continue;
         end
          numConsideredCells = numConsideredCells + 1;
@@ -324,7 +317,7 @@ for curI=startI:endI
       for c=1:numCells
         % only consider the master cell file if required
         if renderMasterFile == 1 &&...
-            singleCellFile ~= cellFileMap{ dataIndex }( idToCF(c,1) )
+            0 ~= cellFileMap{ dataIndex }( idToCF(c,1) )
           continue;
         end
         
