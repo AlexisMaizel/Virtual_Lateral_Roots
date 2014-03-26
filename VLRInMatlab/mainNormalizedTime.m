@@ -521,18 +521,12 @@ while curI < endI-deltaI+1
           lineX = [ maxSemiPoint(1), c(1) + c(1)-maxSemiPoint(1) ];
           lineY = [ maxSemiPoint(2), c(2) + c(2)-maxSemiPoint(2) ];
           
-          % check which start/end point of the line is nearest to pStart or
-          % pEnd of the two cell positions that are compared between the
-          % two time steps/indexes deltaT/deltaI
-          dist1 = distancePoints3d( [ timePositions(l,1) timePositions(l,2) 0.0 ],...
-            [ lineX(1) lineY(1) 0.0 ] );
-          dist2 = distancePoints3d( [ timePositions(l,1) timePositions(l,2) 0.0 ],...
-            [ lineX(2) lineY(2) 0.0 ] );
-          
-          if dist1 < dist2
-            lineDirection = [ lineX(2)-lineX(1) lineY(2)-lineY(1) 0.0 ];
+          % store the line positions in such a way that the position with
+          % the smaller x value is always the first entry
+          if lineX(1) <= lineX(2)
+            lineDirection = [ lineX(1) lineY(1) lineX(2) lineY(2) ];
           else
-            lineDirection = [ lineX(1)-lineX(2) lineY(1)-lineY(2) 0.0 ];
+            lineDirection = [ lineX(2) lineY(2) lineX(1) lineY(1) ];
           end
           
           % determine tileIndex of current ellipse position and add it to the
@@ -705,6 +699,7 @@ while curI < endI-deltaI+1
   if renderAverage == 1 && renderAveragePerTimeStep == 1 && averageOverData == 0
     for dataIndex=startData:endData
       for gt=1:rows*columns
+        % TODO
         averageDirection = determineAverageDirection( tileGrid{ dataIndex, gt } );
       if all(averageDirection == 0)
         continue;
@@ -716,6 +711,7 @@ while curI < endI-deltaI+1
     end
   elseif renderAverage == 1 && renderAveragePerTimeStep == 1 && averageOverData == 1
     for gt=1:rows*columns
+      % TODO
       averageDirection = determineAverageDirection( tileGrid{ gt } );
       [ sdLeft, sdRight ] = determineSDDirections( tileGrid{ gt } );
       if all(averageDirection == 0)
@@ -804,6 +800,7 @@ if renderAverage == 1 && renderAveragePerTimeStep == 0 && averageOverData == 0
   
   for dataIndex=startData:endData
     for gt=1:rows*columns
+      % TODO
       averageDirection = determineAverageDirection( tileGrid{ dataIndex, gt } );
       if all(averageDirection == 0)
         continue;
