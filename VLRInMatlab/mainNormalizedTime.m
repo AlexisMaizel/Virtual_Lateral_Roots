@@ -21,7 +21,7 @@ termTypeStr = { 'B' 'T' 'All' };
 % render average lines or not
 renderAverage = 1;
 renderAveragePerTimeStep = 1;
-renderAllLines = 1;
+renderAllLines = 0;
 % take the average over the data set or over the time
 averageOverData = 1;
 % startIndex
@@ -133,6 +133,8 @@ if renderAverage == 1
   CONTOUR = [];
   % average line instance
   L = [];
+  LP = [];
+  LN = [];
   SD = [];
 end
 
@@ -227,6 +229,8 @@ while curI < endI-deltaI+1
   % for each normalized step
   if averageOverData == 1
     tileGrid = cell( rows*columns, 1 );
+    tileGridP = cell( rows*columns, 1 );
+    tileGridN = cell( rows*columns, 1 );
   end
   
   if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
@@ -257,6 +261,12 @@ while curI < endI-deltaI+1
   if renderAverage == 1
     if ishandle( L )
       set( L, 'Visible', 'off' );
+    end
+    if ishandle( LP )
+      set( LP, 'Visible', 'off' );
+    end
+    if ishandle( LN )
+      set( LN, 'Visible', 'off' );
     end
     if ishandle( SD )
       set( SD, 'Visible', 'off' );
@@ -536,7 +546,15 @@ while curI < endI-deltaI+1
           if averageOverData == 0
             tileGrid{ dataIndex, tileIndex } = [ tileGrid{ dataIndex, tileIndex }; lineDirection ];
           else
-            tileGrid{ tileIndex } = [ tileGrid{ tileIndex }; lineDirection ];
+            if strcmp( termTypeStr( 1, renderTermType ), 'B' )
+              if indexColorSet( l, 2 ) == 1
+                tileGridP{ tileIndex } = [ tileGridP{ tileIndex }; lineDirection ];
+              else
+                tileGridN{ tileIndex } = [ tileGridN{ tileIndex }; lineDirection ];
+              end
+            else
+              tileGrid{ tileIndex } = [ tileGrid{ tileIndex }; lineDirection ];
+            end
           end
         end
         % render contour
@@ -711,35 +729,68 @@ while curI < endI-deltaI+1
   elseif renderAverage == 1 && renderAveragePerTimeStep == 1 && averageOverData == 1
     if renderAllLines == 0
       for gt=1:rows*columns
-        % ignore empty tiles
-        if size( tileGrid{ gt }, 1 ) == 0
-          continue;
-        end
-        averageSlope = determineAverageSlope( tileGrid{ gt } );
+        if strcmp( termTypeStr( 1, renderTermType ), 'B' )
+          % ignore empty tiles
+          if size( tileGridP{ gt }, 1 ) ~= 0
+            averageSlopeP = determineAverageSlope( tileGridP{ gt } );
+            LP(lineRenderIndex) = drawAverageLines( averageSlopeP, gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ], 0 );
+          end
+          if size( tileGridN{ gt }, 1 ) ~= 0
+            averageSlopeN = determineAverageSlope( tileGridN{ gt } );
+            LN(lineRenderIndex) = drawAverageLines( averageSlopeN, gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 1 ], 0 );
+          end
+        else
+          % ignore empty tiles
+          if size( tileGrid{ gt }, 1 ) == 0
+            continue;
+          end
+          averageSlope = determineAverageSlope( tileGrid{ gt } );
           L(lineRenderIndex) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
           sd = determineSDDirections( tileGrid{ gt } );
           if sd ~= 0
             SD(lineRenderIndex) = drawStandardDeviationArea( sd, averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
-              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 1 0 ] );
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 1 0 ] );
           end
-          lineRenderIndex = lineRenderIndex + 1;
+        end
+        lineRenderIndex = lineRenderIndex + 1;
       end
     else
       for gt=1:rows*columns
-        numLines = size( tileGrid{ gt }, 1 );
-        % ignore empty tiles
-        if numLines == 0
-          continue;
-        end
-        for l=1:numLines
-          % first compute the slope
-          startPos = tileGrid{ gt }(l, 1:2);
-          endPos = tileGrid{ gt }(l, 3:4);
-          slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
-          L(lineRenderIndex) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
-            [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
-          lineRenderIndex = lineRenderIndex + 1;
+        if strcmp( termTypeStr( 1, renderTermType ), 'B' )
+          numLines = size( tileGridP{ gt }, 1 );
+          for l=1:numLines
+            % first compute the slope
+            startPos = tileGridP{ gt }(l, 1:2);
+            endPos = tileGridP{ gt }(l, 3:4);
+            slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
+            LP(lineRenderIndex) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ], 0 );
+            lineRenderIndex = lineRenderIndex + 1;
+          end
+          numLines = size( tileGridN{ gt }, 1 );
+          for l=1:numLines
+            % first compute the slope
+            startPos = tileGridN{ gt }(l, 1:2);
+            endPos = tileGridN{ gt }(l, 3:4);
+            slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
+            LN(lineRenderIndex) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 1 ], 0 );
+            lineRenderIndex = lineRenderIndex + 1;
+          end
+        else
+          numLines = size( tileGrid{ gt }, 1 );
+          for l=1:numLines
+            % first compute the slope
+            startPos = tileGrid{ gt }(l, 1:2);
+            endPos = tileGrid{ gt }(l, 3:4);
+            slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
+            L(lineRenderIndex) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
+            lineRenderIndex = lineRenderIndex + 1;
+          end
         end
       end
     end

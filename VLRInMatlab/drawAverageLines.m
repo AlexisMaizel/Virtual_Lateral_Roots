@@ -36,12 +36,6 @@ p2 = [ 1 averageSlope ];
 averageDirection = [ p2(1)-p1(1) p2(2)-p1(2) ];
 averageDirection = normalize( averageDirection );
 
-% perform rotation depending on slope
-% averageDirection = [ 1 0 0 1 ];
-% rad = degtorad(averageAngle);
-% rotMat = createRotationOz(rad);
-% averageDirection = rotMat * averageDirection';
-
 averageDirection = averageDirection.*tilesizeX/2.;
 lineX = [ centerTilePos(1)-averageDirection(1), centerTilePos(1)+averageDirection(1) ];
 lineY = [ centerTilePos(2)-averageDirection(2), centerTilePos(2)+averageDirection(2) ];
