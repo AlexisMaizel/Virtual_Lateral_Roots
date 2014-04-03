@@ -18,10 +18,10 @@ cView = 2;
 % startIndex
 startI = 1;
 % endIndex
-endI = 5;
+endI = 10;
 % min and max index
 minI = 1;
-maxI = 5;
+maxI = 10;
 % draw delaunay tri?
 drawDelaunay = 0;
 % if set to one then only a single time step
@@ -30,7 +30,7 @@ exportType = 2;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' };
 % render only master file?
-renderMasterFile = 0;
+renderMasterFile = 1;
 % render principal components
 renderPrincipalComponents = 0;
 % line width of ellipses and semi axes
@@ -76,7 +76,7 @@ nEllip = 10;
 % 5 -> 130607
 % 6 -> 131203
 % start id of data
-startData = 5;
+startData = 1;
 % end id of data
 endData = 5;
 % num of data

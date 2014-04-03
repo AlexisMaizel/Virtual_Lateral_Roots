@@ -21,6 +21,7 @@ termTypeStr = { 'B' 'T' 'All' };
 % render average lines or not
 renderAverage = 1;
 renderAveragePerTimeStep = 1;
+renderAllLines = 1;
 % take the average over the data set or over the time
 averageOverData = 1;
 % startIndex
@@ -132,8 +133,7 @@ if renderAverage == 1
   CONTOUR = [];
   % average line instance
   L = [];
-  LSD = [];
-  RSD = [];
+  SD = [];
 end
 
 if renderPrincipalComponents == 1
@@ -217,6 +217,9 @@ if averageOverData == 0
   tileGrid = cell( numData, rows*columns );
 end
 
+% line render index for each normalized step
+lineRenderIndex = 1;
+
 % loop over all normalized steps
 curI=startI;
 while curI < endI-deltaI+1
@@ -255,11 +258,8 @@ while curI < endI-deltaI+1
     if ishandle( L )
       set( L, 'Visible', 'off' );
     end
-    if ishandle( LSD )
-      set( LSD, 'Visible', 'off' );
-    end
-    if ishandle( RSD )
-      set( RSD, 'Visible', 'off' );
+    if ishandle( SD )
+      set( SD, 'Visible', 'off' );
     end
     if ishandle( CONTOUR )
       set( CONTOUR, 'Visible', 'off' );
@@ -699,30 +699,48 @@ while curI < endI-deltaI+1
   if renderAverage == 1 && renderAveragePerTimeStep == 1 && averageOverData == 0
     for dataIndex=startData:endData
       for gt=1:rows*columns
-        % TODO
-        averageDirection = determineAverageDirection( tileGrid{ dataIndex, gt } );
-      if all(averageDirection == 0)
-        continue;
-      else
-        L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
-          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 1.0, 0 );
-      end
+        % ignore empty tiles
+        if size( tileGrid{ gt }, 1 ) == 0
+          continue;
+        end
+        averageSlope = determineAverageSlope( tileGrid{ gt } );
+        L(gt) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 0 );
       end
     end
   elseif renderAverage == 1 && renderAveragePerTimeStep == 1 && averageOverData == 1
-    for gt=1:rows*columns
-      % TODO
-      averageDirection = determineAverageDirection( tileGrid{ gt } );
-      [ sdLeft, sdRight ] = determineSDDirections( tileGrid{ gt } );
-      if all(averageDirection == 0)
-        continue;
-      else
-        L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
-          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 1.0, 1 );
-        LSD(gt) = drawAverageLines( sdLeft, gt, [totalMinAxes(1) totalMinAxes(2)],...
-          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ], 0.2, 1 );
-        RSD(gt) = drawAverageLines( sdRight, gt, [totalMinAxes(1) totalMinAxes(2)],...
-          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ], 0.2, 1 );
+    if renderAllLines == 0
+      for gt=1:rows*columns
+        % ignore empty tiles
+        if size( tileGrid{ gt }, 1 ) == 0
+          continue;
+        end
+        averageSlope = determineAverageSlope( tileGrid{ gt } );
+          L(lineRenderIndex) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+            [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
+          sd = determineSDDirections( tileGrid{ gt } );
+          if sd ~= 0
+            SD(lineRenderIndex) = drawStandardDeviationArea( sd, averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 1 0 ] );
+          end
+          lineRenderIndex = lineRenderIndex + 1;
+      end
+    else
+      for gt=1:rows*columns
+        numLines = size( tileGrid{ gt }, 1 );
+        % ignore empty tiles
+        if numLines == 0
+          continue;
+        end
+        for l=1:numLines
+          % first compute the slope
+          startPos = tileGrid{ gt }(l, 1:2);
+          endPos = tileGrid{ gt }(l, 3:4);
+          slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
+          L(lineRenderIndex) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+            [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
+          lineRenderIndex = lineRenderIndex + 1;
+        end
       end
     end
   end
@@ -800,14 +818,13 @@ if renderAverage == 1 && renderAveragePerTimeStep == 0 && averageOverData == 0
   
   for dataIndex=startData:endData
     for gt=1:rows*columns
-      % TODO
-      averageDirection = determineAverageDirection( tileGrid{ dataIndex, gt } );
-      if all(averageDirection == 0)
+      % ignore empty tiles
+      if size( tileGrid{ dataIndex, gt }, 1 ) == 0
         continue;
-      else
-        L(gt) = drawAverageLines( averageDirection, gt, [totalMinAxes(1) totalMinAxes(2)],...
-          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 1.0, 1 );
       end
+      averageSlope = determineAverageSlope( tileGrid{ dataIndex, gt } );
+        L(gt) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colors( dataIndex, : ), 0 );
     end
   end
   

@@ -1,5 +1,5 @@
-function L = drawAverageLines( averageSlope, tileIndex, min, max, res,...
-  rows, columns, color, renderArrows )
+function SD = drawStandardDeviationArea( sd, averageSlope, tileIndex, min, max, res,...
+  rows, columns, color )
 topleft = [ min(1) max(2) 0 ];
 topright = [ max(1) max(2) 0 ];
 bottomleft = [ min(1) min(2) 0 ];
@@ -35,22 +35,22 @@ p1 = [ 0 0 ];
 p2 = [ 1 averageSlope ];
 averageDirection = [ p2(1)-p1(1) p2(2)-p1(2) ];
 averageDirection = normalize( averageDirection );
+averageDirection = [ averageDirection(1) averageDirection(2) 0 1 ];
 
 % perform rotation depending on slope
-% averageDirection = [ 1 0 0 1 ];
-% rad = degtorad(averageAngle);
-% rotMat = createRotationOz(rad);
-% averageDirection = rotMat * averageDirection';
+rad = degtorad(sd);
+rotMat = createRotationOz(rad);
+sd1 = rotMat * averageDirection';
+sd1 = sd1.*tilesizeX/2.;
+rad = degtorad(-sd);
+rotMat = createRotationOz(rad);
+sd2 = rotMat * averageDirection';
+sd2 = sd2.*tilesizeX/2.;
 
-averageDirection = averageDirection.*tilesizeX/2.;
-lineX = [ centerTilePos(1)-averageDirection(1), centerTilePos(1)+averageDirection(1) ];
-lineY = [ centerTilePos(2)-averageDirection(2), centerTilePos(2)+averageDirection(2) ];
+X = [ centerTilePos(1)+sd1(1) centerTilePos(1)+sd2(1) centerTilePos(1)...
+  centerTilePos(1)-sd1(1) centerTilePos(1)-sd2(1) centerTilePos(1) ];
+Y = [ centerTilePos(2)+sd1(2) centerTilePos(2)+sd2(2) centerTilePos(2)...
+  centerTilePos(2)-sd1(2) centerTilePos(2)-sd2(2) centerTilePos(2) ];
 
 hold on;
-if renderArrows == 0
-  L = line( lineX, lineY, [ 50 50 ], 'Color', color, 'LineWidth', 1.2 );
-else
-  averageDirection = normalizeVector3d( averageDirection );
-  L = quiver3( lineX(1)-averageDirection(1), lineY(1)-averageDirection(2), 50, averageDirection(1), averageDirection(2), 0,...
-    tilesizeX, 'LineWidth', 1.2, 'Color', color, 'MaxHeadSize', 1.0 );
-end
+SD = fill( X, Y, color );

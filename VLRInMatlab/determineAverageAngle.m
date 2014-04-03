@@ -1,11 +1,11 @@
-function averageAngle = determineAverageDirection( lineDirections )
+function averageAngle = determineAverageAngle( lineDirections )
 
 numLines = size( lineDirections, 1 );
 
-% if numLines == 0
-%   averageDirection = zeros( 1, 4 );
-%   return;
-% end
+if numLines == 0
+  averageAngle = -1;
+  return;
+end
 
 averageAngle = 0;
 for l=1:numLines
@@ -13,33 +13,33 @@ for l=1:numLines
   startPos = lineDirections(l, 1:2);
   endPos = lineDirections(l, 3:4);
   slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
-  negSlope = 0;
-  if slope < 0
-    negSlope = 1;
-  end
   
-  % check both direction vectors
-  firstDir = endPos - startPos;
-  secondDir = startPos - endPos;
-  normLine = norm(firstDir);
-  
-  % and choose this one that has the smallest angle compared with the
-  % x-axis
-  angle1 = acos( (dot(firstDir, [ 1 0 ]))/normLine );
-  angle1 = angle1*180/pi;
-  angle2 = acos( (dot(secondDir, [ 1 0 ]))/normLine );
-  angle2 = angle2*180/pi;
-  if angle1 < angle2
-    angle = angle1;
-  else
-    angle = angle2;
-  end
+  % determine direction from left to right and compute the smallest angle
+  dir = endPos - startPos;
+  normLine = norm(dir);
+  angle = acos( (dot(dir, [ 1 0 ]))/normLine );
+  angle = angle*180/pi;
   
   % if the slope is negative then subtract the angle from 180 degrees
-  if negSlope == 1
-    angle = 180 - angle;
-  end
+%   if slope < 0
+%     if angle >= 45
+%       angle = 180 - angle;
+%       %angle = angle - 180;
+%     else
+%       angle = -angle;
+%       %angle = angle - 180;
+%       %angle = 180 - angle;
+%     end
+%   end
 
+  if slope < 0
+      angle = 180 - angle;
+  end
+  
+  if slope == 0
+    zero
+  end
+  
   averageAngle = averageAngle + angle;
 end
 
