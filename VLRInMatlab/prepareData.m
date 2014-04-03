@@ -1,4 +1,4 @@
-function [ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep,...
+function [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep,...
   totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType, renderMasterFile, cView )
 cpuT = cputime;
@@ -7,6 +7,7 @@ cpuT = cputime;
 % ObjectID X Y Z Timepoint LineageID TrackGroup
 cellDatas = cell( numData );
 cellFileMap = cell( numData );
+divisionMap = cell( numData );
 maxT = zeros( numData, 1 );
 minAxes = zeros( numData, 3 );
 maxAxes = zeros( numData, 3 );
@@ -15,8 +16,7 @@ totalMaxAxes = [ -5000 -5000 -5000 ];
 numCellsPerTimeStep = cell( numData, 1 );
 dimData = zeros( numData, 1 );
 centerPosPerTimeStep = cell( numData, 1 );
-% initialize set of lineage trees
-trees = cell( numData, 1 );
+divisionProperties = cell( numData, 1 );
 manualMinMax = 1;
 % preprocessing of data sets to store and determine different properties
 for dataIndex=startData:endData
@@ -127,17 +127,17 @@ for dataIndex=startData:endData
   
   cellData = cell( dimData( dataIndex ), 8 );
   cellFileMap{ dataIndex } = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
+  divisionMap{ dataIndex } = containers.Map( 'KeyType', 'int32', 'ValueType', 'any' );
   
   % get number of trees of current data set
 %   UL = unique(LCol);
 %   numTrees = size(UL, 1)
-%   
-%   % initialize empty set of trees for current data set
-%   treeData = cell( numTrees, 1 );
-  
+
+  % data if daughter cells of a division
+  childrenData = [];
+
   l = 1;
   nl = 1;
-  trI = 1;
   % interpolate the missing positions in between and store the results in a
   % tree structure as well as a cellData array
   while (l < numLines+1)
@@ -147,20 +147,12 @@ for dataIndex=startData:endData
     cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) PCol(l)};
     nl = nl+1;
     
-%     lastPre = getLastPrecursorID( PCol(l) );
-%     % is the precursors string is empty then generate a new tree
-%     % and strore the cell id and time step
-%     if lastPre == -1
-%       treeData{trI} = tree( [ firstCellId TCol(l) ]);
-%       % initial index when a new tree is generated
-%       lastIndex = 1;
-%       trI = trI + 1;
-%     else
-%       % else search for the precursor leaf index in order to append
-%       % the new cell movement
-%       lastIndex = find( treeData, [ lastPre TCol(l)-1 ]);
-%     end
+    lastPre = getLastPrecursorID( PCol(l) );
     
+    if lastPre ~= -1
+      childrenData = [ childrenData ; double(lastPre) double(TCol(l)) XCol(l) YCol(l) ZCol(l) ];
+    end
+
     % interpolate between cell positions
     if firstCellId == secondCellId
       firstTS = TCol(l);
@@ -177,17 +169,16 @@ for dataIndex=startData:endData
         % insert all relevant data into main data structure
         cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) PCol(l)};
         nl = nl+1;
-%         [ treeData, curIndex ] = treeData.addnode( lastIndex, [ firstCellId t ] );
-%         % update index for the tree structure
-%         lastIndex = curIndex;
       end
       
       % insert last line
       cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) PCol(l+1)};
-      %[ treeData, curIndex ] = treeData.addnode( lastIndex, [ firstCellId TCol(l+1) ] );
       nl = nl+1;
       % update cell file map
       cellFileMap{ dataIndex }( firstCellId ) = CFCol(l);
+      
+      % update division information
+      divisionMap{ dataIndex }( firstCellId ) = [ XCol(l+1) YCol(l+1) ZCol(l+1) ];
       
       % increment loop index
       l = l+2;
@@ -196,12 +187,40 @@ for dataIndex=startData:endData
       % update cell file map
       cellFileMap{ dataIndex }( firstCellId ) = CFCol(l);
       
+      % update division information
+      divisionMap{ dataIndex }( firstCellId ) = [ XCol(l) YCol(l) ZCol(l) ];
+      
       l = l+1;
     end
   end
   
-  % assign set of trees to trees
-  %trees{ dataIndex } = treeData;
+  % number of divisions
+  numDivisions = size( childrenData, 1 )/2.;
+  
+  % store the object id, time step, the position, the division orientation and the
+  % division type for later processing
+  divisionData = zeros( numDivisions, 12 );
+  
+  d = 1;
+  c = 1;
+  while d<2*numDivisions
+    % object id of the division cell
+    divisionData( c, 1 ) = childrenData( d, 1 );
+    % time step of division cell
+    divisionData( c, 2 ) = childrenData( d, 2 ) - 1;
+    % position of division node
+    divisionData( c, 3:5 ) = divisionMap{ dataIndex }(childrenData( d, 1 ));
+    % orientation of division
+    divisionData( c, 6:8 ) = [ childrenData( d, 3 ) childrenData( d, 4 ) childrenData( d, 5 ) ];
+    divisionData( c, 9:11 ) = [ childrenData( d+1, 3 ) childrenData( d+1, 4 ) childrenData( d+1, 5 ) ];
+    % TODO: division type
+    %divisionData( c, 12 )
+    d = d + 2;
+    c = c + 1;
+  end
+  
+  % at last assign division properties
+  divisionProperties{ dataIndex } = divisionData;
   
   % assign cell data to set of cell data for all data sets
   cellDatas{ dataIndex } = cellData;

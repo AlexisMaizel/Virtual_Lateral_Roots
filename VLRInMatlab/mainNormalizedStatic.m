@@ -103,7 +103,7 @@ zlabel('Z');
 camproj( 'orthographic' );
 
 % apply preprocessing step of data
-[ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
+[ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView );
 
 if strcmp( visualizationType( 1, visType ), 'Contour' )

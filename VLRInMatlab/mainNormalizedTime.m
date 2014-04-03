@@ -4,7 +4,7 @@
 %%%% pp 349 -- 369, 2008
 
 addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
-%addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/tree', 'end' );
+%addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/treeStructure' );
 
 %%%%% setting of properties %%%%%%
 % color range for different data sets
@@ -24,6 +24,8 @@ renderAveragePerTimeStep = 1;
 renderAllLines = 0;
 % take the average over the data set or over the time
 averageOverData = 1;
+% render division orientations
+renderDivisions = 1;
 % startIndex
 startI = 1;
 % endIndex
@@ -110,7 +112,7 @@ zlabel('Z');
 camproj( 'orthographic' );
 
 % apply preprocessing step of data
-[ cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
+[ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView );
 
 if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
@@ -136,6 +138,7 @@ if renderAverage == 1
   LP = [];
   LN = [];
   SD = [];
+  DIV = [];
 end
 
 if renderPrincipalComponents == 1
@@ -207,7 +210,7 @@ numTotalLinksN = zeros( numData, 1 );
 numTotalAveragedLinks = zeros( numData, 1 );
 
 % storage for dividing cells plus division direction
-cellDivisions = cell( numData, endI-deltaI+1-startI );
+cellDivisions = cell( numData, 1 );
 
 cpuT = cputime;
 
@@ -231,6 +234,7 @@ while curI < endI-deltaI+1
     tileGrid = cell( rows*columns, 1 );
     tileGridP = cell( rows*columns, 1 );
     tileGridN = cell( rows*columns, 1 );
+    tileGridD = cell( rows*columns, 1 );
   end
   
   if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
@@ -267,6 +271,9 @@ while curI < endI-deltaI+1
     end
     if ishandle( LN )
       set( LN, 'Visible', 'off' );
+    end
+    if ishandle( DIV )
+      set( DIV, 'Visible', 'off' );
     end
     if ishandle( SD )
       set( SD, 'Visible', 'off' );
@@ -356,9 +363,6 @@ while curI < endI-deltaI+1
       end
     end
     
-    % determine all cell divisions in between curTC and curTN
-    %cellDivisions{dataIndex,curI} = determineCellDivisions( curTC, curTN );
-    
     % update cell information
     if begin ~= 1
       % number of cells for current and next time step and data set
@@ -419,6 +423,12 @@ while curI < endI-deltaI+1
       cellIdsN{dataIndex} = cellIds2;
       cellPrecursorsN{dataIndex} = cellPrecursors2;
     end
+    
+    % determine all cell divisions in between curTC and curTN
+    divs = getDivisionsInTimeStepRange( curTC(dataIndex), curTN(dataIndex),...
+      renderMasterFile, cellFileMap{dataIndex}, divisionProperties{dataIndex} );
+    
+    %cellDivisions{dataIndex} = divs;
     
     % if at least three cells exists
     if numCellsC(dataIndex) > 3 && numCellsN(dataIndex) > 3
@@ -555,6 +565,28 @@ while curI < endI-deltaI+1
             else
               tileGrid{ tileIndex } = [ tileGrid{ tileIndex }; lineDirection ];
             end
+          end
+        end
+        
+        % determine tile positions of division centers and assign division
+        % orientation to the corresponding tile
+        if renderDivisions == 1
+          numDivs = size( divs, 1 );
+          for d=1:numDivs
+            time = divs( d, 2 ) + 1;
+            divCenter = divs( d, 3:5 ) - centerPosPerTimeStep{dataIndex}(time, :);
+            divCenter = applyTransformations( divCenter, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+            div1 = divs( d, 6:8 ) - centerPosPerTimeStep{dataIndex}(time, :);
+            div2 = divs( d, 9:11 ) - centerPosPerTimeStep{dataIndex}(time, :);
+            div1 = applyTransformations( div1, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+            div2 = applyTransformations( div2, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+            tileIndex = getTileIndex( divCenter, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
+            if div1(1) <= div2(1)
+              divDir = [ div1(1) div1(2) div2(1) div2(2) ];
+            else
+              divDir = [ div2(1) div2(2) div1(1) div1(2) ];
+            end
+            tileGridD{ tileIndex } = [ tileGridD{ tileIndex }; divDir ];
           end
         end
         % render contour
@@ -755,6 +787,16 @@ while curI < endI-deltaI+1
               [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 1 0 ] );
           end
         end
+        
+        % rendering of division orientations
+        if renderDivisions == 1
+          if size( tileGridD{ gt }, 1 ) ~= 0
+            averageSlopeD = determineAverageSlope( tileGridD{ gt } );
+            DIV(lineRenderIndex) = drawAverageLines( averageSlopeD, gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 1 0 ], 0 );
+          end
+        end
+        
         lineRenderIndex = lineRenderIndex + 1;
       end
     else
@@ -792,6 +834,21 @@ while curI < endI-deltaI+1
             lineRenderIndex = lineRenderIndex + 1;
           end
         end
+        
+        % rendering of division orientations
+        if renderDivisions == 1
+          numLines = size( tileGridD{ gt }, 1 );
+          for l=1:numLines
+            % first compute the slope
+            startPos = tileGridD{ gt }(l, 1:2);
+            endPos = tileGridD{ gt }(l, 3:4);
+            slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
+            DIV(lineRenderIndex) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 1 0 ], 0 );
+            lineRenderIndex = lineRenderIndex + 1;
+          end
+        end
+        
       end
     end
   end
