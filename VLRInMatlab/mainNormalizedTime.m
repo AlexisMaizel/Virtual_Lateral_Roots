@@ -16,7 +16,7 @@ colors = [ [ 1 0 1 ]; [ 0 0 0 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ] ];
 % 3 -> radial
 cView = 2;
 % decide which term should be included in the time evolution
-renderTermType = 3;
+renderTermType = 2;
 termTypeStr = { 'B' 'T' 'All' };
 % render average lines or not
 renderAverage = 1;
@@ -29,10 +29,10 @@ renderDivisions = 1;
 % startIndex
 startI = 1;
 % endIndex
-endI = 5;
+endI = 20;
 % min and max index
 minI = 1;
-maxI = 5;
+maxI = 20;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max index
 deltaI = 1;
@@ -139,6 +139,9 @@ if renderAverage == 1
   LN = [];
   SD = [];
   DIV = [];
+  SDD = [];
+  SDP = [];
+  SDN = [];
 end
 
 if renderPrincipalComponents == 1
@@ -277,6 +280,15 @@ while curI < endI-deltaI+1
     end
     if ishandle( SD )
       set( SD, 'Visible', 'off' );
+    end
+    if ishandle( SDD )
+      set( SDD, 'Visible', 'off' );
+    end
+    if ishandle( SDP )
+      set( SDP, 'Visible', 'off' );
+    end
+    if ishandle( SDN )
+      set( SDN, 'Visible', 'off' );
     end
     if ishandle( CONTOUR )
       set( CONTOUR, 'Visible', 'off' );
@@ -767,24 +779,33 @@ while curI < endI-deltaI+1
             averageSlopeP = determineAverageSlope( tileGridP{ gt } );
             LP(lineRenderIndex) = drawAverageLines( averageSlopeP, gt, [totalMinAxes(1) totalMinAxes(2)],...
               [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ], 0 );
+            sd = determineSDDirections( tileGridP{ gt } );
+            if sd ~= 0
+              SDP(lineRenderIndex) = drawStandardDeviationArea( sd, averageSlopeP, gt, [totalMinAxes(1) totalMinAxes(2)],...
+                [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ] );
+            end
           end
           if size( tileGridN{ gt }, 1 ) ~= 0
             averageSlopeN = determineAverageSlope( tileGridN{ gt } );
             LN(lineRenderIndex) = drawAverageLines( averageSlopeN, gt, [totalMinAxes(1) totalMinAxes(2)],...
               [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 1 ], 0 );
+            sd = determineSDDirections( tileGridN{ gt } );
+            if sd ~= 0
+              SDN(lineRenderIndex) = drawStandardDeviationArea( sd, averageSlopeN, gt, [totalMinAxes(1) totalMinAxes(2)],...
+                [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 1 ] );
+            end
           end
         else
           % ignore empty tiles
-          if size( tileGrid{ gt }, 1 ) == 0
-            continue;
-          end
-          averageSlope = determineAverageSlope( tileGrid{ gt } );
-          L(lineRenderIndex) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
-            [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
-          sd = determineSDDirections( tileGrid{ gt } );
-          if sd ~= 0
-            SD(lineRenderIndex) = drawStandardDeviationArea( sd, averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
-              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 1 0 ] );
+          if size( tileGrid{ gt }, 1 ) ~= 0
+            averageSlope = determineAverageSlope( tileGrid{ gt } );
+            L(lineRenderIndex) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
+            sd = determineSDDirections( tileGrid{ gt } );
+            if sd ~= 0
+              SD(lineRenderIndex) = drawStandardDeviationArea( sd, averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+                [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ] );
+            end
           end
         end
         
@@ -794,6 +815,11 @@ while curI < endI-deltaI+1
             averageSlopeD = determineAverageSlope( tileGridD{ gt } );
             DIV(lineRenderIndex) = drawAverageLines( averageSlopeD, gt, [totalMinAxes(1) totalMinAxes(2)],...
               [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 1 0 ], 0 );
+            sd = determineSDDirections( tileGridD{ gt } );
+            if sd ~= 0
+              SDD(lineRenderIndex) = drawStandardDeviationArea( sd, averageSlopeD, gt, [totalMinAxes(1) totalMinAxes(2)],...
+                [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 1 0 ] );
+            end
           end
         end
         

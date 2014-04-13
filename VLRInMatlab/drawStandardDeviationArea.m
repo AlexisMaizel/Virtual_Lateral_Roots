@@ -54,3 +54,5 @@ Y = [ centerTilePos(2)+sd1(2) centerTilePos(2)+sd2(2) centerTilePos(2)...
 
 hold on;
 SD = fill( X, Y, color );
+set( SD, 'facealpha', 0.3 );
+set( SD, 'edgealpha', 0.0 );

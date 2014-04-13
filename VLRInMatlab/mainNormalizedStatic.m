@@ -18,10 +18,10 @@ cView = 2;
 % startIndex
 startI = 1;
 % endIndex
-endI = 10;
+endI = 20;
 % min and max index
 minI = 1;
-maxI = 10;
+maxI = 20;
 % draw delaunay tri?
 drawDelaunay = 0;
 % if set to one then only a single time step
