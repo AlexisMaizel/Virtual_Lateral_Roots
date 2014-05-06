@@ -16,7 +16,7 @@ colors = [ [ 1 0 1 ]; [ 0 0 0 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ] ];
 % 3 -> radial
 cView = 2;
 % decide which term should be included in the time evolution
-renderTermType = 2;
+renderTermType = 3;
 termTypeStr = { 'B' 'T' 'All' };
 % render average lines or not
 renderAverage = 1;
@@ -47,6 +47,8 @@ exportTypeStr = { 'SingleFigure' 'AsImages' };
 renderMasterFile = 1;
 % render principal components
 renderPrincipalComponents = 0;
+% render contributions of B and T terms
+renderContributions = 1;
 % line width of ellipses and semi axes
 lineWidth = 1.2;
 % enable z overlapping
@@ -144,6 +146,13 @@ if renderAverage == 1
   SDN = [];
 end
 
+% render contributions for B and T term related to the sum of both
+if renderContributions == 1
+  BC = [];
+  TC = [];
+  COLORBAR = [];
+end
+
 if renderPrincipalComponents == 1
   % PC instance
   P = [];
@@ -234,10 +243,17 @@ while curI < endI-deltaI+1
   % if averaging over all data sets then we initialize the tile grid 
   % for each normalized step
   if averageOverData == 1
+    % tile grid for T term when there is no positive/negative issue
     tileGrid = cell( rows*columns, 1 );
+    % tile grid for only positive axes (for B term)
     tileGridP = cell( rows*columns, 1 );
+    % tile grid for only negative axes (for B term)
     tileGridN = cell( rows*columns, 1 );
+    % tile grid for division directions
     tileGridD = cell( rows*columns, 1 );
+    % tile grid for storing the average values of B and T terms related to
+    % their sum
+    tileGridC = cell( rows*columns, 1 );
   end
   
   if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
@@ -295,11 +311,27 @@ while curI < endI-deltaI+1
     end
   end
   
+  if renderContributions == 1
+    if ishandle( BC )
+      set( BC, 'Visible', 'off' );
+    end
+    if ishandle( TC )
+      set( TC, 'Visible', 'off' );
+    end
+    if ishandle( COLORBAR )
+      set( COLORBAR, 'Visible', 'off' );
+    end
+  end
+  
   if renderPrincipalComponents == 1
     if ishandle( P )
       set( P, 'Visible', 'off' );
     end
   end
+  
+  % min and max values of contributions for the color of the rectangles
+  minContr = 1000.;
+  maxContr = 0.;
   
   % loop over all data sets
   for dataIndex=startData:endData
@@ -487,7 +519,7 @@ while curI < endI-deltaI+1
       % compute time evolution for current deltaT and time step
       [ lineColorIndex, linePos, minMaxEigenValueIndex,...
         positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse,...
-        timePositions, indexColorSet ]...
+        timePositions, indexColorSet, contributions ]...
         = computeTimeEvolution(...
         uniqueEdgesC{dataIndex},...
         uniqueEdgesN{dataIndex},...
@@ -509,6 +541,29 @@ while curI < endI-deltaI+1
         curTN(dataIndex),...
         renderMasterFile,...
         cellFileMap{dataIndex} );
+      
+      % update min and max values of the contributions
+      minC1 = min( contributions( :, 1 ) );
+      minC2 = min( contributions( :, 2 ) );
+      maxC1 = max( contributions( :, 1 ) );
+      maxC2 = max( contributions( :, 2 ) );
+      if minC1 < minC2
+        minC = minC1;
+      else
+        minC = minC2;
+      end
+      if maxC1 > maxC2
+        maxC = maxC1;
+      else
+        maxC = maxC2;
+      end
+      
+      if minC <= minContr
+        minContr = minC;
+      end
+      if maxC > maxContr
+        maxContr = maxC;
+      end
       
       % draw principal components
       if renderPrincipalComponents == 1
@@ -568,6 +623,11 @@ while curI < endI-deltaI+1
           if averageOverData == 0
             tileGrid{ dataIndex, tileIndex } = [ tileGrid{ dataIndex, tileIndex }; lineDirection ];
           else
+            if strcmp( termTypeStr( 1, renderTermType ), 'All' ) &&...
+                renderContributions == 1
+              tileGridC{ tileIndex } = [ tileGridC{ tileIndex }; [ contributions( l, 1 ) contributions( l, 2 ) ] ];
+            end
+            
             if strcmp( termTypeStr( 1, renderTermType ), 'B' )
               if indexColorSet( l, 2 ) == 1
                 tileGridP{ tileIndex } = [ tileGridP{ tileIndex }; lineDirection ];
@@ -757,6 +817,26 @@ while curI < endI-deltaI+1
     end
   end
   
+  % setting for colorbar
+  colors = [ 222./255., 235./255., 247./255. ;
+  49./255., 130./255., 189./255. ];
+  n = 256; % size of new color map
+  m = size(colors,1);
+  t0 = linspace(0,1,m)';
+  t = linspace(0,1,n)';
+  r = interp1(t0,colors(:,1),t);
+  g = interp1(t0,colors(:,2),t);
+  b = interp1(t0,colors(:,3),t);
+  cmap = [r,g,b];
+  cm = colormap( cmap );
+%   numTicks = 9;
+%   steps = (maxContr-minContr)/numTicks;
+%   for l=1:numTicks+1
+%     labels{l} = [ num2str(minContr+(l-1)*steps) ];
+%   end
+  COLORBAR = colorbar( 'location', 'eastoutside' );
+  set( COLORBAR, 'YTick', 0:1:numTicks, 'YTickLabel', [] );
+  
   % after all data are processed determine the average visualization
   if renderAverage == 1 && renderAveragePerTimeStep == 1 && averageOverData == 0
     for dataIndex=startData:endData
@@ -799,6 +879,19 @@ while curI < endI-deltaI+1
           % ignore empty tiles
           if size( tileGrid{ gt }, 1 ) ~= 0
             averageSlope = determineAverageSlope( tileGrid{ gt } );
+            % compute the average of all contributions assigned to a
+            % specific tile
+            if strcmp( termTypeStr( 1, renderTermType ), 'All' ) &&...
+                renderContributions == 1
+              [ averageBTerm, averageTTerm ] = determineAverageTerm( tileGridC{ gt } );
+              colorB = determineInterpolatedColor( averageBTerm, minContr, maxContr );
+              colorT = determineInterpolatedColor( averageTTerm, minContr, maxContr );
+
+              BC(lineRenderIndex) = drawContributionRectangle( gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colorB, 0 );
+              TC(lineRenderIndex) = drawContributionRectangle( gt, [totalMinAxes(1) totalMinAxes(2)],...
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colorT, 1 );
+            end
             L(lineRenderIndex) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
               [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
             sd = determineSDDirections( tileGrid{ gt } );

@@ -1,6 +1,6 @@
 function [lineColorIndex, linePos, minMaxEigenValueIndex,...
   positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse,...
-  timePositions, indexColorSet ]...
+  timePositions, indexColorSet, contributions ]...
   = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, cellIdsN,...
   numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN, triangulationType,...
   termTypeStr, dataStr, planePos, u, v, TF, deltaT, centerPosPerTimeStep,...
@@ -48,6 +48,10 @@ timePositions = zeros( numConsideredCells, 6 );
 minMaxEigenValueIndex = zeros( numConsideredCells, 3 );
 indexColorSet = zeros( numConsideredCells, 2 );
 positiveEigenvalueVector = zeros( numConsideredCells, 3 );
+
+% contributions for B and T term realted to their sum B+T
+% first entry is B/(B+T) and second one is T/(B+T)
+contributions = zeros( numConsideredCells, 2 );
 
 % consider each cell between two time steps
 % and render the time evolution as an ellipsoid located at the
@@ -146,6 +150,15 @@ for c=1:numCellsN
   % check if the matrix is zero then draw no ellipse
   if all( M == 0 )
     continue;
+  end
+  
+  if strcmp( termTypeStr, 'All' )
+    % compute the contributions of the single terms
+    BContr = computeFrobeniusNorm(B);
+    TContr = computeFrobeniusNorm(T);
+    sumContr = BContr + TContr;%computeFrobeniusNorm(B+T);
+    contributions( nc, 1 ) = BContr/sumContr;
+    contributions( nc, 2 ) = TContr/sumContr;
   end
   
   % compute the eigenvectors and eigenvalues of matrix M
