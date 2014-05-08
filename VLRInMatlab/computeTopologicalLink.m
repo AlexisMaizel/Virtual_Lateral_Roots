@@ -54,7 +54,7 @@ if numAppearedLinksPerCell > 0
 end
 
 % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
-if numAppearedLinksPerCell > 0
+if numAveragedLinksPerCell > 0
   T1 = T1.*( numAppearedLinksPerCell / numAveragedLinksPerCell);
 end
 
@@ -94,7 +94,7 @@ if numDisappearedLinksPerCell > 0
 end
 
 % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
-if numDisappearedLinksPerCell > 0
+if numAveragedLinksPerCell > 0
   T2 = T2.*( numDisappearedLinksPerCell / numAveragedLinksPerCell);
 end
 

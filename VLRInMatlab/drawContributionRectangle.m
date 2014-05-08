@@ -32,17 +32,27 @@ centerTilePos = [ (tileRightTop(1) + tileLeftBottom(1))/2. (tileRightTop(2) + ti
 
 % width and height of rectangle
 width = tilesizeX/2.;
-height = tilesizeY;
+height = tilesizeY/2.;
 
-% left rectangle
+% top left rectangle
 if termType == 0
   x = tileLeftBottom(1);
-% right rectangle
-else
+  y = tileLeftBottom(2) + height;
+% top right rectangle
+elseif termType == 1
   x = tileLeftBottom(1) + width;
+  y = tileLeftBottom(2) + height;
+% bottom left rectangle
+elseif termType == 2
+  x = tileLeftBottom(1);
+  y = tileLeftBottom(2);
+% bottom right rectangle
+elseif termType == 3
+  x = tileLeftBottom(1) + width;
+  y = tileLeftBottom(2);
+else
+  % do nothing
 end
-
-y = tileLeftBottom(2);
 
 hold on;
 %averageDirection = normalizeVector3d( averageDirection );

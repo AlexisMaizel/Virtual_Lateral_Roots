@@ -1,6 +1,6 @@
 function [lineColorIndex, linePos, minMaxEigenValueIndex,...
   positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse,...
-  timePositions, indexColorSet, contributions ]...
+  timePositions, indexColorSet, contributions, magnitudes ]...
   = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, cellIdsN,...
   numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN, triangulationType,...
   termTypeStr, dataStr, planePos, u, v, TF, deltaT, centerPosPerTimeStep,...
@@ -50,8 +50,13 @@ indexColorSet = zeros( numConsideredCells, 2 );
 positiveEigenvalueVector = zeros( numConsideredCells, 3 );
 
 % contributions for B and T term realted to their sum B+T
-% first entry is B/(B+T) and second one is T/(B+T)
+% first entry is |B|/(|B|+|T|) and second one is |T|/(|B|+|T|)
 contributions = zeros( numConsideredCells, 2 );
+
+% magnitudes of longest elongations of ellipses
+% for geometrical and topological parts
+% first entry is L_B/(L_B+L_T) and second one is L_T/(L_B+L_T)
+magnitudes = zeros( numConsideredCells, 2 );
 
 % consider each cell between two time steps
 % and render the time evolution as an ellipsoid located at the
@@ -157,8 +162,13 @@ for c=1:numCellsN
     BContr = computeFrobeniusNorm(B);
     TContr = computeFrobeniusNorm(T);
     sumContr = BContr + TContr;%computeFrobeniusNorm(B+T);
-    contributions( nc, 1 ) = BContr/sumContr;
-    contributions( nc, 2 ) = TContr/sumContr;
+    contributions( nc, 1 ) = BContr;%/sumContr;
+    contributions( nc, 2 ) = TContr;%/sumContr;
+    
+    % compute the magnitudes of the single terms
+    magnitudes( nc, 1 ) = determineMagnitude( B );
+    magnitudes( nc, 2 ) = determineMagnitude( T );
+    %lengthBT = lengthB + lengthT;%determineMagnitude( B+T )
   end
   
   % compute the eigenvectors and eigenvalues of matrix M
@@ -166,7 +176,7 @@ for c=1:numCellsN
   % elements of D are the eigenvalues
   [Q,D] = eig(M);
   
-  % check if the eigenvalues are smaller then zero; if so, then do
+  % check if the eigenvalues are smaller than zero; if so, then do
   % not draw a line and consider the absolute value of it -> TODO
   positiveEigenvalue = [ 1 ; 1 ; 1 ];
   radii = diag(D);

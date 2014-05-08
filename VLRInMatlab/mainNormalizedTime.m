@@ -150,7 +150,11 @@ end
 if renderContributions == 1
   BC = [];
   TC = [];
-  COLORBAR = [];
+  BM = [];
+  TM = [];
+  COLORBAR1 = [];
+  COLORBAR2 = [];
+  COLORBAR3 = [];
 end
 
 if renderPrincipalComponents == 1
@@ -237,6 +241,9 @@ end
 % line render index for each normalized step
 lineRenderIndex = 1;
 
+globalBTerm = zeros( maxI-minI, 1 );
+globalTTerm = zeros( maxI-minI, 1 );
+
 % loop over all normalized steps
 curI=startI;
 while curI < endI-deltaI+1
@@ -254,6 +261,8 @@ while curI < endI-deltaI+1
     % tile grid for storing the average values of B and T terms related to
     % their sum
     tileGridC = cell( rows*columns, 1 );
+    % tile grid for storing the average values of magnitudes
+    tileGridM = cell( rows*columns, 1 );
   end
   
   if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
@@ -318,8 +327,20 @@ while curI < endI-deltaI+1
     if ishandle( TC )
       set( TC, 'Visible', 'off' );
     end
-    if ishandle( COLORBAR )
-      set( COLORBAR, 'Visible', 'off' );
+    if ishandle( BM )
+      set( BM, 'Visible', 'off' );
+    end
+    if ishandle( TM )
+      set( TM, 'Visible', 'off' );
+    end
+    if ishandle( COLORBAR1 )
+      set( COLORBAR1, 'Visible', 'off' );
+    end
+    if ishandle( COLORBAR2 )
+      set( COLORBAR2, 'Visible', 'off' );
+    end
+    if ishandle( COLORBAR3 )
+      set( COLORBAR3, 'Visible', 'off' );
     end
   end
   
@@ -330,8 +351,10 @@ while curI < endI-deltaI+1
   end
   
   % min and max values of contributions for the color of the rectangles
-  minContr = 1000.;
+  minContr = 10000.;
   maxContr = 0.;
+  minMag = 10000.;
+  maxMag = -10000.;
   
   % loop over all data sets
   for dataIndex=startData:endData
@@ -407,6 +430,13 @@ while curI < endI-deltaI+1
       end
     end
     
+    % if the normalized steps are too accurate resulting in the same time
+    % step for the current and next step then just continue with the next
+    % data set and do not perform any computations for this steps and data
+    if curTC(dataIndex) == curTN(dataIndex)
+      continue;
+    end
+    
     % update cell information
     if begin ~= 1
       % number of cells for current and next time step and data set
@@ -452,7 +482,8 @@ while curI < endI-deltaI+1
           matPos1(nc1, :) = pos;
           cellIds1(nc1, :) = cellDatas{ dataIndex }{ j, 1 };
           nc1 = nc1 + 1;
-        elseif cellDatas{ dataIndex }{ j, 5 } == curTN(dataIndex)
+        end
+        if cellDatas{ dataIndex }{ j, 5 } == curTN(dataIndex)
           pos = [ cellDatas{ dataIndex }{ j, 2 } cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
           matPos2(nc2, :) = pos;
           cellIds2(nc2, :) = cellDatas{ dataIndex }{ j, 1 };
@@ -519,7 +550,7 @@ while curI < endI-deltaI+1
       % compute time evolution for current deltaT and time step
       [ lineColorIndex, linePos, minMaxEigenValueIndex,...
         positiveEigenvalueVector, minMaxSemiAxisVector, centerEllipse,...
-        timePositions, indexColorSet, contributions ]...
+        timePositions, indexColorSet, contributions, magnitudes ]...
         = computeTimeEvolution(...
         uniqueEdgesC{dataIndex},...
         uniqueEdgesN{dataIndex},...
@@ -541,29 +572,6 @@ while curI < endI-deltaI+1
         curTN(dataIndex),...
         renderMasterFile,...
         cellFileMap{dataIndex} );
-      
-      % update min and max values of the contributions
-      minC1 = min( contributions( :, 1 ) );
-      minC2 = min( contributions( :, 2 ) );
-      maxC1 = max( contributions( :, 1 ) );
-      maxC2 = max( contributions( :, 2 ) );
-      if minC1 < minC2
-        minC = minC1;
-      else
-        minC = minC2;
-      end
-      if maxC1 > maxC2
-        maxC = maxC1;
-      else
-        maxC = maxC2;
-      end
-      
-      if minC <= minContr
-        minContr = minC;
-      end
-      if maxC > maxContr
-        maxContr = maxC;
-      end
       
       % draw principal components
       if renderPrincipalComponents == 1
@@ -626,6 +634,7 @@ while curI < endI-deltaI+1
             if strcmp( termTypeStr( 1, renderTermType ), 'All' ) &&...
                 renderContributions == 1
               tileGridC{ tileIndex } = [ tileGridC{ tileIndex }; [ contributions( l, 1 ) contributions( l, 2 ) ] ];
+              tileGridM{ tileIndex } = [ tileGridM{ tileIndex }; [ magnitudes( l, 1 ) magnitudes( l, 2 ) ] ];
             end
             
             if strcmp( termTypeStr( 1, renderTermType ), 'B' )
@@ -817,25 +826,33 @@ while curI < endI-deltaI+1
     end
   end
   
+  % determining the min and max values of contributions and magnitudes
+  contributionsVector = zeros( rows*columns, 2 );
+  magnitudesVector = zeros( rows*columns, 2 );
+  for gt=1:rows*columns
+    if size( tileGrid{ gt }, 1 ) ~= 0
+      [ averageBTerm, averageTTerm ] = determineAverageTerm( tileGridC{ gt } );
+      contributionsVector( gt, 1 ) = averageBTerm;
+      contributionsVector( gt, 2 ) = averageTTerm;
+      [ averageBMagnitude, averageTMagnitude ] = determineAverageTerm( tileGridM{ gt } );
+      magnitudesVector( gt, 1 ) = averageBMagnitude;
+      magnitudesVector( gt, 2 ) = averageTMagnitude;
+      
+      numLines = size( tileGridC{ gt }, 1 );
+      for i=1:numLines
+        globalBTerm( curI, 1 ) = globalBTerm( curI, 1 ) + tileGridC{ gt }( i, 1 );
+        globalTTerm( curI, 1 ) = globalTTerm( curI, 1 ) + tileGridC{ gt }( i, 2 );
+      end
+    end
+  end
+  
+  [ minContr, maxContr ] = determineMinMax( contributionsVector );
+  [ minMag, maxMag ] = determineMinMax( magnitudesVector );
+
   % setting for colorbar
-  colors = [ 222./255., 235./255., 247./255. ;
-  49./255., 130./255., 189./255. ];
-  n = 256; % size of new color map
-  m = size(colors,1);
-  t0 = linspace(0,1,m)';
-  t = linspace(0,1,n)';
-  r = interp1(t0,colors(:,1),t);
-  g = interp1(t0,colors(:,2),t);
-  b = interp1(t0,colors(:,3),t);
-  cmap = [r,g,b];
-  cm = colormap( cmap );
-%   numTicks = 9;
-%   steps = (maxContr-minContr)/numTicks;
-%   for l=1:numTicks+1
-%     labels{l} = [ num2str(minContr+(l-1)*steps) ];
-%   end
-  COLORBAR = colorbar( 'location', 'eastoutside' );
-  set( COLORBAR, 'YTick', 0:1:numTicks, 'YTickLabel', [] );
+  %COLORBAR1 = createColorbar( 0 );
+  %COLORBAR2 = createColorbar( 1 );
+  %COLORBAR3 = createColorbar( 2 );
   
   % after all data are processed determine the average visualization
   if renderAverage == 1 && renderAveragePerTimeStep == 1 && averageOverData == 0
@@ -884,13 +901,32 @@ while curI < endI-deltaI+1
             if strcmp( termTypeStr( 1, renderTermType ), 'All' ) &&...
                 renderContributions == 1
               [ averageBTerm, averageTTerm ] = determineAverageTerm( tileGridC{ gt } );
-              colorB = determineInterpolatedColor( averageBTerm, minContr, maxContr );
-              colorT = determineInterpolatedColor( averageTTerm, minContr, maxContr );
-
+              [ averageBMagnitude, averageTMagnitude ] = determineAverageTerm( tileGridM{ gt } );
+              colorB = determineInterpolatedColor( averageBTerm, minContr, maxContr, 0 );
+              colorT = determineInterpolatedColor( averageTTerm, minContr, maxContr, 0 );
+              if averageBMagnitude > 0
+                colorBM = determineInterpolatedColor( averageBMagnitude, 0, maxMag, 1 );
+              elseif averageBMagnitude == 0.
+                colorBM = [ 1 1 1 ];
+              else
+                colorBM = determineInterpolatedColor( averageBMagnitude, minMag, 0, 2 );
+              end
+              if averageTMagnitude > 0
+                colorTM = determineInterpolatedColor( averageTMagnitude, 0, maxMag, 1 );
+              elseif averageTMagnitude == 0.
+                colorTM = [ 1 1 1 ];
+              else
+                colorTM = determineInterpolatedColor( averageTMagnitude, minMag, 0, 2 );
+              end
+              
               BC(lineRenderIndex) = drawContributionRectangle( gt, [totalMinAxes(1) totalMinAxes(2)],...
-              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colorB, 0 );
+                [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colorB, 0 );
               TC(lineRenderIndex) = drawContributionRectangle( gt, [totalMinAxes(1) totalMinAxes(2)],...
-              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colorT, 1 );
+                [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colorT, 1 );
+              BM(lineRenderIndex) = drawContributionRectangle( gt, [totalMinAxes(1) totalMinAxes(2)],...
+                [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colorBM, 2 );
+              TM(lineRenderIndex) = drawContributionRectangle( gt, [totalMinAxes(1) totalMinAxes(2)],...
+                [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, colorTM, 3 );
             end
             L(lineRenderIndex) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
               [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
@@ -1022,6 +1058,9 @@ while curI < endI-deltaI+1
   % at last increment the current index loop parameter
   curI = curI + deltaI;
 end
+
+globalBTerm
+globalTTerm
 
 % after all data are processed determine the average visualization
 if renderAverage == 1 && renderAveragePerTimeStep == 0 && averageOverData == 0

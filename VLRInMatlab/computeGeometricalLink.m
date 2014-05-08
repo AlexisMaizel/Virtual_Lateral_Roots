@@ -40,6 +40,6 @@ if numConservedLinksPerCell > 0
 end
 
 % multiply the factor of N_c/N_tot (see paper in Appendix C1)
-if numConservedLinksPerCell > 0
+if numAveragedLinksPerCell > 0
   B = B.*( numConservedLinksPerCell / numAveragedLinksPerCell);
 end

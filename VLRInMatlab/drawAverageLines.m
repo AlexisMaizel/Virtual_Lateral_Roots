@@ -42,7 +42,7 @@ lineY = [ centerTilePos(2)-averageDirection(2), centerTilePos(2)+averageDirectio
 
 hold on;
 if renderArrows == 0
-  L = line( lineX, lineY, [ 50 50 ], 'Color', color, 'LineWidth', 1.2 );
+  L = line( lineX, lineY, [ 50 50 ], 'Color', color, 'LineWidth', 2.0 );
 else
   averageDirection = normalizeVector3d( averageDirection );
   L = quiver3( lineX(1)-averageDirection(1), lineY(1)-averageDirection(2), 50, averageDirection(1), averageDirection(2), 0,...
