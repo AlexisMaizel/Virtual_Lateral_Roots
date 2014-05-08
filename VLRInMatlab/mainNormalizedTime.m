@@ -1059,9 +1059,6 @@ while curI < endI-deltaI+1
   curI = curI + deltaI;
 end
 
-globalBTerm
-globalTTerm
-
 % after all data are processed determine the average visualization
 if renderAverage == 1 && renderAveragePerTimeStep == 0 && averageOverData == 0
   hold off;

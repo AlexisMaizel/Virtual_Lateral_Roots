@@ -162,8 +162,8 @@ for c=1:numCellsN
     BContr = computeFrobeniusNorm(B);
     TContr = computeFrobeniusNorm(T);
     sumContr = BContr + TContr;%computeFrobeniusNorm(B+T);
-    contributions( nc, 1 ) = BContr;%/sumContr;
-    contributions( nc, 2 ) = TContr;%/sumContr;
+    contributions( nc, 1 ) = BContr/sumContr;
+    contributions( nc, 2 ) = TContr/sumContr;
     
     % compute the magnitudes of the single terms
     magnitudes( nc, 1 ) = determineMagnitude( B );
