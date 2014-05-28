@@ -1,0 +1,4 @@
+ignore:
+*
+vverun.bat
+build command: vveshell.bat

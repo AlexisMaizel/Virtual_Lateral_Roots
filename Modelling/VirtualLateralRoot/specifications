@@ -1,0 +1,53 @@
+model.cpp
+model.expmap
+bezier.cpp
+bezier.h
+surface.cpp
+surface.h
+Makefile
+pal.map
+anim.a
+view.v
+LSspecifications
+description.txt
+vlr1.s
+vlr2.s
+ignore:
+.*.swp
+model.vve
+*.o
+*.moc
+*~
+*
+LabTable:
+	nautilus .
+
+LabTableShell:
+	OBJSHELL
+
+VVE:
+	run:
+		make run
+	build:
+		make -j4 && make run
+	clean:
+		make clean
+
+Files:
+	program:
+		EDIT model.cpp
+	parameters:
+		EDIT view.v
+	description:
+		EDIT description.html
+
+Controls:
+	ColorPalette:
+		palette pal.map
+	vlr1:
+		bezieredit vlr1.s
+	vlr2:
+		bezieredit vlr2.s
+	vlr3:
+		bezieredit vlr3.s
+
