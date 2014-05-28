@@ -3,13 +3,18 @@ Dt: .1 // how fast the shape of the end stage is reached, default 0.01
 Growth: .1  // not considered in code
 DivisionArea: 0.06 // 0.075 threshold size of cells before they divide
 UseRatio: true
-DivisionAreaRatio: 0.4 // threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionAreaRatio: 0.45 // threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 CellInitWalls: 4 // number of cell walls at the beginning
 InitialConstellation: 0 // initial cell constellation: 0 -> starting with one cell, 1 -> starting with eight cells positioned more similar to lateral root
+ExportLineage: false // export lineage information of cells
 
 [View]
 StepPerView: 1
 BackgroundColor: 255
+
+[Division]
+UseDecussationDivision: true
+ProbabilityOfDecussationDivision: 0.5 // probability for having a decussation division (has to be in [0, 1])
 
 [Tissue]
 DivisionAlgorithm: ShortWall // ClosestWall ShortWall ClosestMid

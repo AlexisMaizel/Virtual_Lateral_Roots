@@ -32,10 +32,15 @@ struct CellContent
 	std::size_t id;
   std::size_t treeId;
   std::size_t timeStep;
-  double initialArea;
-  double area;
-  std::set<std::size_t> precursors;
   Point3d center;
+  // initial area of cell right after division
+  double initialArea;
+  // changing area of cell
+  double area;
+  // set of precursor cell ids
+  std::set<std::size_t> precursors;
+  // angle of previous division direction
+  double angle;
 };
 
 struct WallContent
@@ -81,6 +86,9 @@ public:
   int cellInitWalls;
   int stepPerView;
   int initialConstellation;
+  bool exportLineage;
+  double probabilityOfDecussationDivision;
+  bool useDecussationDivision;
   
   std::size_t _idCounter;
   std::size_t _time;
@@ -97,10 +105,13 @@ public:
     parms("Main", "DivisionAreaRatio", divisionAreaRatio);
     parms("Main", "CellInitWalls", cellInitWalls);
     parms("Main", "InitialConstellation", initialConstellation);
+    parms("Main", "ExportLineage", exportLineage);
 
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
 
+    parms( "Division", "UseDecussationDivision", useDecussationDivision );
+    parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
 
     T.readParms(parms, "Tissue");
     T.readViewParms(parms, "TissueView");
@@ -131,7 +142,8 @@ public:
     registerFile("pal.map");
     registerFile("view.v");
 
-    this->initExportFile( _fileName );
+    if( exportLineage )
+      this->initExportFile( _fileName );
     
     lateralRoot.GrowStep(0);
     if( initialConstellation == 0 )
@@ -174,6 +186,7 @@ public:
     c->treeId = 1;
     c->id = _idCounter;
     c->timeStep = _time;
+    c->angle = 0.;//M_PI/2.;
     T.addCell(c, vs);
 
     std::vector<Point3d> polygon;
@@ -232,16 +245,13 @@ public:
   //----------------------------------------------------------------
   
   // generate a cell starting at the bottom left with coord u and v with different lengths
-  cell generateCell( const std::pair<double, double> &start,
+  void generateCell( const std::pair<double, double> &start,
                      const std::pair<double, double> &length,
                      const std::size_t treeId )
   {
     // set of junctions for the cell
     std::vector<junction> vs;
-        
-    double u = start.first;
-    double v = start.second;
-    
+
     for( std::size_t w = 0; w < 4; w++ )
     {
       junction j;
@@ -267,7 +277,7 @@ public:
     c->treeId = treeId;
     c->id = _idCounter;
     c->timeStep = _time;
-    
+    c->angle = 0.;//M_PI/2.;
     T.addCell( c, vs );
     
     std::vector<Point3d> polygon;
@@ -305,7 +315,59 @@ public:
       }
     }
   }
+  
+  //----------------------------------------------------------------
+  
+  bool setNextDecussationDivision()
+  {
+    // here we radomly decide which kind of division the current cell
+    // will do based on a probability value given as a parameter
+    srand( _time + _idCounter );
+    
+    // generate a value between 1 and 10
+    int val = rand() % 10 + 1;
+    
+    if( val <= (int)(probabilityOfDecussationDivision*10.) )
+      return true;
+    else
+      return false;
+  }
 
+  //----------------------------------------------------------------
+  
+  MyTissue::division_data setDivisionPoints( const cell& c )
+  {
+    MyTissue::division_data ddata;
+    const Point3d& center = c->center;
+    double a = c->angle;
+    Point3d direction = Point3d(-sin(a), cos(a), 0);
+    forall( const junction& j,T.S.neighbors(c) )
+    {
+      const junction& jn = T.S.nextTo(c, j);
+      const Point3d& jpos = j->sp.Pos();
+      const Point3d& jnpos = jn->sp.Pos();
+      Point3d u;
+      double s;
+      if(geometry::planeLineIntersection(u, s, center, direction, jpos, jnpos) and s >= 0 and s <= 1)
+      {
+        if((jpos - center)*direction > 0)
+        {
+          ddata.v1 = j;
+          ddata.pv = u;
+        }
+        else if((jpos - center)*direction < 0)
+        {
+          ddata.u1 = j;
+          ddata.pu = u;
+        }
+        if(ddata.u1 and ddata.v1)
+          break;
+      }
+    }
+    vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
+    return ddata;
+  }
+  
   //----------------------------------------------------------------
   
   void initExportFile( const std::string &filename )
@@ -381,6 +443,48 @@ public:
 
   //----------------------------------------------------------------
   
+  double getPreviousDivisionAsAngle( const MyTissue::division_data& ddata )
+  {
+    Point3d u = ddata.pu;
+    Point3d v = ddata.pv;
+    
+    // y axis
+    Point3d yaxisDir = Point3d( 0., 1., 0. );
+    
+    if( u.i() <= v.i() )
+    {
+      if( u.j() <= v.j() )
+      {
+        Point3d dir = v-u;
+        dir.normalize();
+        return ( 2.*M_PI - acos( dir*yaxisDir ) );
+      }
+      else
+      {
+        Point3d dir = u-v;
+        dir.normalize();
+        return ( acos( dir*yaxisDir ) );
+      }
+    }
+    else
+    {
+      if( u.j() <= v.j() )
+      {
+        Point3d dir = v-u;
+        dir.normalize();
+        return ( acos( dir*yaxisDir ) );
+      }
+      else
+      {
+        Point3d dir = u-v;
+        dir.normalize();
+        return ( 2.*M_PI - acos( dir*yaxisDir ) );
+      }
+    }
+  }
+  
+  //----------------------------------------------------------------
+  
   void updateFromOld(const cell& cl, const cell& cr, const cell& c,
                      const MyTissue::division_data& ddata, MyTissue&)
   {
@@ -388,26 +492,42 @@ public:
 		cl->treeId = cr->treeId = c->treeId;
     // and set new cell ids for the daughter cells
     cl->id = _idCounter;
+    cl->timeStep = _time;
+    // inherit old angle from divison line
+    double angle = this->getPreviousDivisionAsAngle( ddata );
+    cl->angle = angle;
     _idCounter++;
     cr->id = _idCounter;
-    _idCounter++;
-    // set the current time steps
-    cl->timeStep = _time;
     cr->timeStep = _time;
+    cr->angle = angle;
+    _idCounter++;
+   
     // insert the new initial areas
     // left cell
     std::vector<Point3d> polygon;
+    Point3d center;
     forall(const junction& j, T.S.neighbors(cl))
+    {
       polygon.push_back(j->sp.Pos());
+      center += j->sp.Pos();
+    }
     
+    center /= polygon.size();
+    cl->center = center;
     cl->initialArea = geometry::polygonArea(polygon);
     cl->area = cl->initialArea;
     
     // right cell
     polygon.clear();
+    center = Point3d( 0., 0., 0. );
     forall(const junction& j, T.S.neighbors(cr))
+    {
       polygon.push_back(j->sp.Pos());
+      center += j->sp.Pos();
+    }
     
+    center /= polygon.size();
+    cr->center = center;
     cr->initialArea = geometry::polygonArea(polygon);
     cr->area = cr->initialArea;
     
@@ -431,6 +551,7 @@ public:
     std::list<cell> to_divide;
     forall(const cell& c, T.C)
     {
+      // update cente position
       std::vector<Point3d> polygon;
       Point3d center;
       forall(const junction& j, T.S.neighbors(c))
@@ -440,6 +561,8 @@ public:
       }
       center /= polygon.size();
       lateralRoot.SetPoint(c->sp, c->sp, center);
+      c->center = center;
+      
       double a = geometry::polygonArea(polygon);
       if( useRatio )
       {
@@ -469,12 +592,23 @@ public:
     // Divide the cells
     forall(const cell& c, to_divide)
     {
-      T.divideCell(c);
+      if( useDecussationDivision && c->id > 7 )
+      {
+        // if true then the next division is perpendicular to the last one
+        // else the division is collinear to the previous division direction
+        if( this->setNextDecussationDivision() )
+          c->angle = fmod( c->angle + M_PI/2., 2.*M_PI );
+        
+        MyTissue::division_data ddata = this->setDivisionPoints( c );
+        T.divideCell( c, ddata );
+      }
+      else
+        T.divideCell(c);
     }
 
     return !to_divide.empty();
   }
-
+  
   //----------------------------------------------------------------
   
   void step_tracking()
