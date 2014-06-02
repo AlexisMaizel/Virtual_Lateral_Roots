@@ -41,6 +41,8 @@ struct CellContent
   std::set<std::size_t> precursors;
   // angle of previous division direction
   double angle;
+  // longest wall length for division based on longest wall
+  double longestWallLength;
 };
 
 struct WallContent
@@ -80,8 +82,10 @@ public:
 
   double dt;
   double divisionArea;
-  bool useRatio;
+  bool useAreaRatio;
   double divisionAreaRatio;
+  bool useWallRatio;
+  double divisionWallRatio;
   int bgColor;
   int cellInitWalls;
   int stepPerView;
@@ -100,9 +104,6 @@ public:
   {
     // read the parameters here
     parms("Main", "Dt", dt);
-    parms("Main", "DivisionArea", divisionArea);
-    parms("Main", "UseRatio", useRatio);
-    parms("Main", "DivisionAreaRatio", divisionAreaRatio);
     parms("Main", "CellInitWalls", cellInitWalls);
     parms("Main", "InitialConstellation", initialConstellation);
     parms("Main", "ExportLineage", exportLineage);
@@ -110,6 +111,11 @@ public:
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
 
+    parms( "Division", "DivisionArea", divisionArea);
+    parms( "Division", "UseAreaRatio", useAreaRatio);
+    parms( "Division", "DivisionAreaRatio", divisionAreaRatio);
+    parms( "Division", "UseWallRatio", useWallRatio);
+    parms( "Division", "DivisionWallRatio", divisionWallRatio);
     parms( "Division", "UseDecussationDivision", useDecussationDivision );
     parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
 
@@ -203,6 +209,8 @@ public:
     c->center = center;
     c->initialArea = geometry::polygonArea(polygon);
     c->area = c->initialArea;
+    // and determine longest wall of cell
+    c->longestWallLength = this->determineLongestWallLength(c);
     _idCounter++;
   }
   
@@ -293,6 +301,7 @@ public:
     // store initial area for current cell
     c->initialArea = geometry::polygonArea(polygon);
     c->area = c->initialArea;
+    c->longestWallLength = this->determineLongestWallLength(c);
     lateralRoot.SetPoint(c->sp, c->sp, center);
     
     // afterwards increment the id counter
@@ -322,12 +331,13 @@ public:
   {
     // here we radomly decide which kind of division the current cell
     // will do based on a probability value given as a parameter
-    srand( _time + _idCounter );
+    srand( _time + _idCounter + time(NULL) );
     
     // generate a value between 1 and 10
     int val = rand() % 10 + 1;
+    //std::cout << "val: " << val << std::endl;
     
-    if( val <= (int)(probabilityOfDecussationDivision*10.) )
+    if( val <= (int)((1.-probabilityOfDecussationDivision)*10.) )
       return true;
     else
       return false;
@@ -366,6 +376,27 @@ public:
     }
     vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
     return ddata;
+  }
+
+  //----------------------------------------------------------------
+  
+  double determineLongestWallLength( const cell& c )
+  {
+    double maxLength = 0.;
+    forall( const junction& j,T.S.neighbors(c) )
+    {
+      const junction& jn = T.S.nextTo(c, j);
+      const Point3d& jpos = j->sp.Pos();
+      const Point3d& jnpos = jn->sp.Pos();
+      
+      double length = 0.;
+      for( std::size_t l = 0; l<3; l++ )
+        length += (jpos[l] - jnpos[l])*(jpos[l] - jnpos[l]);
+      
+      if( length >= maxLength )
+        maxLength = length;
+    }
+    return maxLength;
   }
   
   //----------------------------------------------------------------
@@ -516,6 +547,7 @@ public:
     cl->center = center;
     cl->initialArea = geometry::polygonArea(polygon);
     cl->area = cl->initialArea;
+    cl->longestWallLength = this->determineLongestWallLength(cl);
     
     // right cell
     polygon.clear();
@@ -530,6 +562,7 @@ public:
     cr->center = center;
     cr->initialArea = geometry::polygonArea(polygon);
     cr->area = cr->initialArea;
+    cr->longestWallLength = this->determineLongestWallLength(cr);
     
     // update precursors
     cl->precursors.insert( c->id );
@@ -564,27 +597,43 @@ public:
       c->center = center;
       
       double a = geometry::polygonArea(polygon);
-      if( useRatio )
+      if( useAreaRatio && useWallRatio && c->id > 7 )
       {
-        // only apply the division based on ratio with at least eight cells
-        if( c->id > 7 )
-        {
-          // divide cells if their area size has increased by a certain
-          // percentage
-          double initialArea = c->initialArea;
-          initialArea += initialArea*divisionAreaRatio;
-          if( a > initialArea )
-            to_divide.push_back(c);
-        }
-        else
-        {
-          if(a > divisionArea)
-            to_divide.push_back(c);
-        }
+        // check division based on longest wall length
+        double curLongestLength = this->determineLongestWallLength(c);
+        // divide cells if their area size has increased by a certain percentage amount
+        double initialArea = c->initialArea;
+        initialArea += initialArea*divisionAreaRatio;
+        // divide cell if its wall length has increased by a certain percentage amount
+        double initialLongestLength = c->longestWallLength;
+        initialLongestLength += initialLongestLength*divisionWallRatio;
+        
+        if( a > initialArea || curLongestLength > initialLongestLength )
+          to_divide.push_back(c);
+      }
+      // only apply the division based on ratio with at least eight cells
+      else if( useAreaRatio && c->id > 7 )
+      {
+        // divide cells if their area size has increased by a certain percentage amount
+        double initialArea = c->initialArea;
+        initialArea += initialArea*divisionAreaRatio;
+        if( a > initialArea )
+          to_divide.push_back(c);
+      }
+      // only apply the division based on ratio with at least eight cells
+      else if( useWallRatio && c->id > 7 )
+      {
+        // check division based on longest wall length
+        double curLongestLength = this->determineLongestWallLength(c);
+        // divide cell if its wall length has increased by a certain percentage amount
+        double initialLongestLength = c->longestWallLength;
+        initialLongestLength += initialLongestLength*divisionWallRatio;
+        if( curLongestLength > initialLongestLength )
+          to_divide.push_back(c);
       }
       else
       {
-        if(a > divisionArea)
+        if( a > divisionArea )
           to_divide.push_back(c);
       }
     }

@@ -48,6 +48,4 @@ Controls:
 		bezieredit vlr1.s
 	vlr2:
 		bezieredit vlr2.s
-	vlr3:
-		bezieredit vlr3.s
 

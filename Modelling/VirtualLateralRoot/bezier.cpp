@@ -52,8 +52,8 @@ void Bezier::Load(string bezFile)
     if(buff.substr(0, 5) == "patch")
       break;
   }
-  int patchcount = 0;
-  int pi = 0;
+  unsigned int patchcount = 0;
+  //int pi = 0;
   while(bIn && patchcount < MAXPATCHES * MAXPATCHES) {
     if(!bIn || buff.substr(0, 5) != "patch")
       break;
@@ -66,15 +66,15 @@ void Bezier::Load(string bezFile)
 
     // Load points
     float *pts = ptsV + PATCHMAP[patchcount] * PATCHSIZE;
-    for(int i = 0; i < PATCHPOINTS; i++)
-      for(int j = 0; j < PATCHPOINTS; j++)
+    for(unsigned int i = 0; i < PATCHPOINTS; i++)
+      for(unsigned int j = 0; j < PATCHPOINTS; j++)
         for(int k = 0; k < 3; k++)
           bIn >> *pts++;
     patchcount++;
     bIn >> buff; // next patch name
     transform (buff.begin(), buff.end(), buff.begin(), ::tolower);
   }
-  count = (int)pow((double)patchcount, 0.5); 
+  count = (unsigned int)pow((double)patchcount, 0.5); 
   if(count*count != patchcount)
     cerr << "Bezier::Load:Error " << patchcount << 
                                  " patches loaded s/b power of 2" << endl; 
@@ -90,8 +90,8 @@ void Bezier::Scale(Bezier &b, double scale)
   float *pts = ptsV;
   float *bpts = b.ptsV;
   count = b.count;
-  int size = count * count * PATCHSIZE;
-  for(int i = 0; i < size; i++)
+  unsigned int size = count * count * PATCHSIZE;
+  for(unsigned int i = 0; i < size; i++)
     *pts++ = *bpts++ * scale;
 }
 
@@ -106,13 +106,13 @@ void Bezier::Interpolate(Bezier &src1, Bezier &src2,
   count = src1.count;
 
   s = InBounds(s, 0.0, 1.0);
-  for(int i = 0; i < src1.count; i++)
-    for(int j = 0; j < src1.count; j++) {
+  for(unsigned int i = 0; i < src1.count; i++)
+    for(unsigned int j = 0; j < src1.count; j++) {
       int offset = ((i * MAXPATCHES) + j) * PATCHSIZE;
       float *pts = ptsV + offset;
       float *s1pts = src1.ptsV + offset;
       float *s2pts = src2.ptsV + offset;
-      for(int k = 0; k < PATCHSIZE; k++)
+      for(unsigned int k = 0; k < PATCHSIZE; k++)
         *pts++ = ((1.0 - s) * scale1 * *s1pts++ + s * scale2 * *s2pts++);
     }
 }
@@ -124,7 +124,7 @@ void Bezier::Print()
 { 
   cout << "Patch count " << count << endl;
   
-  for(int k = 0; k < count * count; k++) {
+  for(unsigned int k = 0; k < count * count; k++) {
     for(int i = 0; i < 16; i++) {
       for(int j = 0; j < 3; j++)
         cout << *(ptsV + k*PATCHSIZE + i * 3 + j) << " ";
@@ -137,7 +137,7 @@ void Bezier::Print()
 //----------------------------------------------------------------
 
 // Find binomial coefficient
-int Bezier::Choose(int n, int k)
+int Bezier::Choose( unsigned int n, unsigned int k )
 {
   static bool first = true;
   static int choose[PATCHPOINTS][PATCHPOINTS];
@@ -152,8 +152,8 @@ int Bezier::Choose(int n, int k)
   // If first time in, fill the table
   if(first) {
     first = false;
-    for(int j = 0; j < PATCHPOINTS; j++)
-      for(int i = j; i < PATCHPOINTS; i++)
+    for(unsigned int j = 0; j < PATCHPOINTS; j++)
+      for(unsigned int i = j; i < PATCHPOINTS; i++)
         if(j == 0 || j == i)
           choose[i][j] = 1;
         else 
@@ -173,16 +173,16 @@ Point3d Bezier::EvalCoord(double u, double v)
   u = InBounds(u, 0.0, 1.0);
   v = InBounds(v, 0.0, 1.0);
 
-  int iu = 0;
-  int iv = 0;
+  unsigned int iu = 0;
+  unsigned int iv = 0;
 
   // Scale so entire surface fits between 0 and 1
   if(count > 1) {
     u *= count;
     v *= count;
 
-    iu = (int)u;
-    iv = (int)v;
+    iu = (unsigned int)u;
+    iv = (unsigned int)v;
 
     if(iu == count) {
       u = 1.0;
@@ -201,8 +201,8 @@ Point3d Bezier::EvalCoord(double u, double v)
 
   // Evaluate
   double x = 0, y = 0, z = 0;
-  for(int j = 0; j < PATCHPOINTS; j++)
-    for(int i = 0; i < PATCHPOINTS; i++) {
+  for(unsigned int j = 0; j < PATCHPOINTS; j++)
+    for(unsigned int i = 0; i < PATCHPOINTS; i++) {
       double s = (double)Choose(PATCHPOINTS - 1, i) * pow(u, i) * 
 	                        pow(1.0 - u, (int)(PATCHPOINTS - 1 - i)) *
                  (double)Choose(PATCHPOINTS - 1, j) * pow(v, j) * 

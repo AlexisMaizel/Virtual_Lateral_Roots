@@ -54,11 +54,11 @@ class Bezier {
     float *Points();
 
   private:
-    int Choose(int n, int k);
+    int Choose( unsigned int n, unsigned int k );
     float ptsV[MAXPATCHES * MAXPATCHES * PATCHSIZE];
 
     // Note this is square root of count of # of patches
-    int count;
+    unsigned int count;
 };
 
 #endif
