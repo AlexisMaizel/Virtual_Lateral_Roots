@@ -12,15 +12,16 @@ BackgroundColor: 255
 [Division]
 DivisionArea: 0.06 // 0.075 threshold size of cells before they divide
 UseAreaRatio: true
-DivisionAreaRatio: 0.5 // threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionAreaRatio: 0.45 // threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseWallRatio: false
 DivisionWallRatio: 0.8 // divide a cell if a wall of the cell is longer than a certain percentage of the initial length
-UseDecussationDivision: true
+UseDecussationDivision: false
 ProbabilityOfDecussationDivision: 0.7 // probability for having a decussation division (has to be in [0, 1])
+DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal or periclinal division
 
 [Tissue]
 DivisionAlgorithm: ShortWall // ClosestWall ShortWall ClosestMid
-CellPinch: 0 // 2 displacement of the position of the newly inserted vertexes
+CellPinch: 1 // 2 displacement of the position of the newly inserted vertexes
 CellMaxPinch: 0.1 // 0.05 max displacement of the position of the newly inserted vertexes
 CellMaxArea: 1 // not considered in code
 CellWallMin: 0.0 // for SW, CW, CM

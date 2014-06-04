@@ -43,6 +43,13 @@ struct CellContent
   double angle;
   // longest wall length for division based on longest wall
   double longestWallLength;
+  // origin division type of cell
+  // the numbers are chosen based on the color map
+  // 3 -> anticlinal -> red
+  // 1 -> periclinal -> green
+  // 2 -> radial (which is not used at the moment since this makes no sense in 2D) -> blue
+  // 5 -> none which is only valid for the initial cells at the beginning -> cyan
+  std::size_t divisionType;
 };
 
 struct WallContent
@@ -93,6 +100,7 @@ public:
   bool exportLineage;
   double probabilityOfDecussationDivision;
   bool useDecussationDivision;
+  double _angleThreshold;
   
   std::size_t _idCounter;
   std::size_t _time;
@@ -118,6 +126,7 @@ public:
     parms( "Division", "DivisionWallRatio", divisionWallRatio);
     parms( "Division", "UseDecussationDivision", useDecussationDivision );
     parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
+    parms( "Division", "DivisionAngleThreshold", _angleThreshold );
 
     T.readParms(parms, "Tissue");
     T.readViewParms(parms, "TissueView");
@@ -193,6 +202,7 @@ public:
     c->id = _idCounter;
     c->timeStep = _time;
     c->angle = 0.;//M_PI/2.;
+    c->divisionType = 5;
     T.addCell(c, vs);
 
     std::vector<Point3d> polygon;
@@ -286,6 +296,7 @@ public:
     c->id = _idCounter;
     c->timeStep = _time;
     c->angle = 0.;//M_PI/2.;
+    c->divisionType = 5;
     T.addCell( c, vs );
     
     std::vector<Point3d> polygon;
@@ -476,6 +487,7 @@ public:
   
   double getPreviousDivisionAsAngle( const MyTissue::division_data& ddata )
   {
+    // get pair of points of division wall
     Point3d u = ddata.pu;
     Point3d v = ddata.pv;
     
@@ -516,8 +528,35 @@ public:
   
   //----------------------------------------------------------------
   
-  void updateFromOld(const cell& cl, const cell& cr, const cell& c,
-                     const MyTissue::division_data& ddata, MyTissue&)
+  std::size_t determineDivisionType( const MyTissue::division_data& ddata )
+  {
+    // get pair of points of division wall
+    Point3d u = ddata.pu;
+    Point3d v = ddata.pv;
+    
+    // y axis
+    Point3d yaxisDir = Point3d( 0., 1., 0. );
+    Point3d dir;
+    
+    if( u.j() <= v.j() )
+      dir = v-u;
+    else
+      dir = u-v;
+    
+    dir.normalize();
+    double angle = 180./M_PI * acos( dir*yaxisDir );
+    // anticlinal
+    if( angle <= _angleThreshold )
+      return 3;
+    // periclinal
+    else
+      return 1;
+  }
+  
+  //----------------------------------------------------------------
+  
+  void updateFromOld( const cell& cl, const cell& cr, const cell& c,
+                      const MyTissue::division_data& ddata, MyTissue& )
   {
 		// inherit treeid information
 		cl->treeId = cr->treeId = c->treeId;
@@ -533,6 +572,9 @@ public:
     cr->angle = angle;
     _idCounter++;
    
+    // determine division type
+    std::size_t divType = this->determineDivisionType( ddata );
+    
     // insert the new initial areas
     // left cell
     std::vector<Point3d> polygon;
@@ -548,6 +590,7 @@ public:
     cl->initialArea = geometry::polygonArea(polygon);
     cl->area = cl->initialArea;
     cl->longestWallLength = this->determineLongestWallLength(cl);
+    cl->divisionType = divType;
     
     // right cell
     polygon.clear();
@@ -563,6 +606,7 @@ public:
     cr->initialArea = geometry::polygonArea(polygon);
     cr->area = cr->initialArea;
     cr->longestWallLength = this->determineLongestWallLength(cr);
+    cr->divisionType = divType;
     
     // update precursors
     cl->precursors.insert( c->id );
@@ -733,7 +777,8 @@ public:
 	// color for inner cells
   Colorf cellColor(const cell& c)
   {
-  	return palette.getColor(c->treeId);
+  	//return palette.getColor(c->treeId);
+    return palette.getColor(c->divisionType);
   }
 
   //----------------------------------------------------------------
