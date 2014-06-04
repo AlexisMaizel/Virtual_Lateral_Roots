@@ -21,6 +21,11 @@ static QTextStream out(stdout);
 
 using util::norm;
 
+namespace DivisionType
+{
+  enum type { ANTICLINAL=3, PERICLINAL=1, RADIAL=2, NONE=5 };
+};
+
 struct JunctionContent
 {
   SurfacePoint sp;
@@ -44,12 +49,19 @@ struct CellContent
   // longest wall length for division based on longest wall
   double longestWallLength;
   // origin division type of cell
-  // the numbers are chosen based on the color map
+  // the numbers are chosen based on the color map in scifer
   // 3 -> anticlinal -> red
   // 1 -> periclinal -> green
   // 2 -> radial (which is not used at the moment since this makes no sense in 2D) -> blue
   // 5 -> none which is only valid for the initial cells at the beginning -> cyan
-  std::size_t divisionType;
+  DivisionType::type divType;
+  // layer value for current cell
+  // the numbers are chosen based on the color map in scifer
+  // layer 1 -> yellow (9)
+  // layer 2 -> blue (10)
+  // layer 3 -> magenta (11)
+  // layer 4 -> red (12) etc.
+  std::size_t layerValue;
 };
 
 struct WallContent
@@ -105,6 +117,7 @@ public:
   std::size_t _idCounter;
   std::size_t _time;
   std::string _fileName;
+  std::vector<std::size_t> _layerColorIndex;
 
   //----------------------------------------------------------------
   
@@ -157,6 +170,9 @@ public:
     registerFile("pal.map");
     registerFile("view.v");
 
+    for( std::size_t l = 9; l < 14; l++ )
+      _layerColorIndex.push_back( l );
+    
     if( exportLineage )
       this->initExportFile( _fileName );
     
@@ -202,7 +218,8 @@ public:
     c->id = _idCounter;
     c->timeStep = _time;
     c->angle = 0.;//M_PI/2.;
-    c->divisionType = 5;
+    c->divType = DivisionType::NONE;
+    c->layerValue = 1;
     T.addCell(c, vs);
 
     std::vector<Point3d> polygon;
@@ -296,7 +313,8 @@ public:
     c->id = _idCounter;
     c->timeStep = _time;
     c->angle = 0.;//M_PI/2.;
-    c->divisionType = 5;
+    c->divType = DivisionType::NONE;
+    c->layerValue = 1;
     T.addCell( c, vs );
     
     std::vector<Point3d> polygon;
@@ -528,7 +546,7 @@ public:
   
   //----------------------------------------------------------------
   
-  std::size_t determineDivisionType( const MyTissue::division_data& ddata )
+  DivisionType::type determineDivisionType( const MyTissue::division_data& ddata )
   {
     // get pair of points of division wall
     Point3d u = ddata.pu;
@@ -547,10 +565,10 @@ public:
     double angle = 180./M_PI * acos( dir*yaxisDir );
     // anticlinal
     if( angle <= _angleThreshold )
-      return 3;
+      return DivisionType::ANTICLINAL;
     // periclinal
     else
-      return 1;
+      return DivisionType::PERICLINAL;
   }
   
   //----------------------------------------------------------------
@@ -573,7 +591,7 @@ public:
     _idCounter++;
    
     // determine division type
-    std::size_t divType = this->determineDivisionType( ddata );
+    DivisionType::type divType = this->determineDivisionType( ddata );
     
     // insert the new initial areas
     // left cell
@@ -590,7 +608,7 @@ public:
     cl->initialArea = geometry::polygonArea(polygon);
     cl->area = cl->initialArea;
     cl->longestWallLength = this->determineLongestWallLength(cl);
-    cl->divisionType = divType;
+    cl->divType = divType;
     
     // right cell
     polygon.clear();
@@ -606,7 +624,11 @@ public:
     cr->initialArea = geometry::polygonArea(polygon);
     cr->area = cr->initialArea;
     cr->longestWallLength = this->determineLongestWallLength(cr);
-    cr->divisionType = divType;
+    cr->divType = divType;
+    
+    // check which cell is the upper one and only increase the layer value
+    // of the upper one in the case of having a periclinal division
+    this->setLayerValues( cl, cr, c, divType );
     
     // update precursors
     cl->precursors.insert( c->id );
@@ -620,6 +642,52 @@ public:
     }
   }
 
+  //----------------------------------------------------------------
+  
+  void setLayerValues( const cell& cl, const cell& cr, const cell& c,
+                       const DivisionType::type divType )
+  {
+    // if true than both daughter cells are assigned an increased layer value
+    bool bothDaughters = false;
+    
+    if( bothDaughters )
+    {
+      if( divType == DivisionType::PERICLINAL )
+      {
+        cl->layerValue = c->layerValue+1;
+        cr->layerValue = c->layerValue+1;
+      }
+      else
+      {
+        cl->layerValue = c->layerValue;
+        cr->layerValue = c->layerValue;
+      }
+    }
+    // else check the y values of the center and choose the upper one to be assigned
+    // an increased layer value
+    else
+    {
+      if( divType == DivisionType::PERICLINAL )
+      {
+        if( cl->center.j() < cr->center.j() )
+        {
+          cl->layerValue = c->layerValue;
+          cr->layerValue = c->layerValue+1;
+        }
+        else
+        {
+          cr->layerValue = c->layerValue;
+          cl->layerValue = c->layerValue+1;
+        }
+      }
+      else
+      {
+        cl->layerValue = c->layerValue;
+        cr->layerValue = c->layerValue;
+      }
+    }
+  }
+  
   //----------------------------------------------------------------
   
   bool step_divisions()
@@ -777,8 +845,13 @@ public:
 	// color for inner cells
   Colorf cellColor(const cell& c)
   {
+    // coloring based on lineage tree
   	//return palette.getColor(c->treeId);
-    return palette.getColor(c->divisionType);
+    // coloring based on division type
+    //return palette.getColor((int)c->divType);
+    // coloring based on layer value
+    if( c->layerValue-1 < _layerColorIndex.size() )
+      return palette.getColor( _layerColorIndex.at(c->layerValue-1) );
   }
 
   //----------------------------------------------------------------
