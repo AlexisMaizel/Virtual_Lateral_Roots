@@ -219,7 +219,7 @@ public:
     c->timeStep = _time;
     c->angle = 0.;//M_PI/2.;
     c->divType = DivisionType::NONE;
-    c->layerValue = 1;
+    c->layerValue = 0;
     T.addCell(c, vs);
 
     std::vector<Point3d> polygon;
@@ -314,7 +314,7 @@ public:
     c->timeStep = _time;
     c->angle = 0.;//M_PI/2.;
     c->divType = DivisionType::NONE;
-    c->layerValue = 1;
+    c->layerValue = 0;
     T.addCell( c, vs );
     
     std::vector<Point3d> polygon;
@@ -441,7 +441,7 @@ public:
     // dimension
     out << "3 2 0\n";
     // header
-    out << "ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup\n";
+    out << "ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer\n";
   }
   
   //----------------------------------------------------------------
@@ -488,7 +488,16 @@ public:
         << c->treeId << " "
         << "TrackId "
         << "TrackColor "
-        << "0\n";
+        << "0 "
+        << c->layerValue << "\n";
+    /*switch(c->divType)
+    {
+      case DivisionType::ANTICLINAL: out << "0\n"; break;
+      case DivisionType::PERICLINAL: out << "1\n"; break;
+      case DivisionType::RADIAL: out << "2\n"; break;
+      case DivisionType::NONE:
+      default: out << "-\n"; break;
+    }*/
         
     out.close();
   }
@@ -592,6 +601,7 @@ public:
    
     // determine division type
     DivisionType::type divType = this->determineDivisionType( ddata );
+    c->divType = divType;
     
     // insert the new initial areas
     // left cell
@@ -608,7 +618,7 @@ public:
     cl->initialArea = geometry::polygonArea(polygon);
     cl->area = cl->initialArea;
     cl->longestWallLength = this->determineLongestWallLength(cl);
-    cl->divType = divType;
+    //cl->divType = divType;
     
     // right cell
     polygon.clear();
@@ -624,7 +634,7 @@ public:
     cr->initialArea = geometry::polygonArea(polygon);
     cr->area = cr->initialArea;
     cr->longestWallLength = this->determineLongestWallLength(cr);
-    cr->divType = divType;
+    //cr->divType = divType;
     
     // check which cell is the upper one and only increase the layer value
     // of the upper one in the case of having a periclinal division
@@ -696,7 +706,11 @@ public:
     std::list<cell> to_divide;
     forall(const cell& c, T.C)
     {
-      // update cente position
+      // set division type to none by defualt which is 
+      // set correctly later for diviving cells
+      c->divType = DivisionType::NONE;
+      
+      // update center position
       std::vector<Point3d> polygon;
       Point3d center;
       forall(const junction& j, T.S.neighbors(c))
@@ -774,13 +788,9 @@ public:
   
   void step_tracking()
   {
-    if( _time <= 250 )
+    forall(const cell& c, T.C)
     {
-      forall(const cell& c, T.C)
-      {
-        this->exportLineageInformation( _fileName, c );
-      }
-      _time++;
+      this->exportLineageInformation( _fileName, c );
     }
   }
   
@@ -796,14 +806,17 @@ public:
   //----------------------------------------------------------------
   
   void step()
-  {
+  {      
     for(int i = 0 ; i < stepPerView ; ++i)
     {
-      this->step_tracking();
       this->step_divisions();
+      this->step_tracking();
       this->step_growth();
     }
     this->setStatus();
+    
+    if( _time <= 250 )
+      _time++;
   }
 
   //----------------------------------------------------------------
@@ -850,8 +863,8 @@ public:
     // coloring based on division type
     //return palette.getColor((int)c->divType);
     // coloring based on layer value
-    if( c->layerValue-1 < _layerColorIndex.size() )
-      return palette.getColor( _layerColorIndex.at(c->layerValue-1) );
+    if( c->layerValue < _layerColorIndex.size() )
+      return palette.getColor( _layerColorIndex.at(c->layerValue) );
   }
 
   //----------------------------------------------------------------
