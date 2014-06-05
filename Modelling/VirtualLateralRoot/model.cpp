@@ -118,6 +118,8 @@ public:
   std::size_t _time;
   std::string _fileName;
   std::vector<std::size_t> _layerColorIndex;
+  double _cellPinch;
+  double _cellMaxPinch;
 
   //----------------------------------------------------------------
   
@@ -141,6 +143,9 @@ public:
     parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
     parms( "Division", "DivisionAngleThreshold", _angleThreshold );
 
+    parms( "Tissue", "CellPinch", _cellPinch );
+    parms( "Tissue", "CellMaxPinch", _cellMaxPinch );
+    
     T.readParms(parms, "Tissue");
     T.readViewParms(parms, "TissueView");
   }
@@ -409,6 +414,13 @@ public:
       }
     }
     vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
+    
+    // apply cell pinching
+    tissue::CellPinchingParams params;
+    params.cellPinch = _cellPinch;
+    params.cellMaxPinch = _cellMaxPinch;
+    tissue::cellPinching( c, T, ddata, params );
+    
     return ddata;
   }
 
