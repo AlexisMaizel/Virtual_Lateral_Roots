@@ -238,6 +238,9 @@ public:
     c->area = c->initialArea;
     // and determine longest wall of cell
     c->longestWallLength = this->determineLongestWallLength(c);
+    
+    this->exportLineageInformation( _fileName, c );
+    
     _idCounter++;
   }
   
@@ -332,6 +335,8 @@ public:
     c->area = c->initialArea;
     c->longestWallLength = this->determineLongestWallLength(c);
     lateralRoot.SetPoint(c->sp, c->sp, center);
+    
+    this->exportLineageInformation( _fileName, c );
     
     // afterwards increment the id counter
     _idCounter++;
@@ -788,9 +793,10 @@ public:
   
   void step_tracking()
   {
-    forall(const cell& c, T.C)
+    if( _time <= 250 )
     {
-      this->exportLineageInformation( _fileName, c );
+      forall(const cell& c, T.C)
+        this->exportLineageInformation( _fileName, c );
     }
   }
   
@@ -806,7 +812,10 @@ public:
   //----------------------------------------------------------------
   
   void step()
-  {      
+  {
+    if( _time <= 250 )
+      _time++;
+    
     for(int i = 0 ; i < stepPerView ; ++i)
     {
       this->step_divisions();
@@ -814,9 +823,6 @@ public:
       this->step_growth();
     }
     this->setStatus();
-    
-    if( _time <= 250 )
-      _time++;
   }
 
   //----------------------------------------------------------------
