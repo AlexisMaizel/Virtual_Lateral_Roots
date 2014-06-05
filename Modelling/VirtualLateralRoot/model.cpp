@@ -116,11 +116,12 @@ public:
   
   std::size_t _idCounter;
   std::size_t _time;
+  std::size_t _maxTime;
   std::string _fileName;
   std::vector<std::size_t> _layerColorIndex;
   double _cellPinch;
   double _cellMaxPinch;
-
+  
   //----------------------------------------------------------------
   
   void readParms()
@@ -168,7 +169,7 @@ public:
   
   MyModel(QObject *parent) : Model(parent), parms("view.v"), palette("pal.map"), 
     lateralRoot(parms, "Surface"), T(palette, this),
-    _idCounter(1), _time(1), _fileName( "/tmp/model.csv" )
+    _idCounter(1), _time(1), _maxTime(250), _fileName( "/tmp/model.csv" )
   {
     readParms();
     // Registering the configuration files
@@ -523,8 +524,21 @@ public:
   
   void setStatus()
   {
-		double time = lateralRoot.GetTime();
-    setStatusMessage(QString("# vertices: %1 - # cells: %2 - step: %3 - timeStep: %4").arg(T.W.size()).arg(T.C.size()).arg(time).arg(_time));
+		//double time = lateralRoot.GetTime();
+    if( _time > _maxTime )
+      _time = _maxTime;
+    setStatusMessage(
+      QString("# Vertices: %1 \t "
+              "# Cells: %2 \t"
+              "Time step: %3 \t "
+              "Area divison ratio: %4 \t"
+              "Wall divison ratio: %5 \t"
+              "Decussation propability: %6").arg(T.W.size()).
+              arg(T.C.size()).
+              arg(_time).
+              arg(divisionAreaRatio).
+              arg(divisionWallRatio).
+              arg(probabilityOfDecussationDivision) );
   }
 
   //----------------------------------------------------------------
@@ -805,7 +819,7 @@ public:
   
   void step_tracking()
   {
-    if( _time <= 250 )
+    if( _time <= _maxTime )
     {
       forall(const cell& c, T.C)
         this->exportLineageInformation( _fileName, c );
@@ -825,7 +839,7 @@ public:
   
   void step()
   {
-    if( _time <= 250 )
+    if( _time <= _maxTime )
       _time++;
     
     for(int i = 0 ; i < stepPerView ; ++i)
