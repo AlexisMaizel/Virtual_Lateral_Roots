@@ -44,6 +44,7 @@ struct CellContent
 {
   SurfacePoint sp;
   std::size_t id;
+  std::size_t parentId;
   std::size_t treeId;
   std::size_t timeStep;
   Point3d center;
@@ -53,7 +54,9 @@ struct CellContent
   double area;
   // set of precursor cell ids
   std::set<std::size_t> precursors;
-  // angle of previous division direction
+  // previous division angle according to x-axis
+  double previousAngle;
+  // division angle according to x-axis
   double angle;
   // longest wall length right after division
   double initialLongestWallLength;

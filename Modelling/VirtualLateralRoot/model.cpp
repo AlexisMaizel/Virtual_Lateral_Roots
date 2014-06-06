@@ -98,7 +98,7 @@ public:
     // single layer assignment
     //for( std::size_t l = 9; l < 14; l++ )
     // multiple layer assignment for each new daughter cell
-    for( std::size_t l = 14; l < 41; l++ )
+    for( std::size_t l = 14; l < 45; l++ )
       _layerColorIndex.push_back( l );
     
     if( exportLineage )
@@ -147,8 +147,10 @@ public:
     cell c;
     c->treeId = 1;
     c->id = _idCounter;
+    c->parentId = _idCounter;
     c->timeStep = _time;
-    c->angle = 0.;//M_PI/2.;
+    c->previousAngle = 0.;
+    c->angle = 0.;
     c->divType = DivisionType::NONE;
     c->layerValue = 1;
     c->cellCycle = 1;
@@ -227,7 +229,7 @@ public:
     {
       junction j;
       // perhaps not required because the size is correct?
-      //T.W.insert(j);
+      T.W.insert(j);
       double u,v;
       
       switch(w)
@@ -247,8 +249,10 @@ public:
     cell c;
     c->treeId = treeId;
     c->id = _idCounter;
+    c->parentId = _idCounter;
     c->timeStep = _time;
-    c->angle = 0.;//M_PI/2.;
+    c->previousAngle = 0.;
+    c->angle = 0.;
     c->divType = DivisionType::NONE;
     c->layerValue = 1;
     c->cellCycle = 1;
@@ -318,7 +322,7 @@ public:
   {
     MyTissue::division_data ddata;
     const Point3d& center = c->center;
-    double a = c->angle;
+    double a = M_PI/180. * c->angle;
     Point3d direction = Point3d(-sin(a), cos(a), 0);
     forall( const junction& j,T.S.neighbors(c) )
     {
@@ -380,21 +384,26 @@ public:
   void updateFromOld( const cell& cl, const cell& cr, const cell& c,
                       const MyTissue::division_data& ddata, MyTissue& )
   {
-    double angle = ModelUtils::getDivisionAngle( ddata );
+    double angle = ModelUtils::determineDivisionAngle( ddata );
     DivisionType::type divType = ModelUtils::determineDivisionType( ddata,
                                                                     _angleThreshold );
     
+    // set properties of dividing cell
+    c->angle = angle;
 		// set daughter cell properties
 		cl->treeId = cr->treeId = c->treeId;
     cl->id = _idCounter;
+    cl->parentId = c->id;
     cl->timeStep = _time;
+    cl->previousAngle = c->angle;
     cl->angle = angle;
     cl->cellCycle = c->cellCycle+1;
     _idCounter++;
     
     cr->id = _idCounter;
+    cr->parentId = c->id;
     cr->timeStep = _time;
-    cr->angle = angle;
+    cr->previousAngle = c->angle;
     cr->cellCycle = c->cellCycle+1;
     _idCounter++;
     
@@ -565,7 +574,7 @@ public:
         // if true then the next division is perpendicular to the last one
         // else the division is collinear to the previous division direction
         if( this->setNextDecussationDivision() )
-          c->angle = fmod( c->angle + M_PI/2., 2.*M_PI );
+          c->angle = fmod( c->angle + 90., 360. );
         
         MyTissue::division_data ddata = this->setDivisionPoints( c );
         T.divideCell( c, ddata );

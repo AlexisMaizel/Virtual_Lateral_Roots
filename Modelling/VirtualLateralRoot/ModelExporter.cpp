@@ -84,7 +84,7 @@ void initDivisionFile( const std::string &filename )
   std::ofstream out( filename.c_str(), std::ofstream::out );
 
   // header
-  out << "ID X Y Z Time CellCycle Area LongestCellWall Lineage Layer DivisionAngle DivisionType\n";
+  out << "ID ParentID X Y Z Time CellCycle Area LongestCellWall Lineage Layer DivisionAngle AngleBetweenCurrentAndPreviousDivision DivisionType\n";
 }
 
 // ---------------------------------------------------------------------
@@ -96,8 +96,14 @@ void exportDivisionProperties( const std::string &filename,
 {
   std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
   
-  out << c->id << " "
-      << c->center.i() << " "
+  out << c->id << " ";
+  
+  if( c->cellCycle != 1 )
+    out << c->parentId << " ";
+  else
+    out << "NA "; 
+  
+  out << c->center.i() << " "
       << c->center.j() << " "
       << c->center.k() << " "
       << c->timeStep << " "
@@ -106,12 +112,28 @@ void exportDivisionProperties( const std::string &filename,
       << c->longestWallLength << " "
       << c->treeId << " "
       << c->layerValue << " "
-      << ModelUtils::determineDivisionAngle( ddata ) << " ";
-      DivisionType::type divType = ModelUtils::determineDivisionType( ddata, angleThreshold );
-      if( divType == DivisionType::ANTICLINAL )
-        out << "0\n";
-      else
-        out << "1\n";
+      << c->angle << " ";
+  if( c->cellCycle != 1 )
+  {
+    double a, pa;
+    a = c->angle;
+    pa = c->previousAngle;
+    if( a > 90. )
+      a = 180. - a;
+    
+    if( pa > 90. )
+      pa = 180. - pa;
+    
+    out << fabs( a - pa ) << " ";
+  }
+  else
+    out << "NA ";
+  
+  DivisionType::type divType = ModelUtils::determineDivisionType( ddata, angleThreshold );
+  if( divType == DivisionType::ANTICLINAL )
+    out << "0\n";
+  else
+    out << "1\n";
       
   out.close();
 }
