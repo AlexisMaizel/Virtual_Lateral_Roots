@@ -1,5 +1,6 @@
 #include "ModelHeader.h"
 #include "ModelExporter.h"
+#include "ModelUtils.h"
 
 class MyModel : public Model 
 {
@@ -21,6 +22,7 @@ public:
   int stepPerView;
   int initialConstellation;
   bool exportLineage;
+  bool exportDivisionProperties;
   double probabilityOfDecussationDivision;
   bool useDecussationDivision;
   double _angleThreshold;
@@ -28,7 +30,8 @@ public:
   std::size_t _idCounter;
   std::size_t _time;
   std::size_t _maxTime;
-  std::string _fileName;
+  std::string _lineageFileName;
+  std::string _divisionFileName;
   std::vector<std::size_t> _layerColorIndex;
   double _cellPinch;
   double _cellMaxPinch;
@@ -43,6 +46,7 @@ public:
     parms("Main", "CellInitWalls", cellInitWalls);
     parms("Main", "InitialConstellation", initialConstellation);
     parms("Main", "ExportLineage", exportLineage);
+    parms("Main", "ExportDivisionProperties", exportDivisionProperties);
 
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
@@ -82,7 +86,9 @@ public:
   
   MyModel(QObject *parent) : Model(parent), parms("view.v"), palette("pal.map"), 
     lateralRoot(parms, "Surface"), T(palette, this),
-    _idCounter(1), _time(1), _maxTime(250), _fileName( "/tmp/model.csv" )
+    _idCounter(1), _time(1), _maxTime(250),
+    _lineageFileName( "/tmp/model.csv" ),
+    _divisionFileName( "/tmp/divisionPropertiesModel.csv" )
   {
     readParms();
     // Registering the configuration files
@@ -96,7 +102,10 @@ public:
       _layerColorIndex.push_back( l );
     
     if( exportLineage )
-      ModelExporter::initExportFile( _fileName );
+      ModelExporter::initExportFile( _lineageFileName );
+    
+    if( exportDivisionProperties )
+      ModelExporter::initDivisionFile( _divisionFileName );
     
     lateralRoot.GrowStep(0);
     if( initialConstellation == 0 )
@@ -160,9 +169,10 @@ public:
     c->initialArea = geometry::polygonArea(polygon);
     c->area = c->initialArea;
     // and determine longest wall of cell
-    c->longestWallLength = this->determineLongestWallLength(c);
+    c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
+    c->longestWallLength = c->initialLongestWallLength;
     
-    ModelExporter::exportLineageInformation( _fileName, c, T, _time );
+    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
     
     _idCounter++;
   }
@@ -257,10 +267,11 @@ public:
     // store initial area for current cell
     c->initialArea = geometry::polygonArea(polygon);
     c->area = c->initialArea;
-    c->longestWallLength = this->determineLongestWallLength(c);
+    c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
+    c->longestWallLength = c->initialLongestWallLength;
     lateralRoot.SetPoint(c->sp, c->sp, center);
     
-    ModelExporter::exportLineageInformation( _fileName, c, T, _time );
+    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
     
     // afterwards increment the id counter
     _idCounter++;
@@ -342,27 +353,6 @@ public:
     
     return ddata;
   }
-
-  //----------------------------------------------------------------
-  
-  double determineLongestWallLength( const cell& c )
-  {
-    double maxLength = 0.;
-    forall( const junction& j,T.S.neighbors(c) )
-    {
-      const junction& jn = T.S.nextTo(c, j);
-      const Point3d& jpos = j->sp.Pos();
-      const Point3d& jnpos = jn->sp.Pos();
-      
-      double length = 0.;
-      for( std::size_t l = 0; l<3; l++ )
-        length += (jpos[l] - jnpos[l])*(jpos[l] - jnpos[l]);
-      
-      if( length >= maxLength )
-        maxLength = length;
-    }
-    return maxLength;
-  }
   
   //----------------------------------------------------------------
   
@@ -384,84 +374,15 @@ public:
               arg(divisionWallRatio).
               arg(probabilityOfDecussationDivision) );
   }
-
-  //----------------------------------------------------------------
-  
-  double getPreviousDivisionAsAngle( const MyTissue::division_data& ddata )
-  {
-    // get pair of points of division wall
-    Point3d u = ddata.pu;
-    Point3d v = ddata.pv;
-    
-    // y axis
-    Point3d yaxisDir = Point3d( 0., 1., 0. );
-    
-    if( u.i() <= v.i() )
-    {
-      if( u.j() <= v.j() )
-      {
-        Point3d dir = v-u;
-        dir.normalize();
-        return ( 2.*M_PI - acos( dir*yaxisDir ) );
-      }
-      else
-      {
-        Point3d dir = u-v;
-        dir.normalize();
-        return ( acos( dir*yaxisDir ) );
-      }
-    }
-    else
-    {
-      if( u.j() <= v.j() )
-      {
-        Point3d dir = v-u;
-        dir.normalize();
-        return ( acos( dir*yaxisDir ) );
-      }
-      else
-      {
-        Point3d dir = u-v;
-        dir.normalize();
-        return ( 2.*M_PI - acos( dir*yaxisDir ) );
-      }
-    }
-  }
-  
-  //----------------------------------------------------------------
-  
-  DivisionType::type determineDivisionType( const MyTissue::division_data& ddata )
-  {
-    // get pair of points of division wall
-    Point3d u = ddata.pu;
-    Point3d v = ddata.pv;
-    
-    // y axis
-    Point3d yaxisDir = Point3d( 0., 1., 0. );
-    Point3d dir;
-    
-    if( u.j() <= v.j() )
-      dir = v-u;
-    else
-      dir = u-v;
-    
-    dir.normalize();
-    double angle = 180./M_PI * acos( dir*yaxisDir );
-    // anticlinal
-    if( angle <= _angleThreshold )
-      return DivisionType::ANTICLINAL;
-    // periclinal
-    else
-      return DivisionType::PERICLINAL;
-  }
   
   //----------------------------------------------------------------
   
   void updateFromOld( const cell& cl, const cell& cr, const cell& c,
                       const MyTissue::division_data& ddata, MyTissue& )
   {
-    double angle = this->getPreviousDivisionAsAngle( ddata );
-    DivisionType::type divType = this->determineDivisionType( ddata );
+    double angle = ModelUtils::getDivisionAngle( ddata );
+    DivisionType::type divType = ModelUtils::determineDivisionType( ddata,
+                                                                    _angleThreshold );
     
 		// set daughter cell properties
 		cl->treeId = cr->treeId = c->treeId;
@@ -491,7 +412,8 @@ public:
     cl->center = center;
     cl->initialArea = geometry::polygonArea(polygon);
     cl->area = cl->initialArea;
-    cl->longestWallLength = this->determineLongestWallLength(cl);
+    cl->initialLongestWallLength = ModelUtils::determineLongestWallLength( cl, T );
+    cl->longestWallLength = cl->initialLongestWallLength;
     
     // right cell
     polygon.clear();
@@ -506,7 +428,8 @@ public:
     cr->center = center;
     cr->initialArea = geometry::polygonArea(polygon);
     cr->area = cr->initialArea;
-    cr->longestWallLength = this->determineLongestWallLength(cr);
+    cr->initialLongestWallLength = ModelUtils::determineLongestWallLength( cr, T );
+    cr->longestWallLength = cr->initialLongestWallLength;
     
     // check which cell is the upper one and only increase the layer value
     // of the upper one in the case of having a periclinal division if 
@@ -524,6 +447,9 @@ public:
       cl->precursors.insert( *setIter );
       cr->precursors.insert( *setIter );
     }
+    
+    // export division properties
+    ModelExporter::exportDivisionProperties( _divisionFileName, c, ddata, _angleThreshold );
   }
 
   //----------------------------------------------------------------
@@ -588,20 +514,22 @@ public:
       center /= polygon.size();
       lateralRoot.SetPoint(c->sp, c->sp, center);
       c->center = center;
+      c->area = geometry::polygonArea(polygon);
+      c->timeStep = _time;
+      c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
       
-      double a = geometry::polygonArea(polygon);
+      double a = c->area;
+      double l = c->longestWallLength;
       if( useAreaRatio && useWallRatio && c->id > 7 )
       {
-        // check division based on longest wall length
-        double curLongestLength = this->determineLongestWallLength(c);
         // divide cells if their area size has increased by a certain percentage amount
         double initialArea = c->initialArea;
         initialArea += initialArea*divisionAreaRatio;
         // divide cell if its wall length has increased by a certain percentage amount
-        double initialLongestLength = c->longestWallLength;
+        double initialLongestLength = c->initialLongestWallLength;
         initialLongestLength += initialLongestLength*divisionWallRatio;
         
-        if( a > initialArea || curLongestLength > initialLongestLength )
+        if( a > initialArea || l > initialLongestLength )
           to_divide.push_back(c);
       }
       // only apply the division based on ratio with at least eight cells
@@ -616,12 +544,10 @@ public:
       // only apply the division based on ratio with at least eight cells
       else if( useWallRatio && c->id > 7 )
       {
-        // check division based on longest wall length
-        double curLongestLength = this->determineLongestWallLength(c);
         // divide cell if its wall length has increased by a certain percentage amount
         double initialLongestLength = c->longestWallLength;
         initialLongestLength += initialLongestLength*divisionWallRatio;
-        if( curLongestLength > initialLongestLength )
+        if( l > initialLongestLength )
           to_divide.push_back(c);
       }
       else
@@ -658,7 +584,7 @@ public:
     if( _time <= _maxTime )
     {
       forall(const cell& c, T.C)
-        ModelExporter::exportLineageInformation( _fileName, c, T, _time );
+        ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
     }
   }
   

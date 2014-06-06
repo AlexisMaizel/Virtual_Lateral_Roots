@@ -55,6 +55,8 @@ struct CellContent
   std::set<std::size_t> precursors;
   // angle of previous division direction
   double angle;
+  // longest wall length right after division
+  double initialLongestWallLength;
   // longest wall length for division based on longest wall
   double longestWallLength;
   // origin division type of cell

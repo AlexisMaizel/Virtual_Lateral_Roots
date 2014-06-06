@@ -2,7 +2,7 @@
 
 /**
   @file   ModelExporter.cpp
-  @brief  namesapce for exporting modelling results
+  @brief  Namespace for exporting modelling results
   @author Jens Fangerau <jens.fangerau@iwr.uni-heidelberg.de>
 */
 
@@ -73,6 +73,45 @@ void exportLineageInformation( const std::string &filename,
       << "TrackColor "
       << "0 "
       << c->layerValue << "\n";
+      
+  out.close();
+}
+
+// ---------------------------------------------------------------------
+
+void initDivisionFile( const std::string &filename )
+{
+  std::ofstream out( filename.c_str(), std::ofstream::out );
+
+  // header
+  out << "ID X Y Z Time CellCycle Area LongestCellWall Lineage Layer DivisionAngle DivisionType\n";
+}
+
+// ---------------------------------------------------------------------
+
+void exportDivisionProperties( const std::string &filename,
+                               const cell& c,
+                               const MyTissue::division_data& ddata,
+                               const double angleThreshold )
+{
+  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  
+  out << c->id << " "
+      << c->center.i() << " "
+      << c->center.j() << " "
+      << c->center.k() << " "
+      << c->timeStep << " "
+      << c->cellCycle << " "
+      << c->area << " "
+      << c->longestWallLength << " "
+      << c->treeId << " "
+      << c->layerValue << " "
+      << ModelUtils::determineDivisionAngle( ddata ) << " ";
+      DivisionType::type divType = ModelUtils::determineDivisionType( ddata, angleThreshold );
+      if( divType == DivisionType::ANTICLINAL )
+        out << "0\n";
+      else
+        out << "1\n";
       
   out.close();
 }

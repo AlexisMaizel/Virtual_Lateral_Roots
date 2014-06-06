@@ -4,6 +4,7 @@ Growth: .1  // not considered in code
 CellInitWalls: 4 // number of cell walls at the beginning
 InitialConstellation: 1 // initial cell constellation: 0 -> starting with one cell, 1 -> starting with eight cells positioned more similar to lateral root
 ExportLineage: true // export lineage information of cells
+ExportDivisionProperties: true // export division information of cells
 
 [View]
 StepPerView: 1
