@@ -2,7 +2,7 @@
 Dt: .1 // how fast the shape of the end stage is reached, default 0.01
 Growth: .1  // not considered in code
 CellInitWalls: 4 // number of cell walls at the beginning
-InitialConstellation: 0 // initial cell constellation: 0 -> starting with one cell, 1 -> starting with eight cells positioned more similar to lateral root
+InitialConstellation: 1 // initial cell constellation: 0 -> starting with one cell, 1 -> starting with eight cells positioned more similar to lateral root
 ExportLineage: true // export lineage information of cells
 
 [View]
@@ -18,6 +18,7 @@ DivisionWallRatio: 0.45 // 0.45 divide a cell if a wall of the cell is longer th
 UseDecussationDivision: false
 ProbabilityOfDecussationDivision: 0.7 // probability for having a decussation division (has to be in [0, 1])
 DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal and periclinal division
+CellColoringType: 1 // cell coloring type: 0 -> cells are colored based on founder cells/lineage trees; 1 -> cells are colored based on layer assignments after each periclinal division
 
 [Tissue]
 DivisionAlgorithm: ShortWall // ClosestWall ShortWall ClosestMid

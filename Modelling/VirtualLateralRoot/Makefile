@@ -1,4 +1,4 @@
-OBJECTS=model.o bezier.o surface.o
+OBJECTS=model.o bezier.o surface.o ModelExporter.o
 
 default: model.vve
 

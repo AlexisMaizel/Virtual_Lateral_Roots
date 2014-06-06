@@ -1,94 +1,5 @@
-#include <vve.h>
-
-#include <util/parms.h>
-#include <util/palette.h>
-#include <util/assert.h>
-
-#include <geometry/geometry.h>
-#include <geometry/area.h>
-#include <geometry/intersection.h>
-
-#include <math.h>
-#include <fstream>
-
-#include <QTextStream>
-#include <stdio.h>
-
-#include "bezier.h"
-#include "surface.h"
-
-static QTextStream out(stdout);
-
-using util::norm;
-
-namespace DivisionType
-{
-  enum type { ANTICLINAL=3, PERICLINAL=1, RADIAL=2, NONE=5 };
-};
-
-struct JunctionContent
-{
-  SurfacePoint sp;
-};
-
-struct CellContent
-{
-  SurfacePoint sp;
-	std::size_t id;
-  std::size_t treeId;
-  std::size_t timeStep;
-  Point3d center;
-  // initial area of cell right after division
-  double initialArea;
-  // changing area of cell
-  double area;
-  // set of precursor cell ids
-  std::set<std::size_t> precursors;
-  // angle of previous division direction
-  double angle;
-  // longest wall length for division based on longest wall
-  double longestWallLength;
-  // origin division type of cell
-  // the numbers are chosen based on the color map in scifer
-  // 3 -> anticlinal -> red
-  // 1 -> periclinal -> green
-  // 2 -> radial (which is not used at the moment since this makes no sense in 2D) -> blue
-  // 5 -> none which is only valid for the initial cells at the beginning -> cyan
-  DivisionType::type divType;
-  // layer value for current cell
-  // the numbers are chosen based on the color map in scifer
-  // layer 1 -> yellow (9)
-  // layer 2 -> blue (10)
-  // layer 3 -> magenta (11)
-  // layer 4 -> red (12) etc.
-  std::size_t layerValue;
-};
-
-struct WallContent
-{
-};
-
-class MyModel;
-
-typedef tissue::Tissue<MyModel, CellContent, JunctionContent, WallContent, graph::_EmptyEdgeContent, graph::_EmptyEdgeContent, graph::_EmptyEdgeContent, false> MyTissue;
-
-typedef MyTissue::junction_cell_edge junction_cell_edge;
-typedef MyTissue::const_junction_cell_edge const_junction_cell_edge;
-typedef MyTissue::junction junction;
-typedef MyTissue::wall wall;
-typedef MyTissue::const_wall const_wall;
-typedef MyTissue::wall_arc wall_arc;
-typedef MyTissue::cell cell;
-typedef MyTissue::cell_arc cell_arc;
-typedef MyTissue::cell_edge cell_edge;
-typedef MyTissue::const_cell_edge const_cell_edge;
-typedef MyTissue::cell_junction_edge cell_junction_edge;
-typedef MyTissue::const_cell_junction_edge const_cell_junction_edge;
-typedef MyTissue::wall_graph wall_graph;
-typedef MyTissue::complex_graph complex_graph;
-typedef MyTissue::cell_graph cell_graph;
-
-typedef util::Colorf Colorf;
+#include "ModelHeader.h"
+#include "ModelExporter.h"
 
 class MyModel : public Model 
 {
@@ -121,6 +32,7 @@ public:
   std::vector<std::size_t> _layerColorIndex;
   double _cellPinch;
   double _cellMaxPinch;
+  std::size_t _cellColoringType;
   
   //----------------------------------------------------------------
   
@@ -143,6 +55,7 @@ public:
     parms( "Division", "UseDecussationDivision", useDecussationDivision );
     parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
     parms( "Division", "DivisionAngleThreshold", _angleThreshold );
+    parms( "Division", "CellColoringType", _cellColoringType );
 
     parms( "Tissue", "CellPinch", _cellPinch );
     parms( "Tissue", "CellMaxPinch", _cellMaxPinch );
@@ -183,7 +96,7 @@ public:
       _layerColorIndex.push_back( l );
     
     if( exportLineage )
-      this->initExportFile( _fileName );
+      ModelExporter::initExportFile( _fileName );
     
     lateralRoot.GrowStep(0);
     if( initialConstellation == 0 )
@@ -229,6 +142,7 @@ public:
     c->angle = 0.;//M_PI/2.;
     c->divType = DivisionType::NONE;
     c->layerValue = 1;
+    c->cellCycle = 1;
     T.addCell(c, vs);
 
     std::vector<Point3d> polygon;
@@ -248,7 +162,7 @@ public:
     // and determine longest wall of cell
     c->longestWallLength = this->determineLongestWallLength(c);
     
-    this->exportLineageInformation( _fileName, c );
+    ModelExporter::exportLineageInformation( _fileName, c, T, _time );
     
     _idCounter++;
   }
@@ -327,6 +241,7 @@ public:
     c->angle = 0.;//M_PI/2.;
     c->divType = DivisionType::NONE;
     c->layerValue = 1;
+    c->cellCycle = 1;
     T.addCell( c, vs );
     
     std::vector<Point3d> polygon;
@@ -345,7 +260,7 @@ public:
     c->longestWallLength = this->determineLongestWallLength(c);
     lateralRoot.SetPoint(c->sp, c->sp, center);
     
-    this->exportLineageInformation( _fileName, c );
+    ModelExporter::exportLineageInformation( _fileName, c, T, _time );
     
     // afterwards increment the id counter
     _idCounter++;
@@ -451,80 +366,6 @@ public:
   
   //----------------------------------------------------------------
   
-  void initExportFile( const std::string &filename )
-  {
-    std::ofstream out( filename.c_str(), std::ofstream::out );
-
-    // rotation information
-    out << "0 0 0\n";
-    // center of root
-    out << "0 -2 0\n";
-    // dimension
-    out << "3 2 0\n";
-    // header
-    out << "ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer\n";
-  }
-  
-  //----------------------------------------------------------------
-  
-  void exportLineageInformation( const std::string &filename,
-                                 const cell& c )
-  {
-    std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
-    
-    std::vector<Point3d> polygon;
-    Point3d center;
-    forall(const junction& j, T.S.neighbors(c))
-    {
-      polygon.push_back(j->sp.Pos());
-      center += j->sp.Pos();
-    }
-    center /= polygon.size();
-    c->center = center;
-    c->area = geometry::polygonArea(polygon);
-    c->timeStep = _time;
-    
-    out << c->id << " "
-        << c->center.i() << " "
-        << c->center.j() << " "
-        << c->center.k() << " "
-        << c->timeStep << " "
-        << c->area << " "
-        << "\"{"; 
-    
-    std::size_t counter = 1;
-    for( std::set<std::size_t>::iterator setIter = c->precursors.begin();
-         setIter != c->precursors.end(); setIter++, counter++ )
-    {
-      if( counter != c->precursors.size() )
-        out << *setIter << ", ";
-      else
-        out << *setIter << "}\" ";
-    }
-    
-    if( c->precursors.size() == 0 )
-      out << "}\" ";
-        
-    out << "Color "
-        << c->treeId << " "
-        << "TrackId "
-        << "TrackColor "
-        << "0 "
-        << c->layerValue << "\n";
-    /*switch(c->divType)
-    {
-      case DivisionType::ANTICLINAL: out << "0\n"; break;
-      case DivisionType::PERICLINAL: out << "1\n"; break;
-      case DivisionType::RADIAL: out << "2\n"; break;
-      case DivisionType::NONE:
-      default: out << "-\n"; break;
-    }*/
-        
-    out.close();
-  }
-  
-  //----------------------------------------------------------------
-  
   void setStatus()
   {
 		//double time = lateralRoot.GetTime();
@@ -619,23 +460,22 @@ public:
   void updateFromOld( const cell& cl, const cell& cr, const cell& c,
                       const MyTissue::division_data& ddata, MyTissue& )
   {
-		// inherit treeid information
+    double angle = this->getPreviousDivisionAsAngle( ddata );
+    DivisionType::type divType = this->determineDivisionType( ddata );
+    
+		// set daughter cell properties
 		cl->treeId = cr->treeId = c->treeId;
-    // and set new cell ids for the daughter cells
     cl->id = _idCounter;
     cl->timeStep = _time;
-    // inherit old angle from divison line
-    double angle = this->getPreviousDivisionAsAngle( ddata );
     cl->angle = angle;
+    cl->cellCycle = c->cellCycle+1;
     _idCounter++;
+    
     cr->id = _idCounter;
     cr->timeStep = _time;
     cr->angle = angle;
+    cr->cellCycle = c->cellCycle+1;
     _idCounter++;
-   
-    // determine division type
-    DivisionType::type divType = this->determineDivisionType( ddata );
-    c->divType = divType;
     
     // insert the new initial areas
     // left cell
@@ -652,7 +492,6 @@ public:
     cl->initialArea = geometry::polygonArea(polygon);
     cl->area = cl->initialArea;
     cl->longestWallLength = this->determineLongestWallLength(cl);
-    //cl->divType = divType;
     
     // right cell
     polygon.clear();
@@ -668,7 +507,6 @@ public:
     cr->initialArea = geometry::polygonArea(polygon);
     cr->area = cr->initialArea;
     cr->longestWallLength = this->determineLongestWallLength(cr);
-    //cr->divType = divType;
     
     // check which cell is the upper one and only increase the layer value
     // of the upper one in the case of having a periclinal division if 
@@ -738,11 +576,7 @@ public:
     // Find cells to be divided
     std::list<cell> to_divide;
     forall(const cell& c, T.C)
-    {
-      // set division type to none by defualt which is 
-      // set correctly later for diviving cells
-      c->divType = DivisionType::NONE;
-      
+    { 
       // update center position
       std::vector<Point3d> polygon;
       Point3d center;
@@ -824,7 +658,7 @@ public:
     if( _time <= _maxTime )
     {
       forall(const cell& c, T.C)
-        this->exportLineageInformation( _fileName, c );
+        ModelExporter::exportLineageInformation( _fileName, c, T, _time );
     }
   }
   
@@ -881,10 +715,7 @@ public:
   void draw(Viewer* viewer)
   {
     forall(const cell& c, T.C)
-    {
-      //T.drawCell(c, .5);
-      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.4 );
-    }
+      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.7 );
   }
 
   //----------------------------------------------------------------
@@ -892,15 +723,18 @@ public:
 	// color for inner cells
   Colorf cellColor(const cell& c)
   {
-    // coloring based on lineage tree
-  	//return palette.getColor(c->treeId);
-    // coloring based on division type
-    //return palette.getColor((int)c->divType);
-    // coloring based on layer value
-    if( c->layerValue-1 < _layerColorIndex.size() )
-      return palette.getColor( _layerColorIndex.at(c->layerValue-1) );
-    else
-      return palette.getColor( _layerColorIndex.at(_layerColorIndex.size()-1) );
+    switch( _cellColoringType )
+    {
+      // coloring based on lineage trees/ founder cells
+      case 0: return palette.getColor(c->treeId);
+      // coloring based on layer value
+      case 1:
+      default:
+      if( c->layerValue-1 < _layerColorIndex.size() )
+        return palette.getColor( _layerColorIndex.at(c->layerValue-1) );
+      else
+        return palette.getColor( _layerColorIndex.at(_layerColorIndex.size()-1) );
+    }
   }
 
   //----------------------------------------------------------------
@@ -924,7 +758,6 @@ public:
 
   Point3d normal(const junction& ) const { return Point3d(0,0,1); }
   Point3d normal(const cell& ) const { return Point3d(0,0,1); }
-
 };
 
 #include "model.moc"

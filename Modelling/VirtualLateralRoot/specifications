@@ -1,3 +1,6 @@
+ModelHeader.h
+ModelExporter.cpp
+ModelExporter.h
 model.cpp
 model.expmap
 bezier.cpp
@@ -35,7 +38,7 @@ VVE:
 
 Files:
 	program:
-		EDIT model.cpp
+		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelHeader.h
 	parameters:
 		EDIT view.v
 	description:
