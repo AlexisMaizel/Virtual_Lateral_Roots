@@ -176,7 +176,10 @@ public:
     registerFile("pal.map");
     registerFile("view.v");
 
-    for( std::size_t l = 9; l < 14; l++ )
+    // single layer assignment
+    //for( std::size_t l = 9; l < 14; l++ )
+    // multiple layer assignment for each new daughter cell
+    for( std::size_t l = 14; l < 41; l++ )
       _layerColorIndex.push_back( l );
     
     if( exportLineage )
@@ -225,7 +228,7 @@ public:
     c->timeStep = _time;
     c->angle = 0.;//M_PI/2.;
     c->divType = DivisionType::NONE;
-    c->layerValue = 0;
+    c->layerValue = 1;
     T.addCell(c, vs);
 
     std::vector<Point3d> polygon;
@@ -323,7 +326,7 @@ public:
     c->timeStep = _time;
     c->angle = 0.;//M_PI/2.;
     c->divType = DivisionType::NONE;
-    c->layerValue = 0;
+    c->layerValue = 1;
     T.addCell( c, vs );
     
     std::vector<Point3d> polygon;
@@ -668,8 +671,10 @@ public:
     //cr->divType = divType;
     
     // check which cell is the upper one and only increase the layer value
-    // of the upper one in the case of having a periclinal division
-    this->setLayerValues( cl, cr, c, divType );
+    // of the upper one in the case of having a periclinal division if 
+    // updateBothLayers is set to false
+    // else both daughter cells are assigned a new layer value
+    this->setLayerValues( cl, cr, c, divType, true );
     
     // update precursors
     cl->precursors.insert( c->id );
@@ -686,46 +691,43 @@ public:
   //----------------------------------------------------------------
   
   void setLayerValues( const cell& cl, const cell& cr, const cell& c,
-                       const DivisionType::type divType )
+                       const DivisionType::type divType, const bool updateBothLayers )
   {
-    // if true than both daughter cells are assigned an increased layer value
-    bool bothDaughters = false;
-    
-    if( bothDaughters )
-    {
-      if( divType == DivisionType::PERICLINAL )
-      {
-        cl->layerValue = c->layerValue+1;
-        cr->layerValue = c->layerValue+1;
-      }
-      else
-      {
-        cl->layerValue = c->layerValue;
-        cr->layerValue = c->layerValue;
-      }
-    }
     // else check the y values of the center and choose the upper one to be assigned
     // an increased layer value
-    else
+    if( divType == DivisionType::PERICLINAL )
     {
-      if( divType == DivisionType::PERICLINAL )
+      if( cl->center.j() > cr->center.j() )
       {
-        if( cl->center.j() < cr->center.j() )
+        if( !updateBothLayers )
         {
-          cl->layerValue = c->layerValue;
-          cr->layerValue = c->layerValue+1;
+          cl->layerValue = c->layerValue+1;
+          cr->layerValue = c->layerValue;
         }
         else
         {
-          cr->layerValue = c->layerValue;
-          cl->layerValue = c->layerValue+1;
+          cl->layerValue = 2*c->layerValue;
+          cr->layerValue = 2*c->layerValue+1;
         }
       }
       else
       {
-        cl->layerValue = c->layerValue;
-        cr->layerValue = c->layerValue;
+        if( !updateBothLayers )
+        {
+          cr->layerValue = c->layerValue+1;
+          cl->layerValue = c->layerValue;
+        }
+        else
+        {
+          cr->layerValue = 2*c->layerValue;
+          cl->layerValue = 2*c->layerValue+1;
+        }
       }
+    }
+    else
+    {
+      cl->layerValue = c->layerValue;
+      cr->layerValue = c->layerValue;
     }
   }
   
@@ -881,7 +883,7 @@ public:
     forall(const cell& c, T.C)
     {
       //T.drawCell(c, .5);
-      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.6 );
+      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.4 );
     }
   }
 
@@ -895,8 +897,10 @@ public:
     // coloring based on division type
     //return palette.getColor((int)c->divType);
     // coloring based on layer value
-    if( c->layerValue < _layerColorIndex.size() )
-      return palette.getColor( _layerColorIndex.at(c->layerValue) );
+    if( c->layerValue-1 < _layerColorIndex.size() )
+      return palette.getColor( _layerColorIndex.at(c->layerValue-1) );
+    else
+      return palette.getColor( _layerColorIndex.at(_layerColorIndex.size()-1) );
   }
 
   //----------------------------------------------------------------
