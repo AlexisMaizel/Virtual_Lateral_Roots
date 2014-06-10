@@ -79,12 +79,116 @@ void exportLineageInformation( const std::string &filename,
 
 // ---------------------------------------------------------------------
 
+void initDivisionDaughterFile( const std::string &filename )
+{
+  std::ofstream out( filename.c_str(), std::ofstream::out );
+
+  // header
+  out << "'ID' 'ParentID' 'Lineage' 'Time' 'CellCycle' 'XPos' 'YPos' 'ZPos' 'Area' 'LongestCellWall' "
+      << "'Dir of last Division X' 'Dir of last Division Y' 'Dir of last Division Z' "
+      << "'Dir of this Division X' 'Dir of this Division Y' 'Dir of this Division Z' "
+      << "'Angle' 'Layer' 'DivisionType'\n";
+}
+
+// ---------------------------------------------------------------------
+
 void initDivisionFile( const std::string &filename )
 {
   std::ofstream out( filename.c_str(), std::ofstream::out );
 
   // header
-  out << "ID ParentID X Y Z Time CellCycle Area LongestCellWall Lineage Layer DivisionAngle AngleBetweenCurrentAndPreviousDivision DivisionType\n";
+  out << "'ID' 'ParentID' 'X' 'Y' 'Z' 'Time' 'CellCycle' 'Area' 'LongestCellWall' 'Lineage' 'Layer' 'DivisionAngle' 'AngleBetweenCurrentAndPreviousDivision' 'DivisionType'\n";
+}
+
+// ---------------------------------------------------------------------
+
+void exportDivisionDaughterProperties( const std::string &filename,
+                                       const cell& cl,
+                                       const cell& cr,
+                                       const MyTissue::division_data& ddata,
+                                       const double angleThreshold )
+{
+  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  
+  // left daughter cell
+  out << cl->id << " "
+      << cl->parentId << " "
+      << cl->treeId << " " 
+      << cl->timeStep << " "
+      << cl->cellCycle << " "
+      << cl->center.i() << " "
+      << cl->center.j() << " "
+      << cl->center.k() << " "
+      << cl->area << " "
+      << cl->longestWallLength << " "
+      << cl->previousDivDir.i() << " "
+      << cl->previousDivDir.j() << " "
+      << cl->previousDivDir.k() << " "
+      << cl->divDir.i() << " "
+      << cl->divDir.j() << " "
+      << cl->divDir.k() << " ";
+      
+  if( cl->cellCycle != 1 )
+  {
+    Point3d lastDir = cl->previousDivDir;
+    Point3d curDir = cl->divDir;
+    
+    lastDir.normalize();
+    curDir.normalize();
+    
+    out << acos( lastDir*curDir )*180./M_PI << " ";
+  }
+  else
+    out << "NA ";
+  
+  out << cl->layerValue << " ";
+  
+  DivisionType::type divType = ModelUtils::determineDivisionType( ddata, angleThreshold );
+  if( divType == DivisionType::ANTICLINAL )
+    out << "0\n";
+  else
+    out << "1\n";
+      
+  
+  // right daughter cell
+  out << cr->id << " "
+      << cr->parentId << " "
+      << cr->treeId << " " 
+      << cr->timeStep << " "
+      << cr->cellCycle << " "
+      << cr->center.i() << " "
+      << cr->center.j() << " "
+      << cr->center.k() << " "
+      << cr->area << " "
+      << cr->longestWallLength << " "
+      << cr->previousDivDir.i() << " "
+      << cr->previousDivDir.j() << " "
+      << cr->previousDivDir.k() << " "
+      << cr->divDir.i() << " "
+      << cr->divDir.j() << " "
+      << cr->divDir.k() << " ";
+      
+  if( cr->cellCycle != 1 )
+  {
+    Point3d lastDir = cr->previousDivDir;
+    Point3d curDir = cr->divDir;
+    
+    lastDir.normalize();
+    curDir.normalize();
+    
+    out << acos( lastDir*curDir )*180./M_PI << " ";
+  }
+  else
+    out << "NA ";
+  
+  out << cr->layerValue << " ";
+  
+  if( divType == DivisionType::ANTICLINAL )
+    out << "0\n";
+  else
+    out << "1\n";
+  
+  out.close();
 }
 
 // ---------------------------------------------------------------------
@@ -98,7 +202,7 @@ void exportDivisionProperties( const std::string &filename,
   
   out << c->id << " ";
   
-  if( c->cellCycle != 1 )
+  if( c->cellCycle != 0 )
     out << c->parentId << " ";
   else
     out << "NA "; 
@@ -113,7 +217,7 @@ void exportDivisionProperties( const std::string &filename,
       << c->treeId << " "
       << c->layerValue << " "
       << c->angle << " ";
-  if( c->cellCycle != 1 )
+  if( c->cellCycle != 0 )
   {
     double a, pa;
     a = c->angle;

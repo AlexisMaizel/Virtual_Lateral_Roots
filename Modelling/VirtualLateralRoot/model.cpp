@@ -105,7 +105,7 @@ public:
       ModelExporter::initExportFile( _lineageFileName );
     
     if( exportDivisionProperties )
-      ModelExporter::initDivisionFile( _divisionFileName );
+      ModelExporter::initDivisionDaughterFile( _divisionFileName );
     
     lateralRoot.GrowStep(0);
     if( initialConstellation == 0 )
@@ -151,9 +151,11 @@ public:
     c->timeStep = _time;
     c->previousAngle = 0.;
     c->angle = 0.;
+    c->previousDivDir = Point3d( 0., 0., 0. );
+    c->divDir = Point3d( 0., 0., 0. );
     c->divType = DivisionType::NONE;
     c->layerValue = 1;
-    c->cellCycle = 1;
+    c->cellCycle = 0;
     T.addCell(c, vs);
 
     std::vector<Point3d> polygon;
@@ -253,9 +255,11 @@ public:
     c->timeStep = _time;
     c->previousAngle = 0.;
     c->angle = 0.;
+    c->previousDivDir = Point3d( 0., 0., 0. );
+    c->divDir = Point3d( 0., 0., 0. );
     c->divType = DivisionType::NONE;
     c->layerValue = 1;
-    c->cellCycle = 1;
+    c->cellCycle = 0;
     T.addCell( c, vs );
     
     std::vector<Point3d> polygon;
@@ -390,24 +394,8 @@ public:
     
     // set properties of dividing cell
     c->angle = angle;
+    
 		// set daughter cell properties
-		cl->treeId = cr->treeId = c->treeId;
-    cl->id = _idCounter;
-    cl->parentId = c->id;
-    cl->timeStep = _time;
-    cl->previousAngle = c->angle;
-    cl->angle = angle;
-    cl->cellCycle = c->cellCycle+1;
-    _idCounter++;
-    
-    cr->id = _idCounter;
-    cr->parentId = c->id;
-    cr->timeStep = _time;
-    cr->previousAngle = c->angle;
-    cr->cellCycle = c->cellCycle+1;
-    _idCounter++;
-    
-    // insert the new initial areas
     // left cell
     std::vector<Point3d> polygon;
     Point3d center;
@@ -423,6 +411,18 @@ public:
     cl->area = cl->initialArea;
     cl->initialLongestWallLength = ModelUtils::determineLongestWallLength( cl, T );
     cl->longestWallLength = cl->initialLongestWallLength;
+    
+		cl->treeId = c->treeId;
+    cl->id = _idCounter;
+    cl->parentId = c->id;
+    cl->timeStep = _time;
+    cl->previousAngle = c->angle;
+    cl->angle = angle;
+    cl->previousDivDir = c->divDir;
+    cl->divDir = cl->center - c->center;
+    cl->cellCycle = c->cellCycle+1;
+    _idCounter++;
+
     
     // right cell
     polygon.clear();
@@ -440,6 +440,16 @@ public:
     cr->initialLongestWallLength = ModelUtils::determineLongestWallLength( cr, T );
     cr->longestWallLength = cr->initialLongestWallLength;
     
+    cr->treeId = c->treeId;
+    cr->id = _idCounter;
+    cr->parentId = c->id;
+    cr->timeStep = _time;
+    cr->previousAngle = c->angle;
+    cr->previousDivDir = c->divDir;
+    cr->divDir = cr->center - c->center;
+    cr->cellCycle = c->cellCycle+1;
+    _idCounter++;
+        
     // check which cell is the upper one and only increase the layer value
     // of the upper one in the case of having a periclinal division if 
     // updateBothLayers is set to false
@@ -458,7 +468,11 @@ public:
     }
     
     // export division properties
-    ModelExporter::exportDivisionProperties( _divisionFileName, c, ddata, _angleThreshold );
+    ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
+                                                     cl,
+                                                     cr,
+                                                     ddata,
+                                                     _angleThreshold );
   }
 
   //----------------------------------------------------------------

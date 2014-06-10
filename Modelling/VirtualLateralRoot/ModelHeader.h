@@ -78,6 +78,10 @@ struct CellContent
   std::size_t layerValue;
   // corresponding cell cycle
   std::size_t cellCycle;
+  // previous division direction of cell
+  Point3d previousDivDir;
+  // current division direction of cell
+  Point3d divDir;
 };
 
 struct WallContent
