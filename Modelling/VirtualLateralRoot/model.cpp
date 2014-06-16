@@ -31,6 +31,7 @@ public:
   std::size_t _time;
   std::size_t _maxTime;
   std::string _lineageFileName;
+  std::string _cellWallsFileName;
   std::string _divisionFileName;
   std::vector<std::size_t> _layerColorIndex;
   double _cellPinch;
@@ -88,6 +89,7 @@ public:
     lateralRoot(parms, "Surface"), T(palette, this),
     _idCounter(1), _time(1), _maxTime(250),
     _lineageFileName( "/tmp/model.csv" ),
+    _cellWallsFileName( "/tmp/modelCellWalls.csv" ),
     _divisionFileName( "/tmp/divisionPropertiesModel.csv" )
   {
     readParms();
@@ -102,7 +104,10 @@ public:
       _layerColorIndex.push_back( l );
     
     if( exportLineage )
+    {
       ModelExporter::initExportFile( _lineageFileName );
+      ModelExporter::initCellWallFile( _cellWallsFileName );
+    }
     
     if( exportDivisionProperties )
       ModelExporter::initDivisionDaughterFile( _divisionFileName );
@@ -602,12 +607,34 @@ public:
   
   //----------------------------------------------------------------
   
+  void step_cellWalls()
+  {
+    if( _time <= _maxTime + 1 )
+    {
+      if( exportLineage )
+      {
+        forall(const cell& c, T.C)
+        {
+          if( c->timeStep > _maxTime )
+            break;
+            
+          ModelExporter::exportCellWalls( _cellWallsFileName, c, T );
+        }
+      }
+    }
+  }
+  
+  //----------------------------------------------------------------
+  
   void step_tracking()
   {
     if( _time <= _maxTime )
     {
-      forall(const cell& c, T.C)
-        ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
+      if( exportLineage )
+      {
+        forall(const cell& c, T.C)
+          ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
+      }
     }
   }
   
@@ -629,6 +656,7 @@ public:
     
     for(int i = 0 ; i < stepPerView ; ++i)
     {
+      this->step_cellWalls();
       this->step_divisions();
       this->step_tracking();
       this->step_growth();

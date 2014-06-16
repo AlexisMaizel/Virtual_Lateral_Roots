@@ -79,6 +79,41 @@ void exportLineageInformation( const std::string &filename,
 
 // ---------------------------------------------------------------------
 
+void initCellWallFile( const std::string &filename )
+{
+  std::ofstream out( filename.c_str(), std::ofstream::out );
+
+  // header
+  out << "ID Time CellCorners\n";
+}
+
+// ---------------------------------------------------------------------
+
+void exportCellWalls( const std::string &filename,
+                      const cell& c,
+                      const MyTissue &T )
+{
+  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  
+  out << c->id << " " << c->timeStep << " ";
+  bool first = true;
+  forall(const junction& j, T.S.neighbors(c))
+  {
+    if( first )
+      first = false;
+    else
+      out << ",";
+    
+    out << j->sp.Pos().i() << "," 
+        << j->sp.Pos().j() << "," 
+        << j->sp.Pos().k();
+  }
+  
+  out << "\n";
+}
+
+// ---------------------------------------------------------------------
+
 void initDivisionDaughterFile( const std::string &filename )
 {
   std::ofstream out( filename.c_str(), std::ofstream::out );
@@ -88,16 +123,6 @@ void initDivisionDaughterFile( const std::string &filename )
       << "'Dir of last Division X' 'Dir of last Division Y' 'Dir of last Division Z' "
       << "'Dir of this Division X' 'Dir of this Division Y' 'Dir of this Division Z' "
       << "'Angle' 'Layer' 'DivisionType'\n";
-}
-
-// ---------------------------------------------------------------------
-
-void initDivisionFile( const std::string &filename )
-{
-  std::ofstream out( filename.c_str(), std::ofstream::out );
-
-  // header
-  out << "'ID' 'ParentID' 'X' 'Y' 'Z' 'Time' 'CellCycle' 'Area' 'LongestCellWall' 'Lineage' 'Layer' 'DivisionAngle' 'AngleBetweenCurrentAndPreviousDivision' 'DivisionType'\n";
 }
 
 // ---------------------------------------------------------------------
@@ -189,6 +214,16 @@ void exportDivisionDaughterProperties( const std::string &filename,
     out << "1\n";
   
   out.close();
+}
+
+// ---------------------------------------------------------------------
+
+void initDivisionFile( const std::string &filename )
+{
+  std::ofstream out( filename.c_str(), std::ofstream::out );
+
+  // header
+  out << "'ID' 'ParentID' 'X' 'Y' 'Z' 'Time' 'CellCycle' 'Area' 'LongestCellWall' 'Lineage' 'Layer' 'DivisionAngle' 'AngleBetweenCurrentAndPreviousDivision' 'DivisionType'\n";
 }
 
 // ---------------------------------------------------------------------

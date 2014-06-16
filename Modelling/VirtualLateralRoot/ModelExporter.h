@@ -21,18 +21,24 @@ namespace ModelExporter
   
   void initDivisionDaughterFile( const std::string &filename );
   
-  void initDivisionFile( const std::string &filename );
-  
   void exportDivisionDaughterProperties( const std::string &filename,
                                          const cell& cl,
                                          const cell& cr,
                                          const MyTissue::division_data& ddata,
                                          const double angleThreshold );
   
+  void initDivisionFile( const std::string &filename );
+  
   void exportDivisionProperties( const std::string &filename,
                                  const cell& c,
                                  const MyTissue::division_data& ddata,
                                  const double angleThreshold );
+  
+  void initCellWallFile( const std::string &filename );
+  
+  void exportCellWalls( const std::string &filename,
+                        const cell& c,
+                        const MyTissue &T );
 }
 
 #endif // ModelExporter_HH
