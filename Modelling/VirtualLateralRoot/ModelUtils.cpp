@@ -8,7 +8,7 @@
 
 namespace ModelUtils
 {
-
+  
 // ---------------------------------------------------------------------
 
 double determineLongestWallLength( const cell& c,

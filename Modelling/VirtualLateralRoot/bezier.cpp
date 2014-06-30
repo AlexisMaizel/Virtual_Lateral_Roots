@@ -177,22 +177,28 @@ Point3d Bezier::EvalCoord(double u, double v)
   unsigned int iv = 0;
 
   // Scale so entire surface fits between 0 and 1
-  if(count > 1) {
+  if(count > 1)
+  {
     u *= count;
     v *= count;
 
     iu = (unsigned int)u;
     iv = (unsigned int)v;
 
-    if(iu == count) {
+    if(iu == count)
+    {
       u = 1.0;
       iu = count - 1;
-    } else
+    }
+    else
       u = u - iu;
-    if(iv == count) {
+    
+    if(iv == count)
+    {
       v = 1.0;
       iv = count - 1;
-    } else
+    }
+    else
       v = v - iv;
   }
 
@@ -202,7 +208,8 @@ Point3d Bezier::EvalCoord(double u, double v)
   // Evaluate
   double x = 0, y = 0, z = 0;
   for(unsigned int j = 0; j < PATCHPOINTS; j++)
-    for(unsigned int i = 0; i < PATCHPOINTS; i++) {
+    for(unsigned int i = 0; i < PATCHPOINTS; i++)
+    {
       double s = (double)Choose(PATCHPOINTS - 1, i) * pow(u, i) * 
 	                        pow(1.0 - u, (int)(PATCHPOINTS - 1 - i)) *
                  (double)Choose(PATCHPOINTS - 1, j) * pow(v, j) * 

@@ -39,8 +39,10 @@ VVE:
 		make clean
 
 Files:
+	all:
+		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h 
 	program:
-		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h
+		EDIT model.cpp
 	parameters:
 		EDIT view.v
 	description:

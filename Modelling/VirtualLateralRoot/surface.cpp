@@ -100,7 +100,8 @@ void Surface::InitPoint(SurfacePoint &p, double u, double v)
 
 //----------------------------------------------------------------
 
-// Find closest control point on bezier surface to a given surface point
+// Determine parametric coords u and v such that the distance between
+// the corresponding point for (u,v) is minimal to the desired point cp
 bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
 {
   // Initial guess for p
@@ -111,7 +112,8 @@ bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
   double count = 0;
   double du, dv;
 
-  while(fabs(lastd - norm(cp - p.pos)) > DX * 2 && count++ < MAXSEARCHSTEPS) {
+  while(fabs(lastd - norm(cp - p.pos)) > DX * 2 && count++ < MAXSEARCHSTEPS)
+  {
     // Save previous distance
     lastd = norm(cp - p.pos);
 
@@ -132,15 +134,18 @@ bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
 
     // Do line minimization
     double step = .01;
-    while(step > DX) {
+    while(step > DX)
+    {
       SurfacePoint t = p;
       t.u += step * du;
       t.v += step * dv;
       CalcPos(t);
-      if(norm(cp - t.pos) < norm(cp - p.pos)) {
+      if(norm(cp - t.pos) < norm(cp - p.pos))
+      {
         step *= 1.11;
         p = t;
-      } else
+      }
+      else
         step /= 2.0;
     }
   }

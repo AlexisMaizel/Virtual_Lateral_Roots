@@ -117,6 +117,8 @@ public:
       this->initOneCell();
     else if( initialConstellation == 1 )
       this->initLateralRoot();
+    else if( initialConstellation == 2 )
+      this->initTwoCells();
     
     setStatus();
   }
@@ -147,6 +149,7 @@ public:
         initv = 0;
       }
       lateralRoot.InitPoint(v->sp, initu, initv);
+      v->sp.printPos();
     }
 
     cell c;
@@ -172,6 +175,7 @@ public:
     }
     center /= polygon.size();
     lateralRoot.SetPoint(c->sp, c->sp, center);
+    c->sp.printPos();
     
     // store initial area for current cell
     c->center = center;
@@ -185,6 +189,24 @@ public:
     
     _idCounter++;
   }
+  
+  //----------------------------------------------------------------
+  
+ void initTwoCells()
+ {
+   std::size_t lineageCounter = 1;
+   
+  for( std::size_t c = 0; c < 2; c++ )
+  {
+    double u = 0. + c*1./2.;
+    double v = 0.;
+    this->generateCell( std::make_pair( u, v ),
+                        std::make_pair( 1./2., 1. ),
+                        lineageCounter );
+    
+    lineageCounter++;
+  }
+ }
   
   //----------------------------------------------------------------
   
@@ -374,18 +396,24 @@ public:
 		//double time = lateralRoot.GetTime();
     if( _time > _maxTime )
       _time = _maxTime;
-    setStatusMessage(
-      QString("# Vertices: %1 \t "
-              "# Cells: %2 \t"
-              "Time step: %3 \t "
-              "Area divison ratio: %4 \t"
-              "Wall divison ratio: %5 \t"
-              "Decussation propability: %6").arg(T.W.size()).
-              arg(T.C.size()).
-              arg(_time).
-              arg(divisionAreaRatio).
-              arg(divisionWallRatio).
-              arg(probabilityOfDecussationDivision) );
+    
+    QString status = QString( "# Vertices: %1 \t "
+                              "# Cells: %2 \t"
+                              "Time step: %3 \t ").
+                              arg(T.W.size()).
+                              arg(T.C.size()).
+                              arg(_time);
+    
+    if( useAreaRatio )
+      status += QString( "Area divison ratio: %1 \t" ).arg(divisionAreaRatio);
+    
+    if( useWallRatio )
+      status += QString( "Wall divison ratio: %1 \t" ).arg(divisionWallRatio);
+    
+    if( useDecussationDivision )
+      status += QString( "Decussation propability: %1" ).arg(probabilityOfDecussationDivision);
+    
+    setStatusMessage( status );
   }
   
   //----------------------------------------------------------------
@@ -527,6 +555,11 @@ public:
   
   bool step_divisions()
   {
+    // for which number of cells should the division area ratio check apply
+    // this is required since at the beginning only few divisions occur due
+    // to the small increasing of area based on the inital area size
+    std::size_t areaRatioStart = 0;
+    
     // Find cells to be divided
     std::list<cell> to_divide;
     forall(const cell& c, T.C)
@@ -548,7 +581,7 @@ public:
       
       double a = c->area;
       double l = c->longestWallLength;
-      if( useAreaRatio && useWallRatio && c->id > 7 )
+      if( useAreaRatio && useWallRatio && c->id > areaRatioStart )
       {
         // divide cells if their area size has increased by a certain percentage amount
         double initialArea = c->initialArea;
@@ -561,7 +594,7 @@ public:
           to_divide.push_back(c);
       }
       // only apply the division based on ratio with at least eight cells
-      else if( useAreaRatio && c->id > 7 )
+      else if( useAreaRatio && c->id > areaRatioStart )
       {
         // divide cells if their area size has increased by a certain percentage amount
         double initialArea = c->initialArea;
@@ -570,7 +603,7 @@ public:
           to_divide.push_back(c);
       }
       // only apply the division based on ratio with at least eight cells
-      else if( useWallRatio && c->id > 7 )
+      else if( useWallRatio && c->id > areaRatioStart )
       {
         // divide cell if its wall length has increased by a certain percentage amount
         double initialLongestLength = c->longestWallLength;
@@ -588,7 +621,7 @@ public:
     // Divide the cells
     forall(const cell& c, to_divide)
     {
-      if( useDecussationDivision && c->id > 7 )
+      if( useDecussationDivision && c->id > areaRatioStart )
       {
         // if true then the next division is perpendicular to the last one
         // else the division is collinear to the previous division direction
