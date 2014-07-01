@@ -93,7 +93,7 @@ void Surface::InitPoint(SurfacePoint &p, double u, double v)
 {
   p.u = InBounds(u, 0.0, 1.0);
   p.v = InBounds(v, 0.0, 1.0);
- 
+  
   CalcPos(p);
   CalcNormal(p);
 }
@@ -191,10 +191,10 @@ void Surface::GrowStep(double dt)
                           (time - surftime - halfTime)/halfTime );
   }
   */
-    
-  surfCurr.Interpolate(surface[surf-1], surface[surf], 
-        surfScale[surf-1], surfScale[surf], (time - surftime)/surfTime[surf]);
-
+  
+  surfCurr.Interpolate( surface[surf-1], surface[surf], 
+                        surfScale[surf-1], surfScale[surf],
+                        (time - surftime)/surfTime[surf]);
 }
 
 //----------------------------------------------------------------

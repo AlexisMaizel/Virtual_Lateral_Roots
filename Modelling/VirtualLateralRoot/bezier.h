@@ -36,17 +36,17 @@ class Bezier {
     ~Bezier() {};
 
     // Load from file written by interactice editor.
-    void Load(string bezFile);
-
+    void Load( const std::string bezFile );
+    
     // Copy and/or scale
-    void Scale(Bezier &b, double Scale);
+    void Scale( Bezier &b, double Scale );
 
     // Create new interpolated (and scaled) surface
-    void Interpolate(Bezier &src1, Bezier &src2, 
-                                double scale1, double scale2, double s);
+    void Interpolate( Bezier &src1, Bezier &src2, 
+                      double scale1, double scale2, double s );
 
     // Return x,y,z point from u,v parameters
-    Point3d EvalCoord(double u, double v);
+    Point3d EvalCoord( double u, double v );
 
     // Print points (debugging)
     void Print();
@@ -57,6 +57,9 @@ class Bezier {
     int Choose( unsigned int n, unsigned int k );
     float ptsV[MAXPATCHES * MAXPATCHES * PATCHSIZE];
 
+    // matrix storing unique control points
+    std::vector< std::vector<Point3d> > _cpMatrix;
+    
     // Note this is square root of count of # of patches
     unsigned int count;
 };

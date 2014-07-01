@@ -129,13 +129,15 @@ public:
   {
     std::vector<junction> vs;
 
-    for(int i = 0; i < cellInitWalls; i++) {
+    for(int i = 0; i < cellInitWalls; i++)
+    {
       junction v; 
       T.W.insert(v);
       vs.push_back(v);
 
       double initu, initv, s = (double)i/cellInitWalls;
-      if(s < .25) {
+      if(s < .25)
+      {
         initu = 0;
         initv = s * 4;
       } else if(s < .5) {
@@ -149,7 +151,6 @@ public:
         initv = 0;
       }
       lateralRoot.InitPoint(v->sp, initu, initv);
-      v->sp.printPos();
     }
 
     cell c;
@@ -174,8 +175,6 @@ public:
       center += j->sp.Pos();
     }
     center /= polygon.size();
-    lateralRoot.SetPoint(c->sp, c->sp, center);
-    c->sp.printPos();
     
     // store initial area for current cell
     c->center = center;
@@ -184,6 +183,7 @@ public:
     // and determine longest wall of cell
     c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
     c->longestWallLength = c->initialLongestWallLength;
+    lateralRoot.SetPoint(c->sp, c->sp, center);
     
     ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
     
@@ -297,9 +297,9 @@ public:
       center += j->sp.Pos();
     }
     center /= polygon.size();
-    c->center = center;
-    
+
     // store initial area for current cell
+    c->center = center;
     c->initialArea = geometry::polygonArea(polygon);
     c->area = c->initialArea;
     c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
@@ -558,7 +558,7 @@ public:
     // for which number of cells should the division area ratio check apply
     // this is required since at the beginning only few divisions occur due
     // to the small increasing of area based on the inital area size
-    std::size_t areaRatioStart = 0;
+    std::size_t areaRatioStart = 1;
     
     // Find cells to be divided
     std::list<cell> to_divide;
