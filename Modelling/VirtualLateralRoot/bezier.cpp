@@ -391,14 +391,14 @@ Point3d Bezier::EvalCoord( double u, double v )
   for(std::size_t i = 0; i < _cpMatrix.size(); i++) 
     for(std::size_t j = 0; j < _cpMatrix.at(i).size(); j++)
     {
-      double s = (double)Choose(_cpMatrix.size() - 1, i) * pow(u, i) * 
-                 pow(1.0 - u, (int)(_cpMatrix.size() - 1 - i)) *
-                 (double)Choose(_cpMatrix.at(i).size() - 1, j) * pow(v, j) * 
-                 pow(1.0 - v, (int)(_cpMatrix.at(i).size() - 1 - j));
+      double s = (double)Choose(_cpMatrix.size() - 1, i) * pow(v, i) * 
+                 pow(1.0 - v, (int)(_cpMatrix.size() - 1 - i)) *
+                 (double)Choose(_cpMatrix.at(i).size() - 1, j) * pow(u, j) * 
+                 pow(1.0 - u, (int)(_cpMatrix.at(i).size() - 1 - j));
                  
       pos += s * _cpMatrix.at(i).at(j);
     }
-    
+
   return pos;
 }
 
