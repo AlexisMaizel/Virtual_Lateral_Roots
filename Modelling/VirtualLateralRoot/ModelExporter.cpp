@@ -131,7 +131,8 @@ void exportDivisionDaughterProperties( const std::string &filename,
                                        const cell& cl,
                                        const cell& cr,
                                        const MyTissue::division_data& ddata,
-                                       const double angleThreshold )
+                                       const double angleThreshold,
+																			 std::pair<std::size_t, std::size_t> &divOccurrences )
 {
   std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
   
@@ -170,9 +171,15 @@ void exportDivisionDaughterProperties( const std::string &filename,
   
   DivisionType::type divType = ModelUtils::determineDivisionType( ddata, angleThreshold );
   if( divType == DivisionType::ANTICLINAL )
+	{
+		divOccurrences.first++;
     out << "0\n";
+	}
   else
+	{
+		divOccurrences.second++;
     out << "1\n";
+	}
       
   
   // right daughter cell

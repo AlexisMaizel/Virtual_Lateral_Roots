@@ -25,7 +25,8 @@ namespace ModelExporter
                                          const cell& cl,
                                          const cell& cr,
                                          const MyTissue::division_data& ddata,
-                                         const double angleThreshold );
+                                         const double angleThreshold,
+																				 std::pair<std::size_t, std::size_t> &divOccurrences );
   
   void initDivisionFile( const std::string &filename );
   

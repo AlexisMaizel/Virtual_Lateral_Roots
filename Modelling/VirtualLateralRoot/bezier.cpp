@@ -11,7 +11,7 @@
 #include <iostream>
 #include <sstream>
 
-#define USEONESURFACE
+//#define USEONESURFACE
 
 //----------------------------------------------------------------
 
@@ -319,7 +319,7 @@ void Bezier::Load( const std::string bezFile )
   }
 
   count = (unsigned int)pow((double)patchcount, 0.5); 
-  this->Print();
+  //this->Print();
   
   bIn.close();
 }

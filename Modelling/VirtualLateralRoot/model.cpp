@@ -20,7 +20,8 @@ public:
   int bgColor;
   int cellInitWalls;
   int stepPerView;
-  int initialConstellation;
+  std::size_t _initialCellNumber;
+  std::string _initialCellsOfRealData;
   bool exportLineage;
   bool exportDivisionProperties;
   double probabilityOfDecussationDivision;
@@ -37,6 +38,8 @@ public:
   double _cellPinch;
   double _cellMaxPinch;
   std::size_t _cellColoringType;
+	
+	std::pair<std::size_t, std::size_t> _divOccurrences;
   
   //----------------------------------------------------------------
   
@@ -45,7 +48,8 @@ public:
     // read the parameters here
     parms("Main", "Dt", dt);
     parms("Main", "CellInitWalls", cellInitWalls);
-    parms("Main", "InitialConstellation", initialConstellation);
+    parms("Main", "InitialCellNumber", _initialCellNumber);
+    parms("Main", "InitialCellsOfRealData", _initialCellsOfRealData);
     parms("Main", "ExportLineage", exportLineage);
     parms("Main", "ExportDivisionProperties", exportDivisionProperties);
 
@@ -87,10 +91,11 @@ public:
   
   MyModel(QObject *parent) : Model(parent), parms("view.v"), palette("pal.map"), 
     lateralRoot(parms, "Surface"), T(palette, this),
-    _idCounter(1), _time(1), _maxTime(250),
+    _idCounter(1), _time(1), _maxTime(300),
     _lineageFileName( "/tmp/model.csv" ),
     _cellWallsFileName( "/tmp/modelCellWalls.csv" ),
-    _divisionFileName( "/tmp/divisionPropertiesModel.csv" )
+    _divisionFileName( "/tmp/divisionPropertiesModel.csv" ),
+    _divOccurrences( std::make_pair( 0, 0 ) )
   {
     readParms();
     // Registering the configuration files
@@ -113,12 +118,23 @@ public:
       ModelExporter::initDivisionDaughterFile( _divisionFileName );
     
     lateralRoot.GrowStep(0);
-    if( initialConstellation == 0 )
-      this->initOneCell();
-    else if( initialConstellation == 1 )
-      this->initLateralRoot();
-    else if( initialConstellation == 2 )
-      this->initTwoCells();
+    
+    // special cases of number of cells at the beginning
+    if( _initialCellsOfRealData == "none" )
+    {
+      if( _initialCellNumber == 1 )
+        this->initOneCell();
+      else if( _initialCellNumber == 8 )
+        this->initLateralRoot();
+      else
+      {
+        std::cerr << "Selected number of cells at the beginning is not implemented yet!" << std::endl;
+        this->initOneCell();
+      }
+    }
+    // else constellation of cells depending on the real data
+    else
+      this->initLateralRoot( _initialCellsOfRealData );
     
     setStatus();
   }
@@ -189,27 +205,109 @@ public:
     
     _idCounter++;
   }
-  
+ 
   //----------------------------------------------------------------
-  
- void initTwoCells()
- {
-   std::size_t lineageCounter = 1;
-   
-  for( std::size_t c = 0; c < 2; c++ )
-  {
-    double u = 0. + c*1./2.;
-    double v = 0.;
-    this->generateCell( std::make_pair( u, v ),
-                        std::make_pair( 1./2., 1. ),
-                        lineageCounter );
+
+  void initLateralRoot( const std::string &dataset )
+	{
+    std::cout << "Init constellation of data: " << dataset << std::endl;
     
-    lineageCounter++;
-  }
- }
+		if( dataset == "120830" )
+    {
+      std::size_t lineageCounter = 1;
+   
+      for( std::size_t c = 0; c < 2; c++ )
+      {
+        double u = 0. + c*1./2.;
+        double v = 0.;
+        this->generateCell( std::make_pair( u, v ),
+                            std::make_pair( 1./2., 1. ),
+                            lineageCounter );
+        
+        lineageCounter++;
+      }
+    }
+		else if( dataset == "121204" )
+    {
+      std::size_t lineageCounter = 1;
+   
+      for( std::size_t c = 0; c < 2; c++ )
+      {
+        double u = 0. + c*2./5.;
+        double v = 0.;
+        double length;
+        if( c == 0 )
+          length = 2./5.;
+        else
+          length = 3./5.;
+          
+        this->generateCell( std::make_pair( u, v ),
+                            std::make_pair( length, 1. ),
+                            lineageCounter );
+        
+        lineageCounter++;
+      }
+    }
+    else if( dataset == "121211" )
+    {
+      std::size_t lineageCounter = 1;
+   
+      // outer bigger cells
+      for( std::size_t c = 0; c < 2; c++ )
+      {
+        double u = 0. + c*2./3.;
+        double v = 0.;
+        this->generateCell( std::make_pair( u, v ),
+                            std::make_pair( 1./3., 1. ),
+                            lineageCounter );
+        
+        lineageCounter++;
+      }
+      
+      // inner smaller cells
+      for( std::size_t c = 0; c < 3; c++ )
+      {
+        double u = 1./3. + c*1./9.;
+        double v = 0.;
+        this->generateCell( std::make_pair( u, v ),
+                            std::make_pair( 1./9., 1. ),
+                            lineageCounter );
+        
+        lineageCounter++;
+      }
+    }
+    else if( dataset == "130508" )
+    {
+      this->initOneCell();
+    }
+    else if( dataset == "130607" )
+    {
+      std::size_t lineageCounter = 1;
+   
+      for( std::size_t c = 0; c < 2; c++ )
+      {
+        double u = 0. + c*2./5.;
+        double v = 0.;
+        double length;
+        if( c == 0 )
+          length = 2./5.;
+        else
+          length = 3./5.;
+          
+        this->generateCell( std::make_pair( u, v ),
+                            std::make_pair( length, 1. ),
+                            lineageCounter );
+        
+        lineageCounter++;
+      }
+    }
+    else
+      std::cerr << "Selected data set name is not supported!" << std::endl;
+        
+	}
   
-  //----------------------------------------------------------------
-  
+	//----------------------------------------------------------------
+	
   void initLateralRoot()
   {
     // render eight cells at the beginning for which each pair shares an
@@ -505,7 +603,8 @@ public:
                                                      cl,
                                                      cr,
                                                      ddata,
-                                                     _angleThreshold );
+                                                     _angleThreshold,
+																										 _divOccurrences );
   }
 
   //----------------------------------------------------------------
@@ -695,6 +794,12 @@ public:
       this->step_growth();
     }
     this->setStatus();
+		
+		if( _time == _maxTime )
+		{
+			std::cout << "Anticlinal divisions: " << _divOccurrences.first << std::endl;
+			std::cout << "Periclinal divisions: " << _divOccurrences.second << std::endl;
+		}
   }
 
   //----------------------------------------------------------------
