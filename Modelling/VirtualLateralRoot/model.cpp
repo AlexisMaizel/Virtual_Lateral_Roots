@@ -18,7 +18,6 @@ public:
   bool useWallRatio;
   double divisionWallRatio;
   int bgColor;
-  int cellInitWalls;
   int stepPerView;
   std::size_t _initialCellNumber;
   std::string _initialCellsOfRealData;
@@ -31,6 +30,7 @@ public:
   std::size_t _idCounter;
   std::size_t _time;
   std::size_t _maxTime;
+  std::size_t _jId;
   std::string _lineageFileName;
   std::string _cellWallsFileName;
   std::string _divisionFileName;
@@ -38,6 +38,9 @@ public:
   double _cellPinch;
   double _cellMaxPinch;
   std::size_t _cellColoringType;
+  // defines the number of vertices for each wall of the init cells
+  // #inner vertices of each wall = _cellSubdivisionLevel - 1
+  std::size_t _cellSubdivisionLevel;
 	
 	std::pair<std::size_t, std::size_t> _divOccurrences;
   
@@ -47,9 +50,9 @@ public:
   {
     // read the parameters here
     parms("Main", "Dt", dt);
-    parms("Main", "CellInitWalls", cellInitWalls);
     parms("Main", "InitialCellNumber", _initialCellNumber);
     parms("Main", "InitialCellsOfRealData", _initialCellsOfRealData);
+    parms("Main", "SubDivisionLevelOfCells", _cellSubdivisionLevel);
     parms("Main", "ExportLineage", exportLineage);
     parms("Main", "ExportDivisionProperties", exportDivisionProperties);
 
@@ -91,7 +94,7 @@ public:
   
   MyModel(QObject *parent) : Model(parent), parms("view.v"), palette("pal.map"), 
     lateralRoot(parms, "Surface"), T(palette, this),
-    _idCounter(1), _time(1), _maxTime(300),
+    _idCounter(1), _time(1), _maxTime(300), _jId( 0 ),
     _lineageFileName( "/tmp/model.csv" ),
     _cellWallsFileName( "/tmp/modelCellWalls.csv" ),
     _divisionFileName( "/tmp/divisionPropertiesModel.csv" ),
@@ -117,19 +120,41 @@ public:
     if( exportDivisionProperties )
       ModelExporter::initDivisionDaughterFile( _divisionFileName );
     
+    if( _cellSubdivisionLevel < 1 )
+      _cellSubdivisionLevel = 1;
+    
     lateralRoot.GrowStep(0);
+    idPairSet sharedJunctions;
     
     // special cases of number of cells at the beginning
     if( _initialCellsOfRealData == "none" )
     {
       if( _initialCellNumber == 1 )
-        this->initOneCell();
+      {
+        this->generateCell( std::make_pair( 0., 0. ),
+                            std::make_pair( 1., 1. ),
+                            1, sharedJunctions );
+      }
+      else if( _initialCellNumber == 2 )
+      {
+        this->generateCell( std::make_pair( 0., 0. ),
+                            std::make_pair( 0.5, 1. ),
+                            1, sharedJunctions );
+        
+        // insert ids of shared junctions
+        sharedJunctions.insert( std::make_pair( 5, 2 ) );
+        sharedJunctions.insert( std::make_pair( 4, 3 ) );
+        
+        this->generateCell( std::make_pair( 0.5, 0. ),
+                            std::make_pair( 0.5, 1. ),
+                            2, sharedJunctions );
+      }
+      // TODO
       else if( _initialCellNumber == 8 )
         this->initLateralRoot();
       else
       {
         std::cerr << "Selected number of cells at the beginning is not implemented yet!" << std::endl;
-        this->initOneCell();
       }
     }
     // else constellation of cells depending on the real data
@@ -138,94 +163,27 @@ public:
     
     setStatus();
   }
-
-  //----------------------------------------------------------------
-  
-  void initOneCell()
-  {
-    std::vector<junction> vs;
-
-    for(int i = 0; i < cellInitWalls; i++)
-    {
-      junction v; 
-      T.W.insert(v);
-      vs.push_back(v);
-
-      double initu, initv, s = (double)i/cellInitWalls;
-      if(s < .25)
-      {
-        initu = 0;
-        initv = s * 4;
-      } else if(s < .5) {
-        initu = (s - .25) * 4;
-        initv = 1.0;
-      } else if(s < .75) {
-        initu = 1.0;
-        initv = 1  - (s - .5) * 4;
-      } else {
-        initu = 1  - (s - .75) * 4;
-        initv = 0;
-      }
-      lateralRoot.InitPoint(v->sp, initu, initv);
-    }
-
-    cell c;
-    c->treeId = 1;
-    c->id = _idCounter;
-    c->parentId = _idCounter;
-    c->timeStep = _time;
-    c->previousAngle = 0.;
-    c->angle = 0.;
-    c->previousDivDir = Point3d( 0., 0., 0. );
-    c->divDir = Point3d( 0., 0., 0. );
-    c->divType = DivisionType::NONE;
-    c->layerValue = 1;
-    c->cellCycle = 0;
-    T.addCell(c, vs);
-
-    std::vector<Point3d> polygon;
-    Point3d center;
-    forall(const junction& j, T.S.neighbors(c))
-    {
-      polygon.push_back(j->sp.Pos());
-      center += j->sp.Pos();
-    }
-    center /= polygon.size();
-    
-    // store initial area for current cell
-    c->center = center;
-    c->initialArea = geometry::polygonArea(polygon);
-    c->area = c->initialArea;
-    // and determine longest wall of cell
-    c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
-    c->longestWallLength = c->initialLongestWallLength;
-    lateralRoot.SetPoint(c->sp, c->sp, center);
-    
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
-    
-    _idCounter++;
-  }
  
   //----------------------------------------------------------------
 
   void initLateralRoot( const std::string &dataset )
 	{
     std::cout << "Init constellation of data: " << dataset << std::endl;
+    idPairSet sharedJunctions;
     
 		if( dataset == "120830" )
     {
-      std::size_t lineageCounter = 1;
-   
-      for( std::size_t c = 0; c < 2; c++ )
-      {
-        double u = 0. + c*1./2.;
-        double v = 0.;
-        this->generateCell( std::make_pair( u, v ),
-                            std::make_pair( 1./2., 1. ),
-                            lineageCounter );
-        
-        lineageCounter++;
-      }
+      this->generateCell( std::make_pair( 0., 0. ),
+                          std::make_pair( 0.5, 1. ),
+                          1, sharedJunctions );
+      
+      // insert ids of shared junctions
+      sharedJunctions.insert( std::make_pair( 5, 2 ) );
+      sharedJunctions.insert( std::make_pair( 4, 3 ) );
+      
+      this->generateCell( std::make_pair( 0.5, 0. ),
+                          std::make_pair( 0.5, 1. ),
+                          2, sharedJunctions );
     }
 		else if( dataset == "121204" )
     {
@@ -241,13 +199,21 @@ public:
         else
           length = 3./5.;
           
+        if( c == 1 )
+        {
+          // insert ids of shared junctions
+          sharedJunctions.insert( std::make_pair( 5, 2 ) );
+          sharedJunctions.insert( std::make_pair( 4, 3 ) );
+        }
+        
         this->generateCell( std::make_pair( u, v ),
                             std::make_pair( length, 1. ),
-                            lineageCounter );
+                            lineageCounter, sharedJunctions );
         
         lineageCounter++;
       }
     }
+    // TODO
     else if( dataset == "121211" )
     {
       std::size_t lineageCounter = 1;
@@ -259,7 +225,7 @@ public:
         double v = 0.;
         this->generateCell( std::make_pair( u, v ),
                             std::make_pair( 1./3., 1. ),
-                            lineageCounter );
+                            lineageCounter, sharedJunctions );
         
         lineageCounter++;
       }
@@ -271,15 +237,17 @@ public:
         double v = 0.;
         this->generateCell( std::make_pair( u, v ),
                             std::make_pair( 1./9., 1. ),
-                            lineageCounter );
+                            lineageCounter, sharedJunctions );
         
         lineageCounter++;
       }
     }
+    // TODO
     else if( dataset == "130508" )
-    {
-      this->initOneCell();
-    }
+      this->generateCell( std::make_pair( 0., 0. ),
+                          std::make_pair( 1., 1. ),
+                          1, sharedJunctions );
+    // TODO
     else if( dataset == "130607" )
     {
       std::size_t lineageCounter = 1;
@@ -296,7 +264,7 @@ public:
           
         this->generateCell( std::make_pair( u, v ),
                             std::make_pair( length, 1. ),
-                            lineageCounter );
+                            lineageCounter, sharedJunctions );
         
         lineageCounter++;
       }
@@ -314,6 +282,7 @@ public:
     // area ratio of 2:1. The bigger cell will always be located at the left
     // and right boundary
     
+    idPairSet sharedJunctions;
     std::size_t lineageCounter = 1;
     
     // init the inner smaller cells
@@ -324,7 +293,7 @@ public:
         double v = 0. + h*1./2.;
         this->generateCell( std::make_pair( u, v ),
                             std::make_pair( 1./6., 1./2. ),
-                            lineageCounter );
+                            lineageCounter, sharedJunctions );
         
         lineageCounter++;
       }
@@ -337,7 +306,7 @@ public:
         double v = 0. + h*1./2.;
         this->generateCell( std::make_pair( u, v ),
                             std::make_pair( 1./3., 1./2. ),
-                            lineageCounter );
+                            lineageCounter, sharedJunctions );
         
         lineageCounter++;
       }
@@ -347,30 +316,56 @@ public:
   // generate a cell starting at the bottom left with coord u and v with different lengths
   void generateCell( const std::pair<double, double> &start,
                      const std::pair<double, double> &length,
-                     const std::size_t treeId )
+                     const std::size_t treeId,
+                     const idPairSet &sharedJunctions )
   {
     // set of junctions for the cell
     std::vector<junction> vs;
-
-    for( std::size_t w = 0; w < 4; w++ )
+    std::vector< std::pair<double,double> > vertices;
+    vertices.resize( 4 * _cellSubdivisionLevel );
+    
+    for( std::size_t w = 0; w < vertices.size(); w++ )
     {
       junction j;
-      // perhaps not required because the size is correct?
-      T.W.insert(j);
+      unsigned int uiw = (unsigned int)(w/_cellSubdivisionLevel);
+      double cellLength;
+      double curLength = (double)w/(double)_cellSubdivisionLevel - (double)uiw;
       double u,v;
-      
-      switch(w)
+      switch(uiw)
       {
-        case 0: u = start.first; v = start.second; break;
-        case 1: u = start.first; v = start.second + length.second; break;
-        case 2: u = start.first + length.first; v = start.second + length.second; break;
-        case 3: u = start.first + length.first; v = start.second; break;
-        default: u = start.first; v = start.second; break;
+        case 0:
+          cellLength = length.second;
+          u = start.first;
+          v = start.second + curLength*cellLength;
+          break;
+        case 1:
+          cellLength = length.first;
+          u = start.first + curLength*cellLength;
+          v = start.second + length.second;
+          break;
+        case 2:
+          cellLength = length.second;
+          u = start.first + length.first;
+          v = start.second + length.second - curLength*cellLength;
+          break;
+        case 3:
+          cellLength = length.first;
+          u = start.first + length.first - curLength*cellLength;
+          v = start.second;
+          break;
+        default: u = v = 0.; break;
       }
       
+      //std::cout << "id: " << _jId << std::endl;
+      //std::cout << u << " " << v << std::endl;
+      vertices.at( w ) = std::make_pair( u, v );
+      j->id = _jId;
       lateralRoot.InitPoint( j->sp, u, v );
-      junctionAlreadyShared( j->sp, j );
+      junctionAlreadyShared( j->id, j, sharedJunctions );
+      
       vs.push_back(j);
+      
+      _jId++;
     }
     
     cell c;
@@ -412,15 +407,19 @@ public:
   
   //----------------------------------------------------------------
   
-  void junctionAlreadyShared( SurfacePoint sp, junction &js )
+  void junctionAlreadyShared( const std::size_t jId, junction &js,
+                              const idPairSet &sharedJunctions )
   {
     forall( const cell& c, T.C )
     {
       forall(const junction& j, T.S.neighbors(c))
       {
-        if( j->sp.Pos() == sp.Pos() )
+        idPairSet::const_iterator iter =
+        sharedJunctions.find( std::make_pair( jId, j->id ) );
+        if( iter != sharedJunctions.end() )
         {
           js = j;
+          std::cout << "true" << std::endl;
           return;
         }
       }
@@ -657,7 +656,11 @@ public:
     // for which number of cells should the division area ratio check apply
     // this is required since at the beginning only few divisions occur due
     // to the small increasing of area based on the inital area size
-    std::size_t areaRatioStart = 1;
+    std::size_t areaRatioStart;
+    if( T.C.size() > 1 )
+      areaRatioStart = 0;
+    else
+      areaRatioStart = 1;
     
     // Find cells to be divided
     std::list<cell> to_divide;

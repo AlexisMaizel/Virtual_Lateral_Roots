@@ -19,6 +19,7 @@
 
 #include <math.h>
 #include <fstream>
+#include <limits>
 
 #include <QTextStream>
 #include <stdio.h>
@@ -38,6 +39,7 @@ namespace DivisionType
 struct JunctionContent
 {
   SurfacePoint sp;
+  std::size_t id;
 };
 
 struct CellContent
@@ -89,6 +91,8 @@ struct WallContent
 };
 
 class MyModel;
+
+typedef std::set< std::pair<std::size_t,std::size_t> > idPairSet;
 
 typedef tissue::Tissue<MyModel, CellContent, JunctionContent, WallContent, graph::_EmptyEdgeContent, graph::_EmptyEdgeContent, graph::_EmptyEdgeContent, false> MyTissue;
 
