@@ -41,7 +41,6 @@ public:
   // defines the number of vertices for each wall of the init cells
   // #inner vertices of each wall = _cellSubdivisionLevel - 1
   std::size_t _cellSubdivisionLevel;
-	
 	std::pair<std::size_t, std::size_t> _divOccurrences;
   
   //----------------------------------------------------------------
@@ -149,7 +148,6 @@ public:
                             std::make_pair( 0.5, 1. ),
                             2, sharedJunctions );
       }
-      // TODO
       else if( _initialCellNumber == 8 )
         this->initLateralRoot();
       else
@@ -178,8 +176,17 @@ public:
                           1, sharedJunctions );
       
       // insert ids of shared junctions
-      sharedJunctions.insert( std::make_pair( 5, 2 ) );
-      sharedJunctions.insert( std::make_pair( 4, 3 ) );
+      sharedJunctions.insert( std::make_pair( 5*_cellSubdivisionLevel,
+                                              2*_cellSubdivisionLevel ) );
+      sharedJunctions.insert( std::make_pair( 4*_cellSubdivisionLevel,
+                                              3*_cellSubdivisionLevel ) );
+      
+      for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
+      {
+        std::size_t u = 4*_cellSubdivisionLevel + l;
+        std::size_t v = 3*_cellSubdivisionLevel - l;
+        sharedJunctions.insert( std::make_pair( u, v ) );
+      }
       
       this->generateCell( std::make_pair( 0.5, 0. ),
                           std::make_pair( 0.5, 1. ),
@@ -198,37 +205,49 @@ public:
           length = 2./5.;
         else
           length = 3./5.;
-          
-        if( c == 1 )
-        {
-          // insert ids of shared junctions
-          sharedJunctions.insert( std::make_pair( 5, 2 ) );
-          sharedJunctions.insert( std::make_pair( 4, 3 ) );
-        }
-        
+         
         this->generateCell( std::make_pair( u, v ),
                             std::make_pair( length, 1. ),
                             lineageCounter, sharedJunctions );
         
         lineageCounter++;
+        
+        // insert ids of shared junctions
+        sharedJunctions.insert( std::make_pair( 5*_cellSubdivisionLevel,
+                                                2*_cellSubdivisionLevel ) );
+        sharedJunctions.insert( std::make_pair( 4*_cellSubdivisionLevel,
+                                                3*_cellSubdivisionLevel ) );
+      
+        for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
+        {
+          std::size_t u = 4*_cellSubdivisionLevel + l;
+          std::size_t v = 3*_cellSubdivisionLevel - l;
+          sharedJunctions.insert( std::make_pair( u, v ) );
+        }
       }
     }
-    // TODO
     else if( dataset == "121211" )
     {
       std::size_t lineageCounter = 1;
    
-      // outer bigger cells
-      for( std::size_t c = 0; c < 2; c++ )
+      this->generateCell( std::make_pair( 0., 0. ),
+                          std::make_pair( 1./3., 1. ),
+                          lineageCounter, sharedJunctions );
+      
+      // insert ids of shared junctions
+      sharedJunctions.insert( std::make_pair( 5*_cellSubdivisionLevel,
+                                              2*_cellSubdivisionLevel ) );
+      sharedJunctions.insert( std::make_pair( 4*_cellSubdivisionLevel,
+                                              3*_cellSubdivisionLevel ) );
+    
+      for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
       {
-        double u = 0. + c*2./3.;
-        double v = 0.;
-        this->generateCell( std::make_pair( u, v ),
-                            std::make_pair( 1./3., 1. ),
-                            lineageCounter, sharedJunctions );
-        
-        lineageCounter++;
+        std::size_t u = 4*_cellSubdivisionLevel + l;
+        std::size_t v = 3*_cellSubdivisionLevel - l;
+        sharedJunctions.insert( std::make_pair( u, v ) );
       }
+      
+      lineageCounter++;
       
       // inner smaller cells
       for( std::size_t c = 0; c < 3; c++ )
@@ -240,14 +259,31 @@ public:
                             lineageCounter, sharedJunctions );
         
         lineageCounter++;
+        
+        // insert ids of shared junctions
+        sharedJunctions.insert( std::make_pair( (4*(c+2)+1)*_cellSubdivisionLevel,
+                                                (4*(c+2)-2)*_cellSubdivisionLevel ) );
+        sharedJunctions.insert( std::make_pair( 4*(c+2)*_cellSubdivisionLevel,
+                                                (4*(c+2)-1)*_cellSubdivisionLevel ) );
+      
+        for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
+        {
+          std::size_t u = 4*(c+2)*_cellSubdivisionLevel + l;
+          std::size_t v = (4*(c+2)-1)*_cellSubdivisionLevel - l;
+          sharedJunctions.insert( std::make_pair( u, v ) );
+        }
       }
+      
+      this->generateCell( std::make_pair( 2./3., 0. ),
+                          std::make_pair( 1./3., 1. ),
+                          lineageCounter, sharedJunctions );
     }
-    // TODO
     else if( dataset == "130508" )
+    {
       this->generateCell( std::make_pair( 0., 0. ),
                           std::make_pair( 1., 1. ),
                           1, sharedJunctions );
-    // TODO
+    }
     else if( dataset == "130607" )
     {
       std::size_t lineageCounter = 1;
@@ -267,6 +303,19 @@ public:
                             lineageCounter, sharedJunctions );
         
         lineageCounter++;
+        
+        // insert ids of shared junctions
+        sharedJunctions.insert( std::make_pair( 5*_cellSubdivisionLevel,
+                                                2*_cellSubdivisionLevel ) );
+        sharedJunctions.insert( std::make_pair( 4*_cellSubdivisionLevel,
+                                                3*_cellSubdivisionLevel ) );
+        
+        for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
+        {
+          std::size_t u = 4*_cellSubdivisionLevel + l;
+          std::size_t v = 3*_cellSubdivisionLevel - l;
+          sharedJunctions.insert( std::make_pair( u, v ) );
+        }
       }
     }
     else
@@ -283,10 +332,42 @@ public:
     // and right boundary
     
     idPairSet sharedJunctions;
+    
+    // insert ids of shared junctions
+    for( std::size_t c = 1; c < 7; c++ )
+    {
+      sharedJunctions.insert( std::make_pair( 4*(c+1), 4*(c+1)-5 ) );
+      sharedJunctions.insert( std::make_pair( 4*(c+1)+1, 4*(c+1)-6 ) );
+      if( c < 5 )
+      {
+        sharedJunctions.insert( std::make_pair( 8*c-4, 8*c-7 ) );
+        sharedJunctions.insert( std::make_pair( 8*c-1, 8*c-6 ) );
+      }
+      
+      // vertices shared by 4 points
+      if( c < 4 )
+      {
+        sharedJunctions.insert( std::make_pair( 8*c+1, 8*c-1 ) );
+        sharedJunctions.insert( std::make_pair( 8*(c+1)-4, 8*(c-1)+2 ) );
+      }
+    }
+    
     std::size_t lineageCounter = 1;
+    
+    for( std::size_t h = 0; h < 2; h++ )
+    {
+      double u = 0.;
+      double v = h*1./2.;
+      this->generateCell( std::make_pair( u, v ),
+                          std::make_pair( 1./3., 1./2. ),
+                          lineageCounter, sharedJunctions );
+      
+      lineageCounter++;
+    }
     
     // init the inner smaller cells
     for( std::size_t w = 0; w < 2; w++ )
+    {
       for( std::size_t h = 0; h < 2; h++ )
       {
         double u = 1./3. + w*1./6.;
@@ -297,19 +378,18 @@ public:
         
         lineageCounter++;
       }
+    }
     
-    // then the outer bigger cells
-    for( std::size_t w = 0; w < 2; w++ )
-      for( std::size_t h = 0; h < 2; h++ )
-      {
-        double u = 0. + w*2./3.;
-        double v = 0. + h*1./2.;
-        this->generateCell( std::make_pair( u, v ),
-                            std::make_pair( 1./3., 1./2. ),
-                            lineageCounter, sharedJunctions );
-        
-        lineageCounter++;
-      }
+    for( std::size_t h = 0; h < 2; h++ )
+    {
+      double u = 2./3.;
+      double v = h*1./2.;
+      this->generateCell( std::make_pair( u, v ),
+                          std::make_pair( 1./3., 1./2. ),
+                          lineageCounter, sharedJunctions );
+      
+      lineageCounter++;
+    }
   }
   //----------------------------------------------------------------
   
@@ -356,8 +436,6 @@ public:
         default: u = v = 0.; break;
       }
       
-      //std::cout << "id: " << _jId << std::endl;
-      //std::cout << u << " " << v << std::endl;
       vertices.at( w ) = std::make_pair( u, v );
       j->id = _jId;
       lateralRoot.InitPoint( j->sp, u, v );
@@ -419,7 +497,6 @@ public:
         if( iter != sharedJunctions.end() )
         {
           js = j;
-          std::cout << "true" << std::endl;
           return;
         }
       }
@@ -496,11 +573,15 @@ public:
     
     QString status = QString( "# Vertices: %1 \t "
                               "# Cells: %2 \t"
-                              "Time step: %3 \t ").
+                              "Time step: %3 \t"
+                              "AD: %4 \t"
+                              "PD: %5 \t ").
                               arg(T.W.size()).
                               arg(T.C.size()).
-                              arg(_time);
-    
+                              arg(_time).
+                              arg(_divOccurrences.first).
+                              arg(_divOccurrences.second);
+                              
     if( useAreaRatio )
       status += QString( "Area divison ratio: %1 \t" ).arg(divisionAreaRatio);
     
@@ -797,12 +878,6 @@ public:
       this->step_growth();
     }
     this->setStatus();
-		
-		if( _time == _maxTime )
-		{
-			std::cout << "Anticlinal divisions: " << _divOccurrences.first << std::endl;
-			std::cout << "Periclinal divisions: " << _divOccurrences.second << std::endl;
-		}
   }
 
   //----------------------------------------------------------------

@@ -31,9 +31,7 @@ LabTableShell:
 	OBJSHELL
 
 VVE:
-	run:
-		make run
-	build:
+	build and run:
 		make -j4 && make run
 	clean:
 		make clean
