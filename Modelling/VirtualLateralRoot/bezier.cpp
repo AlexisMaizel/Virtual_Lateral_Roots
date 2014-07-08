@@ -185,9 +185,9 @@ Point3d Bezier::EvalCoord( double u, double v )
   for(unsigned int j = 0; j < PATCHPOINTS; j++)
     for(unsigned int i = 0; i < PATCHPOINTS; i++)
     {
-      double s = (double)Choose(PATCHPOINTS - 1, i) * pow(u, i) * 
+      double s = (double)Choose(PATCHPOINTS - 1, i) * std::pow(u, (int)i) * 
                           pow(1.0 - u, (int)(PATCHPOINTS - 1 - i)) *
-                 (double)Choose(PATCHPOINTS - 1, j) * pow(v, j) * 
+                 (double)Choose(PATCHPOINTS - 1, j) * std::pow(v, (int)j) * 
                     pow(1.0 - v, (int)(PATCHPOINTS - 1 - j));
       x += s * *pts++;
       y += s * *pts++;
