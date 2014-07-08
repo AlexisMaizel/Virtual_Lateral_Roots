@@ -288,15 +288,21 @@ public:
     {
       std::size_t lineageCounter = 1;
    
-      for( std::size_t c = 0; c < 2; c++ )
+      for( std::size_t c = 0; c < 3; c++ )
       {
-        double u = 0. + c*2./5.;
-        double v = 0.;
-        double length;
+        double length,u,v;
         if( c == 0 )
-          length = 2./5.;
+        {
+          length = 1./5.;
+          u = 0.;
+          v = 0.;
+        }
         else
-          length = 3./5.;
+        {
+          length = 2./5.;
+          u = 1./5. + (c-1)*2./5.;
+          v = 0.;
+        }
           
         this->generateCell( std::make_pair( u, v ),
                             std::make_pair( length, 1. ),
@@ -305,15 +311,15 @@ public:
         lineageCounter++;
         
         // insert ids of shared junctions
-        sharedJunctions.insert( std::make_pair( 5*_cellSubdivisionLevel,
-                                                2*_cellSubdivisionLevel ) );
-        sharedJunctions.insert( std::make_pair( 4*_cellSubdivisionLevel,
-                                                3*_cellSubdivisionLevel ) );
-        
+        sharedJunctions.insert( std::make_pair( (4*(c+1)+1)*_cellSubdivisionLevel,
+                                                (4*(c+1)-2)*_cellSubdivisionLevel ) );
+        sharedJunctions.insert( std::make_pair( 4*(c+1)*_cellSubdivisionLevel,
+                                                (4*(c+1)-1)*_cellSubdivisionLevel ) );
+      
         for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
         {
-          std::size_t u = 4*_cellSubdivisionLevel + l;
-          std::size_t v = 3*_cellSubdivisionLevel - l;
+          std::size_t u = 4*(c+1)*_cellSubdivisionLevel + l;
+          std::size_t v = (4*(c+1)-1)*_cellSubdivisionLevel - l;
           sharedJunctions.insert( std::make_pair( u, v ) );
         }
       }

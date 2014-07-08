@@ -2,8 +2,8 @@
 Dt: .1 // how fast the shape of the end stage is reached, default 0.01
 Growth: .1  // not considered in code
 InitialCellNumber: 8 // initial cell number designed for VLR: 1, 2 or 8
-InitialCellsOfRealData: none // valid entries are: none, 120830, 121204, 121211, 130508, 130607
-SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
+InitialCellsOfRealData: 121211 // valid entries are: none, 120830, 121204, 121211, 130508, 130607
+SubDivisionLevelOfCells: 5 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
 ExportLineage: true // export lineage information of cells
 ExportDivisionProperties: true // export division information of cells
 
@@ -14,7 +14,7 @@ BackgroundColor: 255
 [Division]
 DivisionArea: 0.06 // 0.075 threshold size of cells before they divide
 UseAreaRatio: true
-DivisionAreaRatio: 0.4 // 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionAreaRatio: 0.345 // 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseWallRatio: false
 DivisionWallRatio: 0.45 // 0.45 divide a cell if a wall of the cell is longer than a certain percentage of the initial length
 UseDecussationDivision: false
