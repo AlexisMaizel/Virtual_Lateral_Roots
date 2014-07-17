@@ -12,10 +12,11 @@ public:
   MyTissue T;
 
   double dt;
-  double divisionArea;
   bool useAreaRatio;
-  double divisionAreaRatio;
+  bool useCombinedAreaRatio;
   bool useWallRatio;
+  double divisionArea;
+  double divisionAreaRatio;
   double divisionWallRatio;
   int bgColor;
   int stepPerView;
@@ -59,8 +60,9 @@ public:
     parms("View", "BackgroundColor", bgColor);
 
     parms( "Division", "DivisionArea", divisionArea);
-    parms( "Division", "UseAreaRatio", useAreaRatio);
     parms( "Division", "DivisionAreaRatio", divisionAreaRatio);
+    parms( "Division", "UseAreaRatio", useAreaRatio);
+    parms( "Division", "UseCombinedAreaRatio", useCombinedAreaRatio);
     parms( "Division", "UseWallRatio", useWallRatio);
     parms( "Division", "DivisionWallRatio", divisionWallRatio);
     parms( "Division", "UseDecussationDivision", useDecussationDivision );
@@ -587,8 +589,13 @@ public:
                               arg(_time).
                               arg(_divOccurrences.first).
                               arg(_divOccurrences.second);
-                              
-    if( useAreaRatio )
+    
+    if( useCombinedAreaRatio )
+    {
+      status += QString( "Area divison: %1 \t" ).arg(divisionArea);
+      status += QString( "Area divison ratio: %1 \t" ).arg(divisionAreaRatio);
+    }
+    else if( useAreaRatio )
       status += QString( "Area divison ratio: %1 \t" ).arg(divisionAreaRatio);
     
     if( useWallRatio )
@@ -782,7 +789,16 @@ public:
         if( a > initialArea || l > initialLongestLength )
           to_divide.push_back(c);
       }
-      // only apply the division based on ratio with at least eight cells
+      // apply a division if the cells area exceeds a certain threshold or area ratio
+      else if( useCombinedAreaRatio && c->id > areaRatioStart )
+      {
+        // divide cells if their area size has increased by a certain percentage amount
+        double initialArea = c->initialArea;
+        initialArea += initialArea*divisionAreaRatio;
+        if( a > initialArea || a > divisionArea )
+          to_divide.push_back(c);
+      }
+      // only apply the division based on ratio with at least areaRatioStart cells
       else if( useAreaRatio && c->id > areaRatioStart )
       {
         // divide cells if their area size has increased by a certain percentage amount
@@ -791,7 +807,7 @@ public:
         if( a > initialArea )
           to_divide.push_back(c);
       }
-      // only apply the division based on ratio with at least eight cells
+      // only apply the division based on ratio with at least areaRatioStart cells
       else if( useWallRatio && c->id > areaRatioStart )
       {
         // divide cell if its wall length has increased by a certain percentage amount
@@ -914,7 +930,11 @@ public:
   void draw(Viewer* viewer)
   {
     forall(const cell& c, T.C)
+    {
+      //T.drawBorders = false;
+      T.cellWallWidth = 0.002;
       T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.7 );
+    }
   }
 
   //----------------------------------------------------------------
