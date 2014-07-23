@@ -1,7 +1,7 @@
 [Main]
 Dt: .1 // how fast the shape of the end stage is reached, default 0.01
 Growth: .1  // not considered in code
-InitialCellNumber: 8 // initial cell number designed for VLR: 1, 2 or 8
+InitialCellNumber: 1 // initial cell number designed for VLR: 1, 2 or 8
 InitialCellsOfRealData: 121211 // valid entries are: none, 120830, 121204, 121211, 130508, 130607
 SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
 ExportLineage: true // export lineage information of cells
@@ -12,8 +12,8 @@ StepPerView: 1
 BackgroundColor: 255
 
 [Division]
-DivisionArea: 0.2 // 0.075 threshold size of cells before they divide
-DivisionAreaRatio: 0.345 // 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionArea: 0.025 // 0.075 threshold size of cells before they divide
+DivisionAreaRatio: 0.2 // 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
@@ -21,7 +21,7 @@ DivisionWallRatio: 0.45 // 0.45 divide a cell if a wall of the cell is longer th
 UseDecussationDivision: false
 ProbabilityOfDecussationDivision: 0.9 // probability for having a decussation division (has to be in [0, 1])
 DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal and periclinal division
-CellColoringType: 0 // cell coloring type: 0 -> cells are colored based on founder cells/lineage trees; 1 -> cells are colored based on layer assignments after each periclinal division
+CellColoringType: 0 // cell coloring type: 0 -> cells are colored based on founder cells/lineage trees; 1 -> cells are colored based on layer assignments after each periclinal division; 2 -> cells are colored based on type: interior or boundary
 
 [Tissue]
 DivisionAlgorithm: ShortWall // ClosestWall ShortWall ClosestMid

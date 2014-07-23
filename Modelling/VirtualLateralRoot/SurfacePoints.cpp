@@ -10,8 +10,8 @@
 
 SurfacePoints::SurfacePoints()
 {
-  this->readTriangulation( "/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/FinalVLRForMatlab/triangulation-120830_raw.txt" );
-  this->printTriangleProperties( 9 );
+  //this->readTriangulation( "/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/FinalVLRForMatlab/triangulation-120830_raw.txt" );
+  //this->printTriangleProperties( 9 );
 }
 
 //----------------------------------------------------------------

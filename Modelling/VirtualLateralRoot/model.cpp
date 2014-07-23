@@ -763,7 +763,7 @@ public:
     // Find cells to be divided
     std::list<cell> to_divide;
     forall(const cell& c, T.C)
-    { 
+    {
       // update center position
       std::vector<Point3d> polygon;
       Point3d center;
@@ -799,7 +799,7 @@ public:
         // divide cells if their area size has increased by a certain percentage amount
         double initialArea = c->initialArea;
         initialArea += initialArea*divisionAreaRatio;
-        if( a > initialArea || a > divisionArea )
+        if( a > initialArea && a > divisionArea )
           to_divide.push_back(c);
       }
       // only apply the division based on ratio with at least areaRatioStart cells
@@ -937,6 +937,8 @@ public:
     {
       //T.drawBorders = false;
       T.cellWallWidth = 0.002;
+      //T.cellWallMin = 0.0001;
+      //T.strictCellWallMin = true;
       T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.7 );
     }
   }
@@ -957,6 +959,13 @@ public:
         return palette.getColor( _layerColorIndex.at(c->layerValue-1) );
       else
         return palette.getColor( _layerColorIndex.at(_layerColorIndex.size()-1) );
+      case 2:
+        // boundary
+        if( T.border( c ) )
+          return palette.getColor(2);
+        // inner cell
+        else
+          return palette.getColor(1);
     }
   }
 

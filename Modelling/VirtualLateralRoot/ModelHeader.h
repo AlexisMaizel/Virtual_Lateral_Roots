@@ -33,6 +33,7 @@ using util::norm;
 
 namespace DivisionType
 {
+  // the numbers are chosen depending on the index of colors in the color palette
   enum type { ANTICLINAL=3, PERICLINAL=1, RADIAL=2, NONE=5 };
 };
 
