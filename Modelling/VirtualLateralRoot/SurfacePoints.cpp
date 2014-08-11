@@ -10,8 +10,8 @@
 
 SurfacePoints::SurfacePoints()
 {
-  //this->readTriangulation( "/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/FinalVLRForMatlab/triangulation-120830_raw.txt" );
-  //this->printTriangleProperties( 9 );
+  this->readTriangulation( "/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/FinalVLRForMatlab/triangulation-120830_raw.txt" );
+  this->printTriangleProperties( 0 );
 }
 
 //----------------------------------------------------------------
@@ -24,6 +24,7 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
   
   in >> maxTimeStep;
   _points.resize( maxTimeStep );
+  _subsequentPoints.resize( maxTimeStep-1 );
   _triangles.resize( maxTimeStep );
   
   for( std::size_t t = 0; t < maxTimeStep; t++ )
@@ -33,6 +34,7 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
     in >> pSize;
     _points.at( t ).resize( pSize );
     
+    // read points of time step t
     for( std::size_t p = 0; p < pSize; p++ )
     {
       double px, py;
@@ -40,6 +42,7 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
       _points.at(t).at(p) = Point2d( px, py );
     }
     
+    // read triangle list info
     in >> tSize;
     _triangles.at( t ).resize( tSize );
     
@@ -48,6 +51,18 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
       std::size_t t1, t2, t3;
       in >> t1 >> t2 >> t3;
       _triangles.at(t).at(tr) = Point3i( t1, t2, t3 );
+    }
+    
+    // read subsequent mapped points of time step t+1
+    if( t < maxTimeStep - 1 )
+    {
+      _subsequentPoints.at( t ).resize( pSize );
+      for( std::size_t p = 0; p < pSize; p++ )
+      {
+        double px, py;
+        in >> px >> py;
+        _subsequentPoints.at(t).at(p) = Point2d( px, py );
+      }
     }
   }
   

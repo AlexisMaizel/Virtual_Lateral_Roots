@@ -962,10 +962,10 @@ public:
       case 2:
         // boundary
         if( T.border( c ) )
-          return palette.getColor(2);
+          return palette.getColor(1);
         // inner cell
         else
-          return palette.getColor(1);
+          return palette.getColor(2);
     }
   }
 

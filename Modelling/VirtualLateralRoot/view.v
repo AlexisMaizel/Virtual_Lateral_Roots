@@ -2,7 +2,7 @@
 Dt: .1 // how fast the shape of the end stage is reached, default 0.01
 Growth: .1  // not considered in code
 InitialCellNumber: 1 // initial cell number designed for VLR: 1, 2 or 8
-InitialCellsOfRealData: 121211 // valid entries are: none, 120830, 121204, 121211, 130508, 130607
+InitialCellsOfRealData: 120830 // valid entries are: none, 120830, 121204, 121211, 130508, 130607
 SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
 ExportLineage: true // export lineage information of cells
 ExportDivisionProperties: true // export division information of cells
