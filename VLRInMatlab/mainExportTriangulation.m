@@ -79,6 +79,8 @@ for dataIndex=startD:endD
   end
   % Time Step
   TCol = data{5};
+  % precursors of cells
+  PCol = data{7};
   % Lineage Tree Id
   LCol = data{9};
   % temporal for data 131203
@@ -130,8 +132,8 @@ for dataIndex=startD:endD
   
   % cellData is the main array with all relevant information
   % for the further analysis:
-  % ObjectID X Y Z Timepoint LineageID TrackGroup
-  cellData = cell( dim, 7 );
+  % ObjectID X Y Z Timepoint LineageID TrackGroup Last precursor
+  cellData = cell( dim, 8 );
   cellFileMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
   
   l = 1;
@@ -140,8 +142,16 @@ for dataIndex=startD:endD
   while (l < numLines+1)
     firstCellId = IdCol(l);
     secondCellId = IdCol(l+1);
+    
+    % check last precursor to detect daughter cells and the id of
+    % their last parent
+    % if the id is -1 than the cell starts at the root which we use as an
+    % identification of non daughter cells
+    % we set this value for all points interpolated in between
+    lastPrecur = getLastPrecursorID( PCol(l) );
+    
     % insert first line
-    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l)};
+    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) lastPrecur};
     nl = nl+1;
     
     % interpolate between cell positions
@@ -158,12 +168,12 @@ for dataIndex=startD:endD
         y = double(1-k) * YCol(l) + double(k) * YCol(l+1);
         z = double(1-k) * ZCol(l) + double(k) * ZCol(l+1);
         % insert all relevant data into main data structure
-        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l)};
+        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) -1};
         nl = nl+1;
       end
       
       % insert last line
-      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1)};
+      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) -1};
       nl = nl+1;
       % update cell file map
       cellFileMap( firstCellId ) = CFCol(l);
@@ -249,10 +259,10 @@ for dataIndex=startD:endD
   %%% Traversal over all time steps %%%
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
-fileName = strcat( '../FinalVLRForMatlab/triangulation-', dataStr( 1, dataIndex ), '.txt' );
-fileId = fopen( char(fileName), 'a' );
-% first write the maximum number of time steps
-fprintf( fileId, '%1d\n', maxT - startT + 1 );
+  fileName = strcat( '../FinalVLRForMatlab/triangulation-', dataStr( 1, dataIndex ), '.txt' );
+  fileId = fopen( char(fileName), 'w' );
+  % first write the maximum number of time steps
+  fprintf( fileId, '%1d\n', maxT - startT + 1 );
   
   % loop over all time steps
   for curT=startT:maxT
@@ -260,7 +270,10 @@ fprintf( fileId, '%1d\n', maxT - startT + 1 );
     numCells = 0;
     
     % matrix of positions for current time step
-    matPos = [];
+    curPos = [];
+    
+    % cell ids
+    cellIDs = [];
     
     for j=1:dim
       if cellData{ j, 5 } == curT
@@ -273,9 +286,60 @@ fprintf( fileId, '%1d\n', maxT - startT + 1 );
         pos = projectOnPlane( pos, planePos, u, v );
         pos = transformPoint3d( pos, TF );
         
-        matPos = [matPos; pos];
+        curPos = [curPos; pos];
+        cellIDs = [cellIDs; cellData{ j, 1 }];
         numCells = numCells +1;
       end
+    end
+    % not that elegenat but necessary to go over the whole loop again
+    nextPos = zeros( numCells, 3 );
+    daughterPos = [];
+    for j=1:dim
+      % also check next time step
+      if cellData{ j, 5 } == curT+1
+        
+        if renderSingleCellFile == 1 && cellData{ j, 7 } ~= 0
+          continue;
+        end
+        
+        pos = [ cellData{ j, 2 } cellData{ j, 3 } cellData{ j, 4 } ];
+        pos = projectOnPlane( pos, planePos, u, v );
+        pos = transformPoint3d( pos, TF );
+        
+        % ID of precursor
+        cellID = cellData{ j, 1 };
+        precurID = cellData{ j, 8 };
+        
+        % if the cell is a daughter cell of a non-division cell
+        % then the pos of the next time step is located at the same index
+        % position as in the previous time step
+        if precurID == -1
+          [row,col] = find( cellIDs == cellID );
+          nextPos( row, :) = pos;
+        % else there is a division and we store the both positions of
+        % the two daughter cells to later generate a cell that is associated with
+        % the cell at the previous time step
+        else
+          [row,col] = find( cellIDs == precurID );
+          daughterPos = [ daughterPos; row pos ];
+        end
+      end
+    end
+    
+    % compute the mid for all daughter cells that followed quite after a
+    % division such that nextPos and curPos have the same dimension for
+    % applying the triangulation in t to the point set in t+1
+    if size( daughterPos, 1 ) > 0
+      sortrows( daughterPos, 1 );
+    end
+    d = 1;
+    while d<size( daughterPos, 1 )
+      index = daughterPos( d, 1 );
+      pos1 = daughterPos( d, 2:4 );
+      pos2 = daughterPos( d+1, 2:4 );
+      newPos = (pos1 + pos2)/2;
+      nextPos( index, :) = newPos;
+      d = d + 2;
     end
     
     % clean figure content by removing the
@@ -292,25 +356,30 @@ fprintf( fileId, '%1d\n', maxT - startT + 1 );
     
     if triangulationType == 1
       % delaunay triangulation
-      tri = delaunayTriangulation( matPos(:,1), matPos(:,2) );
+      curTri = delaunayTriangulation( curPos(:,1), curPos(:,2) );
     else
       % alpha shape triangulation
-      [Vol,Shape] = alphavol( [ matPos(:,1) matPos(:,2) matPos(:,3) ], sqrt( alphaRadiiVector( curT, 1 )) );
-      tri = Shape.tri;
+      [Vol,Shape] = alphavol( [ curPos(:,1) curPos(:,2) curPos(:,3) ], sqrt( alphaRadiiVector( curT, 1 )) );
+      curTri = Shape.tri;
     end
+    
     % export triangulation properties
-    exportTriangulation( tri, curT, dataStr( 1, dataIndex ) );
+    exportTriangulation( curTri, curT, dataStr( 1, dataIndex ) );
+    
+    if curT ~= maxT
+      exportTriangulationWithNewPos( curTri, curT, nextPos, dataStr( 1, dataIndex ) );
+    end
     
     % if at least three cells exists
     if drawDelaunay == 1 && triangulationType == 1 && numCells > 2
-      triplot( tri, 'r' );
+      triplot( curTri, 'r' );
     end
     
     points = zeros( numCells, 3 );
     % draw an ellipsoid for each cell
     for c=1:numCells
       % get position of current cell
-      p1 = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
+      p1 = [ curPos( c, 1 ) curPos( c, 2 ) curPos( c, 3 ) ];
       
       points( c, : ) = p1;
       
