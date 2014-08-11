@@ -10,8 +10,6 @@
 
 SurfacePoints::SurfacePoints()
 {
-  this->readTriangulation( "/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/FinalVLRForMatlab/triangulation-120830_raw.txt" );
-  this->printTriangleProperties( 0 );
 }
 
 //----------------------------------------------------------------
@@ -20,14 +18,12 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
 {
   std::ifstream in( fileName.c_str(), std::ifstream::in );
 
-  std::size_t maxTimeStep;
+  in >> _maxTimeStep;
+  _points.resize( _maxTimeStep );
+  _subsequentPoints.resize( _maxTimeStep-1 );
+  _triangles.resize( _maxTimeStep );
   
-  in >> maxTimeStep;
-  _points.resize( maxTimeStep );
-  _subsequentPoints.resize( maxTimeStep-1 );
-  _triangles.resize( maxTimeStep );
-  
-  for( std::size_t t = 0; t < maxTimeStep; t++ )
+  for( std::size_t t = 0; t < _maxTimeStep; t++ )
   {
     std::size_t time, pSize, tSize;
     in >> time;
@@ -54,7 +50,7 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
     }
     
     // read subsequent mapped points of time step t+1
-    if( t < maxTimeStep - 1 )
+    if( t < _maxTimeStep - 1 )
     {
       _subsequentPoints.at( t ).resize( pSize );
       for( std::size_t p = 0; p < pSize; p++ )
@@ -67,6 +63,41 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
   }
   
   in.close();
+}
+
+//----------------------------------------------------------------
+
+void SurfacePoints::interpolate( double timeStep )
+{
+  if( timeStep > 1. )
+    timeStep = 1.;
+  if( timeStep < 0. )
+    timeStep = 0.;
+  
+  // get range of time steps that fit the current timeStep value
+  double time = timeStep * (_maxTimeStep-1);
+  std::size_t startT = (std::size_t)time;
+  
+  // the triangle list is just copied by the lower time step
+  _curTriangles = _triangles.at(startT);
+  
+  // then interpolate linearly between these two time steps
+  // depending on the factor difference
+  double factor = time - (double)startT;
+  
+  // if the last time step is reached then just set the last entry
+  if( startT == _maxTimeStep-1 )
+    _curPoints = _points.at(startT);
+  else
+  {
+    _curPoints.clear();
+    for( std::size_t p = 0; p < _points.at(startT).size(); p++ )
+    {
+      Point2d pos = factor * _points.at(startT).at(p) + _subsequentPoints.at(startT).at(p) * (1.-factor);
+      pos /= 2.;
+      _curPoints.push_back( pos );
+    }
+  }
 }
 
 //----------------------------------------------------------------
@@ -86,8 +117,10 @@ Point2d SurfacePoints::getCoord( const double l1, const double l2, const double 
 //----------------------------------------------------------------
 
 // compute area coordinates depending on the index of triangle
-void SurfacePoints::getBarycentricCoord( double &l1, double &l2, double &l3, const Point2d &p,
-                                         const std::size_t triIndex, const std::size_t timeStep )
+void SurfacePoints::getBarycentricCoord( double &l1, double &l2, double &l3,
+                                         const Point2d &p,
+                                         const std::size_t triIndex,
+                                         const std::size_t timeStep )
 {
   Point3i indexes = _triangles.at(timeStep).at(triIndex);
   Point2d p1 = _points.at(timeStep).at( indexes.i() );

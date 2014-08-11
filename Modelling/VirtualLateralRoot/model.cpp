@@ -1,7 +1,7 @@
 #include "ModelHeader.h"
 #include "ModelExporter.h"
 #include "ModelUtils.h"
-#include "SurfacePoints.h"
+#include "RealSurface.h"
 
 class MyModel : public Model 
 {
@@ -108,7 +108,7 @@ public:
     registerFile("view.v");
 
     // testing
-    SurfacePoints spp;
+    RealSurface surface( parms, "Surface" );
     
     // single layer assignment
     //for( std::size_t l = 9; l < 14; l++ )
