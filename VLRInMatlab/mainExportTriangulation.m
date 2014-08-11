@@ -367,7 +367,7 @@ for dataIndex=startD:endD
     exportTriangulation( curTri, curT, dataStr( 1, dataIndex ) );
     
     if curT ~= maxT
-      exportTriangulationWithNewPos( curTri, curT, nextPos, dataStr( 1, dataIndex ) );
+      exportNewPosOfTriangulation( nextPos, dataStr( 1, dataIndex ) );
     end
     
     % if at least three cells exists
