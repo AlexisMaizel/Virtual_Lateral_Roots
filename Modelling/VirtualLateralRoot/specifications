@@ -3,6 +3,10 @@ ModelExporter.cpp
 ModelExporter.h
 ModelUtils.cpp
 ModelUtils.h
+RealSurface.cpp
+RealSurface.h
+SurfacePoints.cpp
+SurfacePoints.h
 model.cpp
 model.expmap
 bezier.cpp
@@ -38,7 +42,7 @@ VVE:
 
 Files:
 	all:
-		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h
+		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h SurfacePoints.cpp SurfacePoints.h RealSurface.cpp RealSurface.h
 	program:
 		EDIT model.cpp
 	parameters:

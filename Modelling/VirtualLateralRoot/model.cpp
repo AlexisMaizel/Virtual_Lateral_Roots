@@ -7,15 +7,16 @@ class MyModel : public Model
   Q_OBJECT
 public: 
   util::Parms parms;
-  util::Palette palette;
 	Surface lateralRoot;
+  RealSurface lateralRoot2;
+  util::Palette palette;
   MyTissue T;
-
   double dt;
-  double divisionArea;
   bool useAreaRatio;
-  double divisionAreaRatio;
+  bool useCombinedAreaRatio;
   bool useWallRatio;
+  double divisionArea;
+  double divisionAreaRatio;
   double divisionWallRatio;
   int bgColor;
   int stepPerView;
@@ -26,6 +27,7 @@ public:
   double probabilityOfDecussationDivision;
   bool useDecussationDivision;
   double _angleThreshold;
+  std::size_t surfaceType;
   
   std::size_t _idCounter;
   std::size_t _time;
@@ -54,13 +56,15 @@ public:
     parms("Main", "SubDivisionLevelOfCells", _cellSubdivisionLevel);
     parms("Main", "ExportLineage", exportLineage);
     parms("Main", "ExportDivisionProperties", exportDivisionProperties);
+    parms("Main", "SurfaceType", surfaceType);
 
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
 
     parms( "Division", "DivisionArea", divisionArea);
-    parms( "Division", "UseAreaRatio", useAreaRatio);
     parms( "Division", "DivisionAreaRatio", divisionAreaRatio);
+    parms( "Division", "UseAreaRatio", useAreaRatio);
+    parms( "Division", "UseCombinedAreaRatio", useCombinedAreaRatio);
     parms( "Division", "UseWallRatio", useWallRatio);
     parms( "Division", "DivisionWallRatio", divisionWallRatio);
     parms( "Division", "UseDecussationDivision", useDecussationDivision );
@@ -91,8 +95,8 @@ public:
 
   //----------------------------------------------------------------
   
-  MyModel(QObject *parent) : Model(parent), parms("view.v"), palette("pal.map"), 
-    lateralRoot(parms, "Surface"), T(palette, this),
+  MyModel(QObject *parent) : Model(parent), parms("view.v"),
+    lateralRoot( parms, "Surface" ), lateralRoot2( parms, "Surface" ), palette("pal.map"), T(palette, this),
     _idCounter(1), _time(1), _maxTime(300), _jId( 0 ),
     _lineageFileName( "/tmp/model.csv" ),
     _cellWallsFileName( "/tmp/modelCellWalls.csv" ),
@@ -103,7 +107,7 @@ public:
     // Registering the configuration files
     registerFile("pal.map");
     registerFile("view.v");
-
+    
     // single layer assignment
     //for( std::size_t l = 9; l < 14; l++ )
     // multiple layer assignment for each new daughter cell
@@ -122,7 +126,11 @@ public:
     if( _cellSubdivisionLevel < 1 )
       _cellSubdivisionLevel = 1;
     
-    lateralRoot.GrowStep(0);
+    if( surfaceType == 0 )
+      lateralRoot.GrowStep(0);
+    else
+      lateralRoot2.growStep(0);
+      
     idPairSet sharedJunctions;
     
     // special cases of number of cells at the beginning
@@ -130,9 +138,14 @@ public:
     {
       if( _initialCellNumber == 1 )
       {
-        this->generateCell( std::make_pair( 0., 0. ),
-                            std::make_pair( 1., 1. ),
-                            1, sharedJunctions );
+        if( surfaceType == 0 )
+        {
+          this->generateCell( std::make_pair( 0., 0. ),
+                              std::make_pair( 1., 1. ),
+                              1, sharedJunctions );
+        }
+        else
+          this->generateTriangleCell( 1 );
       }
       else if( _initialCellNumber == 2 )
       {
@@ -405,6 +418,7 @@ public:
                      const std::size_t treeId,
                      const idPairSet &sharedJunctions )
   {
+    // TODO: use of mergeCells method instead of checking shared junctions
     // set of junctions for the cell
     std::vector<junction> vs;
     std::vector< std::pair<double,double> > vertices;
@@ -445,6 +459,7 @@ public:
       vertices.at( w ) = std::make_pair( u, v );
       j->id = _jId;
       lateralRoot.InitPoint( j->sp, u, v );
+        
       junctionAlreadyShared( j->id, j, sharedJunctions );
       
       vs.push_back(j);
@@ -483,7 +498,75 @@ public:
     c->longestWallLength = c->initialLongestWallLength;
     lateralRoot.SetPoint(c->sp, c->sp, center);
     
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
+    if( exportLineage )
+      ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
+    
+    // afterwards increment the id counter
+    _idCounter++;
+  }
+  
+  //----------------------------------------------------------------
+  
+  // generate a triangle cell
+  void generateTriangleCell( const std::size_t treeId )
+  {
+    // set of junctions for the cell
+    std::vector<junction> vs;
+    
+    for( std::size_t w = 0; w < 4 * _cellSubdivisionLevel; w++ )
+    {
+      junction j;
+      j->id = _jId;
+      switch(w)
+      {
+        //case 0: j->tp.setUVWT( 0., 0., 1., 0 ); break;
+        //case 1: j->tp.setUVWT( 0., 1., 0., 0 ); break;
+        //case 2: j->tp.setUVWT( 1., 0., 0., 0 ); break;
+        case 0: lateralRoot2.setPos( j->tp, Point3d( 115., -100., 0. ) ); break;
+        case 1: lateralRoot2.setPos( j->tp, Point3d( 112., -68., 0. ) ); break;
+        case 2: lateralRoot2.setPos( j->tp, Point3d( 520., -65., 0. ) ); break;
+        case 3: lateralRoot2.setPos( j->tp, Point3d( 520., -100., 0. ) ); break;
+      }
+      //lateralRoot2.initPoint( j->tp );
+      vs.push_back(j);
+      _jId++;
+    }
+    
+    cell c;
+    c->treeId = treeId;
+    c->id = _idCounter;
+    c->parentId = _idCounter;
+    c->timeStep = _time;
+    c->previousAngle = 0.;
+    c->angle = 0.;
+    c->previousDivDir = Point3d( 0., 0., 0. );
+    c->divDir = Point3d( 0., 0., 0. );
+    c->divType = DivisionType::NONE;
+    c->layerValue = 1;
+    c->cellCycle = 0;
+    T.addCell( c, vs );
+    
+    std::vector<Point2d> polygon;
+    Point3d center;
+    forall(const junction& j, T.S.neighbors(c))
+    {
+      polygon.push_back(j->tp.Pos());
+      center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+    }
+    center /= polygon.size();
+
+    //std::cout << "center: " << center << std::endl;
+    
+    // store initial area for current cell
+    c->center = center;
+    c->initialArea = geometry::polygonArea(polygon);
+    c->area = c->initialArea;
+    c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
+    c->longestWallLength = c->initialLongestWallLength;
+    lateralRoot2.setPos(c->tp, center);
+    
+    if( exportLineage )
+      ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
     
     // afterwards increment the id counter
     _idCounter++;
@@ -587,8 +670,13 @@ public:
                               arg(_time).
                               arg(_divOccurrences.first).
                               arg(_divOccurrences.second);
-                              
-    if( useAreaRatio )
+    
+    if( useCombinedAreaRatio )
+    {
+      status += QString( "Area divison: %1 \t" ).arg(divisionArea);
+      status += QString( "Area divison ratio: %1 \t" ).arg(divisionAreaRatio);
+    }
+    else if( useAreaRatio )
       status += QString( "Area divison ratio: %1 \t" ).arg(divisionAreaRatio);
     
     if( useWallRatio )
@@ -615,14 +703,27 @@ public:
 		// set daughter cell properties
     // left cell
     std::vector<Point3d> polygon;
+    std::vector<Point2d> polygon2D;
     Point3d center;
     forall(const junction& j, T.S.neighbors(cl))
     {
-      polygon.push_back(j->sp.Pos());
-      center += j->sp.Pos();
+      if( surfaceType == 0 )
+      {
+        polygon.push_back(j->sp.Pos());
+        center += j->sp.Pos();
+      }
+      else
+      {
+        polygon2D.push_back(j->tp.Pos());
+        center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+      }
     }
     
-    center /= polygon.size();
+    if( surfaceType == 0 )
+      center /= polygon.size();
+    else
+      center /= polygon2D.size();
+    
     cl->center = center;
     cl->initialArea = geometry::polygonArea(polygon);
     cl->area = cl->initialArea;
@@ -643,14 +744,27 @@ public:
     
     // right cell
     polygon.clear();
+    polygon2D.clear();
     center = Point3d( 0., 0., 0. );
     forall(const junction& j, T.S.neighbors(cr))
     {
-      polygon.push_back(j->sp.Pos());
-      center += j->sp.Pos();
+      if( surfaceType == 0 )
+      {
+        polygon.push_back(j->sp.Pos());
+        center += j->sp.Pos();
+      }
+      else
+      {
+        polygon2D.push_back(j->tp.Pos());
+        center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+      }
     }
     
-    center /= polygon.size();
+    if( surfaceType == 0 )
+      center /= polygon.size();
+    else
+      center /= polygon2D.size();
+    
     cr->center = center;
     cr->initialArea = geometry::polygonArea(polygon);
     cr->area = cr->initialArea;
@@ -685,12 +799,15 @@ public:
     }
     
     // export division properties
-    ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
-                                                     cl,
-                                                     cr,
-                                                     ddata,
-                                                     _angleThreshold,
-																										 _divOccurrences );
+    if( exportDivisionProperties )
+    {
+      ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
+                                                       cl,
+                                                       cr,
+                                                       ddata,
+                                                       _angleThreshold,
+                                                       _divOccurrences );
+    }
   }
 
   //----------------------------------------------------------------
@@ -752,17 +869,36 @@ public:
     // Find cells to be divided
     std::list<cell> to_divide;
     forall(const cell& c, T.C)
-    { 
+    {
       // update center position
       std::vector<Point3d> polygon;
+      std::vector<Point2d> polygon2D;
       Point3d center;
       forall(const junction& j, T.S.neighbors(c))
       {
-        polygon.push_back(j->sp.Pos());
-        center += j->sp.Pos();
+        if( surfaceType == 0 )
+        {
+          polygon.push_back(j->sp.Pos());
+          center += j->sp.Pos();
+        }
+        else
+        {
+          polygon2D.push_back(j->tp.Pos());
+          center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+        }
       }
-      center /= polygon.size();
-      lateralRoot.SetPoint(c->sp, c->sp, center);
+      
+      if( surfaceType == 0 )
+      {
+        center /= polygon.size();
+        lateralRoot.SetPoint(c->sp, c->sp, center);
+      }
+      else
+      {
+        center /= polygon2D.size();
+        lateralRoot2.setPos(c->tp, center);
+      }
+        
       c->center = center;
       c->area = geometry::polygonArea(polygon);
       c->timeStep = _time;
@@ -782,7 +918,16 @@ public:
         if( a > initialArea || l > initialLongestLength )
           to_divide.push_back(c);
       }
-      // only apply the division based on ratio with at least eight cells
+      // apply a division if the cells area exceeds a certain threshold or area ratio
+      else if( useCombinedAreaRatio && c->id > areaRatioStart )
+      {
+        // divide cells if their area size has increased by a certain percentage amount
+        double initialArea = c->initialArea;
+        initialArea += initialArea*divisionAreaRatio;
+        if( a > initialArea && a > divisionArea )
+          to_divide.push_back(c);
+      }
+      // only apply the division based on ratio with at least areaRatioStart cells
       else if( useAreaRatio && c->id > areaRatioStart )
       {
         // divide cells if their area size has increased by a certain percentage amount
@@ -791,7 +936,7 @@ public:
         if( a > initialArea )
           to_divide.push_back(c);
       }
-      // only apply the division based on ratio with at least eight cells
+      // only apply the division based on ratio with at least areaRatioStart cells
       else if( useWallRatio && c->id > areaRatioStart )
       {
         // divide cell if its wall length has increased by a certain percentage amount
@@ -864,9 +1009,26 @@ public:
   
   void step_growth()
   {
-	  lateralRoot.GrowStep(dt);
-    forall(const junction& v, T.W)
-		  lateralRoot.GetPos(v->sp);
+    if( surfaceType == 0 )
+    {
+      lateralRoot.GrowStep(dt);
+      forall(const junction& v, T.W)
+      {
+        std::cout << "old pos: " << v->sp.Pos() << std::endl;
+        lateralRoot.GetPos(v->sp);
+        std::cout << "new pos: " << v->sp.Pos() << std::endl;
+      }
+    }
+    else
+    {
+      lateralRoot2.growStep( dt );
+      forall(const junction& v, T.W)
+      {
+        std::cout << "old pos: " << v->tp.Pos() << std::endl;
+        lateralRoot2.getPos(v->tp);
+        std::cout << "new pos: " << v->tp.Pos() << std::endl;
+      }
+    }
   }
 
   //----------------------------------------------------------------
@@ -914,7 +1076,13 @@ public:
   void draw(Viewer* viewer)
   {
     forall(const cell& c, T.C)
-      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.7 );
+    {
+      //T.drawBorders = false;
+      T.cellWallWidth = 0.002;
+      //T.cellWallMin = 0.0001;
+      //T.strictCellWallMin = true;
+      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.1 );
+    }
   }
 
   //----------------------------------------------------------------
@@ -933,6 +1101,13 @@ public:
         return palette.getColor( _layerColorIndex.at(c->layerValue-1) );
       else
         return palette.getColor( _layerColorIndex.at(_layerColorIndex.size()-1) );
+      case 2:
+        // boundary
+        if( T.border( c ) )
+          return palette.getColor(1);
+        // inner cell
+        else
+          return palette.getColor(2);
     }
   }
 
@@ -946,16 +1121,61 @@ public:
 
   //----------------------------------------------------------------
   
-  // Methods needed by the tissue
-  Point3d position(const cell& c) const { return c->sp.Pos(); }
-  Point3d position(const junction& c) const { return c->sp.Pos(); }
+  // Method needed by the tissue
+  Point3d position(const cell& c) const
+  {
+    if( surfaceType == 0 )
+      return c->sp.Pos();
+    else
+      return Point3d( c->tp.Pos().i(), c->tp.Pos().j(), 0. );
+  }
+  
+  //----------------------------------------------------------------
+  
+  // Method needed by the tissue
+  Point3d position(const junction& c) const
+  {
+    if( surfaceType == 0 )
+      return c->sp.Pos();
+    else
+      return Point3d( c->tp.Pos().i(), c->tp.Pos().j(), 0. );
+  }
 
-  void setPosition(const cell& c, const Point3d& p) { lateralRoot.SetPoint(c->sp, c->sp, p); }
-  void setPosition(const junction& j, const Point3d& p) { lateralRoot.SetPoint(j->sp, j->sp, p); }
+  //----------------------------------------------------------------
+  
+  // Method needed by the tissue
+  void setPosition(const cell& c, const Point3d& p)
+  { 
+    if( surfaceType == 0 )
+      lateralRoot.SetPoint(c->sp, c->sp, p);
+    else
+      lateralRoot2.setPos( c->tp, p );
+  }
+  
+  //----------------------------------------------------------------
+  
+  // Method needed by the tissue
+  void setPosition(const junction& j, const Point3d& p)
+  {
+    if( surfaceType == 0 )
+      lateralRoot.SetPoint(j->sp, j->sp, p);
+    else
+      lateralRoot2.setPos( j->tp, p );
+  }
 
+  //----------------------------------------------------------------
+  
+  // Method needed by the tissue
   void setPositionHint(const junction&, const junction&, const junction&, double) {}
 
+  //----------------------------------------------------------------
+  
+  // Method needed by the tissue
   Point3d normal(const junction& ) const { return Point3d(0,0,1); }
+  
+  //----------------------------------------------------------------
+  
+  // Method needed by the tissue
   Point3d normal(const cell& ) const { return Point3d(0,0,1); }
 };
 

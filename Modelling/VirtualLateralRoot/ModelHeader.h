@@ -26,6 +26,7 @@
 
 #include "bezier.h"
 #include "surface.h"
+#include "RealSurface.h"
 
 static QTextStream out(stdout);
 
@@ -33,6 +34,7 @@ using util::norm;
 
 namespace DivisionType
 {
+  // the numbers are chosen depending on the index of colors in the color palette
   enum type { ANTICLINAL=3, PERICLINAL=1, RADIAL=2, NONE=5 };
 };
 
@@ -40,11 +42,13 @@ struct JunctionContent
 {
   SurfacePoint sp;
   std::size_t id;
+  TrianglePoint tp;
 };
 
 struct CellContent
 {
   SurfacePoint sp;
+  TrianglePoint tp;
   std::size_t id;
   std::size_t parentId;
   std::size_t treeId;
