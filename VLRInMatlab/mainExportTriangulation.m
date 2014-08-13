@@ -17,7 +17,7 @@ dataId = 1;
 cView = 2;
 % start with the current time step
 startT = 1;
-maxT = 10;
+maxT = 300;
 % draw delaunay tri?
 drawDelaunay = 1;
 % render only master file?
@@ -222,6 +222,10 @@ for dataIndex=startD:endD
   % PC instance
   P = [];
   DATA = [];
+  DATAF = [];
+  DATAL = [];
+  CSF = [];
+  CSL = [];
   
   % get stored eigenvectors for the last time step to set the same
   % direction view for each time step
@@ -262,10 +266,19 @@ for dataIndex=startD:endD
   fileName = strcat( '../FinalVLRForMatlab/triangulation-', dataStr( 1, dataIndex ), '.txt' );
   fileId = fopen( char(fileName), 'w' );
   % first write the maximum number of time steps
-  fprintf( fileId, '%1d\n', maxT - startT + 1 );
+  fprintf( fileId, '%1d\n', startT );
+  fprintf( fileId, '%1d\n', maxT );
+
+  % contour points for the first and last time step
+  cPointsFirst = generateContourPoints( dataStr( 1, dataIndex ), true );
+  cPointsLast = generateContourPoints( dataStr( 1, dataIndex ), false );
   
   % loop over all time steps
   for curT=startT:maxT
+     % draw contour of data and the single marks
+    factor = curT/300;
+    interPoints = (1-factor) * cPointsFirst + factor * cPointsLast;
+    
     % number of cells for the current time step
     numCells = 0;
     
@@ -353,6 +366,14 @@ for dataIndex=startD:endD
     if ishandle( DATA )
       set( DATA, 'Visible', 'off' );
     end
+    if ishandle( CS )
+      set( CS, 'Visible', 'off' );
+    end
+    
+    % add the contour points to generate a complete triangulation
+    for cc=1:size( interPoints, 1 )-1
+      curPos = [ curPos; interPoints( cc, : ) ];
+    end
     
     if triangulationType == 1
       % delaunay triangulation
@@ -367,11 +388,14 @@ for dataIndex=startD:endD
     exportTriangulation( curTri, curT, dataStr( 1, dataIndex ) );
     
     if curT ~= maxT
-      exportNewPosOfTriangulation( nextPos, dataStr( 1, dataIndex ) );
+      fac = (curT+1)/300;
+      interPoints = (1-fac) * cPointsFirst + fac * cPointsLast;
+      numConMarks = size( interPoints, 1 );
+      exportNewPosOfTriangulation( interPoints( 1:numConMarks-1, : ), nextPos, dataStr( 1, dataIndex ) );
     end
     
     % if at least three cells exists
-    if drawDelaunay == 1 && triangulationType == 1 && numCells > 2
+    if drawDelaunay == 1 && triangulationType == 1 && size( curPos, 1 ) > 2
       triplot( curTri, 'r' );
     end
     
@@ -384,7 +408,7 @@ for dataIndex=startD:endD
       points( c, : ) = p1;
       
       % draw the single cell as sphere
-      radii = 10;
+      radii = 8;
       [ X, Y, Z ] = ellipsoid( p1(1), p1(2), p1(3), radii/2., radii/2., radii/2., 10 );
       
       % render sphere surfaces
@@ -395,6 +419,26 @@ for dataIndex=startD:endD
       K = convhull( points( :, 1 ), points( :, 2 ) );
       DATA(curT) = line( points( K, 1 ), points( K, 2 ), points( K, 3 ), 'Color', color, 'LineWidth', 1.2 );
     end
+    
+    DATAF(curT) = line( interPoints( :, 1 ), interPoints( :, 2 ), interPoints( :, 3 ), 'Color', [ 1 0 0 ], 'LineWidth', 1.2 );
+    radii = 3;
+    for cc=1:size( interPoints, 1 )-1
+      [ Xc, Yc, Zc ] = ellipsoid( interPoints(cc,1), interPoints(cc,2), interPoints(cc,3), radii/2., radii/2., radii/2., 10 );
+      CSF(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 1 0 0 ] );
+    end
+    
+%     DATAF(curT) = line( cPointsFirst( :, 1 ), cPointsFirst( :, 2 ), cPointsFirst( :, 3 ), 'Color', [ 1 0 0 ], 'LineWidth', 1.2 );
+%     radii = 3;
+%     for cc=1:size( cPointsFirst, 1 )-1
+%       [ Xc, Yc, Zc ] = ellipsoid( cPointsFirst(cc,1), cPointsFirst(cc,2), cPointsFirst(cc,3), radii/2., radii/2., radii/2., 10 );
+%       CSF(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 1 0 0 ] );
+%     end
+%     
+%     DATAL(curT) = line( cPointsLast( :, 1 ), cPointsLast( :, 2 ), cPointsLast( :, 3 ), 'Color', [ 0 0 1 ], 'LineWidth', 1.2 );
+%     for cc=1:size( cPointsLast, 1 )-1
+%       [ Xc, Yc, Zc ] = ellipsoid( cPointsLast(cc,1), cPointsLast(cc,2), cPointsLast(cc,3), radii/2., radii/2., radii/2., 10 );
+%       CSL(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 0 0 1 ] );
+%     end
     
     hold off;
     set( f,'nextplot','replacechildren' );

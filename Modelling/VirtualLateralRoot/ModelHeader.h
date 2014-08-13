@@ -26,6 +26,7 @@
 
 #include "bezier.h"
 #include "surface.h"
+#include "RealSurface.h"
 
 static QTextStream out(stdout);
 
@@ -41,11 +42,13 @@ struct JunctionContent
 {
   SurfacePoint sp;
   std::size_t id;
+  TrianglePoint tp;
 };
 
 struct CellContent
 {
   SurfacePoint sp;
+  TrianglePoint tp;
   std::size_t id;
   std::size_t parentId;
   std::size_t treeId;

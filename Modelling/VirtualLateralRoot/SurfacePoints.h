@@ -13,7 +13,48 @@
 #include <fstream>
 
 typedef util::Vector<2, double> Point2d;
+typedef util::Vector<3, double> Point3d;
 typedef util::Vector<3, std::size_t> Point3i;
+
+class TrianglePoint
+{
+  public:
+    TrianglePoint() : u(0.), v(0.), w(0.), triIndex(0){}
+    ~TrianglePoint() {}
+
+    Point2d Pos() { return pos; }
+    Point2d Pos() const  { return pos; }
+    Point3d Normal()  { return normal; }
+    double getU() const { return u; }
+    double getV() const { return v; }
+    double getW() const { return w; }
+    void setUVW( const double nu, const double nv, const double nw )
+    { u = nu; v = nv; w = nw; }
+    void setUVWT( const double nu, const double nv,
+                  const double nw, const std::size_t ti )
+    { u = nu; v = nv; w = nw; triIndex = ti; }
+    std::size_t getTriIndex() const { return triIndex; }
+    void printPos() const
+    { std::cout << "Point: [" << pos.i() << ", "
+      << pos.j() << "]" << std::endl; }
+
+    friend std::ostream& operator<<(std::ostream& os, const TrianglePoint &sp) {
+      return os;
+     };
+    friend std::istream& operator>>(std::istream& is, TrianglePoint &sp) {
+      return is;
+    };
+    friend class RealSurface;
+    friend class SurfacePoints;
+
+  private:
+    double u,v,w;
+    std::size_t triIndex;
+    Point2d pos;
+    Point3d normal;
+};
+
+//----------------------------------------------------------------
 
 class SurfacePoints
 {
@@ -22,17 +63,22 @@ public:
   SurfacePoints();
   void readTriangulation( const std::string &fileName );
   
-  Point2d getCoord( const double l1, const double l2, const double l3, 
-                    const std::size_t triIndex, const std::size_t timeStep );
+  Point2d getCoord( const double u, const double v, const double w, 
+                    std::size_t triIndex );
   
-  void getBarycentricCoord( double &l1, double &l2, double &l3, const Point2d &p,
-                            const std::size_t triIndex, const std::size_t timeStep );
+  void getBarycentricCoord( TrianglePoint &tp, const Point2d &p );
+  
+  void determinePosProperties( TrianglePoint &tp, const Point2d &p );
+  
+  void determineNormal( TrianglePoint &tp );
   
   bool pointIsInTriangle( const Point2d &p, const Point2d &p0,
                           const Point2d &p1, const Point2d &p2 );
   void printTriangleProperties( const std::size_t timeStep );
   
   void interpolate( double timeStep );
+  
+  double checkBounds( double s, double min, double max ) ;
   
 private:
   
@@ -51,6 +97,7 @@ private:
   // this is the current triangle list
   std::vector<Point3i> _curTriangles;
   
+  std::size_t _minTimeStep;
   std::size_t _maxTimeStep;
 };
 

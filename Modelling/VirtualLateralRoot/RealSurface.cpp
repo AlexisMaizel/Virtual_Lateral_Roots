@@ -30,3 +30,46 @@ void RealSurface::growStep( const double dt )
 }
 
 //----------------------------------------------------------------
+
+void RealSurface::initPoint( TrianglePoint &tp )
+{
+  this->getPos( tp );
+  //std::cout << "pos: " << tp.Pos() << std::endl;
+}
+
+//----------------------------------------------------------------
+
+void RealSurface::getPos( TrianglePoint &tp )
+{
+  calcPos(tp);
+  calcNormal(tp);
+}
+
+//----------------------------------------------------------------
+
+void RealSurface::setPos( TrianglePoint &tp, const Point3d &p )
+{
+  Point2d pos( p.i(), p.j() );
+  _curSurface.determinePosProperties( tp, pos );
+  calcNormal(tp);
+}
+
+//----------------------------------------------------------------
+
+void RealSurface::calcPos( TrianglePoint &tp )
+{
+  tp.u = _curSurface.checkBounds(tp.u, 0., 1.);
+  tp.v = _curSurface.checkBounds(tp.v, 0., 1.);
+  tp.w = _curSurface.checkBounds(tp.w, 0., 1.);
+  tp.pos = _curSurface.getCoord( tp.u, tp.v, tp.w, tp.triIndex );
+}
+
+//----------------------------------------------------------------
+
+void RealSurface::calcNormal( TrianglePoint &tp )
+{
+  _curSurface.determineNormal( tp );
+  //std::cout << "normal: " << tp.normal << std::endl;
+}
+
+//----------------------------------------------------------------

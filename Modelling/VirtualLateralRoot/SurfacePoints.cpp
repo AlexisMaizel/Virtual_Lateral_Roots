@@ -18,12 +18,14 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
 {
   std::ifstream in( fileName.c_str(), std::ifstream::in );
 
+  in >> _minTimeStep;
   in >> _maxTimeStep;
-  _points.resize( _maxTimeStep );
-  _subsequentPoints.resize( _maxTimeStep-1 );
-  _triangles.resize( _maxTimeStep );
+  std::size_t timeSteps = _maxTimeStep - _minTimeStep + 1;
+  _points.resize( timeSteps );
+  _subsequentPoints.resize( timeSteps - 1 );
+  _triangles.resize( timeSteps );
   
-  for( std::size_t t = 0; t < _maxTimeStep; t++ )
+  for( std::size_t t = 0; t < timeSteps; t++ )
   {
     std::size_t time, pSize, tSize;
     in >> time;
@@ -50,7 +52,7 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
     }
     
     // read subsequent mapped points of time step t+1
-    if( t < _maxTimeStep - 1 )
+    if( t < timeSteps - 1 )
     {
       _subsequentPoints.at( t ).resize( pSize );
       for( std::size_t p = 0; p < pSize; p++ )
@@ -60,22 +62,41 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
         _subsequentPoints.at(t).at(p) = Point2d( px, py );
       }
     }
+    
+    //std::cout << "psize: " << _points.at(t).size() << " tsize: " << _triangles.at(t).size() << std::endl; 
   }
   
   in.close();
+  
+  std::cout << "==============================================" << std::endl;
+  std::cout << "Read data with " << timeSteps << " time steps." << std::endl;
+  std::cout << "First Time step: " << _points.at(0).size() << " points, " << _triangles.at(0).size() << " triangles." << std::endl;
+  std::cout << "Last Time step: " << _points.at( timeSteps-1 ).size() << " points, " << _triangles.at( timeSteps-1 ).size() << " triangles." << std::endl;
+  std::cout << "==============================================" << std::endl;
+}
+
+//----------------------------------------------------------------
+
+double SurfacePoints::checkBounds( double s, double min, double max ) 
+{
+  if(s < min)
+    return(min);
+  else if(s > max)
+    return(max);
+  else
+    return(s);
 }
 
 //----------------------------------------------------------------
 
 void SurfacePoints::interpolate( double timeStep )
 {
-  if( timeStep > 1. )
-    timeStep = 1.;
-  if( timeStep < 0. )
-    timeStep = 0.;
+  timeStep = this->checkBounds(timeStep, 0., 1.);
+  
+  std::size_t timeStepRange = _maxTimeStep - _minTimeStep + 1;
   
   // get range of time steps that fit the current timeStep value
-  double time = timeStep * (_maxTimeStep-1);
+  double time = timeStep * (timeStepRange-1);
   std::size_t startT = (std::size_t)time;
   
   // the triangle list is just copied by the lower time step
@@ -85,16 +106,19 @@ void SurfacePoints::interpolate( double timeStep )
   // depending on the factor difference
   double factor = time - (double)startT;
   
+  //std::cout << "startT: " << startT << " factor: " << factor << std::endl;
+  //std::cout << "psize: " << _points.at(startT).size() << " tsize: " << _triangles.at(startT).size() << std::endl; 
+  
   // if the last time step is reached then just set the last entry
-  if( startT == _maxTimeStep-1 )
+  if( startT == timeStepRange-1 )
     _curPoints = _points.at(startT);
   else
   {
     _curPoints.clear();
     for( std::size_t p = 0; p < _points.at(startT).size(); p++ )
     {
-      Point2d pos = factor * _points.at(startT).at(p) + _subsequentPoints.at(startT).at(p) * (1.-factor);
-      pos /= 2.;
+      Point2d pos = (1.-factor) * _points.at(startT).at(p) + _subsequentPoints.at(startT).at(p) * factor;
+      //std::cout << "pos: " << pos << std::endl;
       _curPoints.push_back( pos );
     }
   }
@@ -103,47 +127,105 @@ void SurfacePoints::interpolate( double timeStep )
 //----------------------------------------------------------------
 
 // compute cartesian coordinates depending on the index of triangle
-Point2d SurfacePoints::getCoord( const double l1, const double l2, const double l3, 
-                                 const std::size_t triIndex, const std::size_t timeStep )
+Point2d SurfacePoints::getCoord( const double u, const double v, const double w, 
+                                 std::size_t triIndex )
 {
-  Point3i indexes = _triangles.at(timeStep).at(triIndex);
-  Point2d p1 = _points.at(timeStep).at( indexes.i() );
-  Point2d p2 = _points.at(timeStep).at( indexes.j() );
-  Point2d p3 = _points.at(timeStep).at( indexes.k() );
+  // TODO: not really good solution if the triIndex is out of bound
+  if( triIndex >= _curTriangles.size() )
+    triIndex = _curTriangles.size() - 1;
   
-  return ( l1 * p1 + l2 * p2 + l3 * p3 );
+  std::cout << "values: " << u << " " << v << " " << w << " " << triIndex << std::endl;
+  //std::cout << "cpsize: " << _curPoints.size() << " ctsize: " << _curTriangles.size() << std::endl; 
+  
+  Point2d p1,p2,p3;
+  p1 = _curPoints.at( _curTriangles.at( triIndex ).i() - 1 );
+  p2 = _curPoints.at( _curTriangles.at( triIndex ).j() - 1 );
+  p3 = _curPoints.at( _curTriangles.at( triIndex ).k() - 1 );
+  
+  //std::cout << "p1: " << p1 << " p2: " << p2 << " p3: " << p3 << std::endl; 
+  
+  return ( u * p1 + v * p2 + w * p3 );
 }
 
 //----------------------------------------------------------------
 
 // compute area coordinates depending on the index of triangle
-void SurfacePoints::getBarycentricCoord( double &l1, double &l2, double &l3,
-                                         const Point2d &p,
-                                         const std::size_t triIndex,
-                                         const std::size_t timeStep )
+void SurfacePoints::getBarycentricCoord( TrianglePoint &tp, const Point2d &p )
 {
-  Point3i indexes = _triangles.at(timeStep).at(triIndex);
-  Point2d p1 = _points.at(timeStep).at( indexes.i() );
-  Point2d p2 = _points.at(timeStep).at( indexes.j() );
-  Point2d p3 = _points.at(timeStep).at( indexes.k() );
+  Point2d p1,p2,p3;
+  p1 = _curPoints.at( _curTriangles.at( tp.triIndex ).i() - 1 );
+  p2 = _curPoints.at( _curTriangles.at( tp.triIndex ).j() - 1 );
+  p3 = _curPoints.at( _curTriangles.at( tp.triIndex ).k() - 1 );
   
   // compute barycentric coordinates
   double detMat = (p2.j()-p3.j())*(p1.i()-p3.i()) + (p3.i()-p2.i())*(p1.j()-p3.j());
-  l1 = ((p2.j()-p3.j())*(p.i()-p3.i()) + (p3.i()-p2.i())*(p.j()-p3.j()))/detMat;
-  l2 = ((p3.j()-p1.j())*(p.i()-p3.i()) + (p1.i()-p3.i())*(p.j()-p3.j()))/detMat;
-  l3 = 1. - l1 - l2;
+  tp.u = ((p2.j()-p3.j())*(p.i()-p3.i()) + (p3.i()-p2.i())*(p.j()-p3.j()))/detMat;
+  tp.v = ((p3.j()-p1.j())*(p.i()-p3.i()) + (p1.i()-p3.i())*(p.j()-p3.j()))/detMat;
+  tp.w = 1. - tp.u - tp.v;
+  
+  std::cout << "values: " << tp.u << " " << tp.v << " " << tp.w << " " << tp.triIndex << std::endl;
+}
+
+//----------------------------------------------------------------
+// determine triangle index and barycentric coordinates of triangle
+void SurfacePoints::determinePosProperties( TrianglePoint &tp, const Point2d &p )
+{
+  // set the position vector
+  tp.pos = p;
+  // iterate over all triangles in order to find the one in which cp is located
+  for( std::size_t t = 0; t < _curTriangles.size(); t++ )
+  {
+    Point2d p1,p2,p3;
+    p1 = _curPoints.at( _curTriangles.at( t ).i() - 1 );
+    p2 = _curPoints.at( _curTriangles.at( t ).j() - 1 );
+    p3 = _curPoints.at( _curTriangles.at( t ).k() - 1 );
+    
+    //std::cout << "p: " << p << std::endl;
+    //std::cout << "p1: " << p1 << " p2: " << p2 << " p3: " << p3 << std::endl;
+    
+    // check if point is in the current triangle
+    if( this->pointIsInTriangle( p, p1, p2, p3 ) )
+    {
+      tp.triIndex = t;
+      this->getBarycentricCoord( tp, p );
+      //std::cout << t << " in triangle" << std::endl;
+      std::cout << "p: " << p << std::endl;
+      return;
+    }
+    //else
+      //std::cout << t << " not in triangle" << std::endl;
+  }
 }
 
 //----------------------------------------------------------------
 
-bool SurfacePoints::pointIsInTriangle( const Point2d &p, const Point2d &p0,
-                                       const Point2d &p1, const Point2d &p2 )
+void SurfacePoints::determineNormal( TrianglePoint &tp )
 {
-  double area = 0.5*(-p1.j()*p2.i() + p0.j()*(-p1.i() + p2.i()) + p0.i()*(p1.j() - p2.j()) + p1.i()*p2.j());
-  double s = 1./(2.*area)*(p0.j()*p2.i() - p0.i()*p2.j() + (p2.j() - p0.j())*p.i() + (p0.i() - p2.i())*p.j());
-  double t = 1./(2.*area)*(p0.i()*p1.j() - p0.j()*p1.i() + (p0.j() - p1.j())*p.i() + (p1.i() - p0.i())*p.j());
+  Point2d p1,p2,p3;
+  p1 = _curPoints.at( _curTriangles.at( tp.triIndex ).i() - 1 );
+  p2 = _curPoints.at( _curTriangles.at( tp.triIndex ).j() - 1 );
+  p3 = _curPoints.at( _curTriangles.at( tp.triIndex ).k() - 1 );
   
-  return (s > 0. && t > 0. && 1.-s-t > 0);
+  Point3d t1 = Point3d( p2.i() - p1.i(), p2.j() - p1.j(), 0. );
+  Point3d t2 = Point3d( p3.i() - p1.i(), p3.j() - p1.j(), 0. );
+  
+  tp.normal = t1 ^ t2;
+  tp.normal.normalize();
+}
+
+//----------------------------------------------------------------
+
+bool SurfacePoints::pointIsInTriangle( const Point2d &p, const Point2d &p1,
+                                       const Point2d &p2, const Point2d &p3 )
+{
+  // compute barycentric coordinates
+  double detMat = (p2.j()-p3.j())*(p1.i()-p3.i()) + (p3.i()-p2.i())*(p1.j()-p3.j());
+  double s = ((p2.j()-p3.j())*(p.i()-p3.i()) + (p3.i()-p2.i())*(p.j()-p3.j()))/detMat;
+  double t = ((p3.j()-p1.j())*(p.i()-p3.i()) + (p1.i()-p3.i())*(p.j()-p3.j()))/detMat;
+  double w = 1. - s - t;
+  
+  //std::cout << "s: " << s << " t: " << t << std::endl;
+  return (s >= 0. && t >= 0. && w >= 0.);
 }
 
 //----------------------------------------------------------------
