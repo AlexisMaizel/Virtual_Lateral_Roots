@@ -1,4 +1,4 @@
-function exportTriangulation( tri, timeStep, dataName )
+function exportTriangulation( tri, timeStep, dataName, triangulationType )
 fileName = strcat( '../FinalVLRForMatlab/triangulation-', dataName, '.txt' );
 fileId = fopen( char(fileName), 'a' );
 % first write the current time step
@@ -6,7 +6,12 @@ fprintf( fileId, '%1d\n', timeStep );
 
 % then write points in their order of index
 % before we have to transpose the matrix
-mat = tri.Points';
+if triangulationType == 1
+  mat = tri.Points';
+else
+  mat = tri;
+end
+
 % number of points
 fprintf( fileId, '%1d\n', size( mat, 2 ) );
 fprintf( fileId, '%4f %4f\n', mat );

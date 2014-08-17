@@ -18,7 +18,7 @@ dataId = 1;
 cView = 2;
 % start with the current time step
 startT = 1;
-maxT = 1;
+maxT = 300;
 % draw delaunay tri?
 drawDelaunay = 1;
 % render only master file?
@@ -43,6 +43,12 @@ if dataId ~= 7
 end
 
 color = [ 0 1 0 ];
+
+% path to image output
+imageDir = strcat( 'images/AllData/' );
+
+% create directory if required
+mkdir( char(imageDir) );
 
 % loop over all data sets
 for dataIndex=startD:endD
@@ -384,12 +390,12 @@ for dataIndex=startD:endD
       curTri = delaunayTriangulation( curPos(:,1), curPos(:,2) );
     else
       % alpha shape triangulation
-      [Vol,Shape] = alphavol( [ curPos(:,1) curPos(:,2) curPos(:,3) ], sqrt( alphaRadiiVector( curT, 1 )) );
+      [Vol,Shape] = alphavol( [ curPos(:,1) curPos(:,2) ], 50 );
       curTri = Shape.tri;
     end
     
     % export triangulation properties
-    exportTriangulation( curTri, curT, dataStr( 1, dataIndex ) );
+    %exportTriangulation( curTri, curT, dataStr( 1, dataIndex ), triangulationType );
     
     if curT ~= maxT
       fac = (curT+1)/300;
@@ -424,7 +430,7 @@ for dataIndex=startD:endD
       DATA(curT) = line( points( K, 1 ), points( K, 2 ), points( K, 3 ), 'Color', color, 'LineWidth', 1.2 );
     end
     
-    DATAF(curT) = line( interPoints( :, 1 ), interPoints( :, 2 ), interPoints( :, 3 ), 'Color', [ 1 0 0 ], 'LineWidth', 1.2 );
+    %DATAF(curT) = line( interPoints( :, 1 ), interPoints( :, 2 ), interPoints( :, 3 ), 'Color', [ 1 0 0 ], 'LineWidth', 1.2 );
     radii = 3;
     for cc=1:size( interPoints, 1 )-1
       [ Xc, Yc, Zc ] = ellipsoid( interPoints(cc,1), interPoints(cc,2), interPoints(cc,3), radii/2., radii/2., radii/2., 10 );
@@ -443,10 +449,12 @@ for dataIndex=startD:endD
 %       [ Xc, Yc, Zc ] = ellipsoid( cPointsLast(cc,1), cPointsLast(cc,2), cPointsLast(cc,3), radii/2., radii/2., radii/2., 10 );
 %       CSL(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 0 0 1 ] );
 %     end
-    
+
     hold off;
     set( f,'nextplot','replacechildren' );
-    axis on
+    viewOffset = 100;
+    axis( [ 75 550 -120 60 ] );
+    axis off
     daspect( [ 1 1 1 ] );
     
     grid off;
@@ -455,6 +463,20 @@ for dataIndex=startD:endD
     zlabel('Z');
     C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
     title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT) ) );
+    
+    if curT < 10
+      digit = strcat( viewStr( 1, cView ), '_00' );
+    elseif curT < 100
+      digit = strcat( viewStr( 1, cView ), '_0' );
+    else
+      digit = strcat( viewStr( 1, cView ), '_' );
+    end
+    
+    % output with number of cells
+    filePath = strcat( imageDir, digit, num2str(curT), '.png' );
+    
+    saveas( gcf, char(filePath) );
+    
   end
   % close figure after processing
   %close(f);
