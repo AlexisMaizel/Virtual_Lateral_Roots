@@ -1,4 +1,5 @@
-addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
+geomPath = strcat( pwd, '/geom3d' );
+addpath( geomPath );
 
 %%%%% setting of properties %%%%%%
 % data Index:
@@ -17,7 +18,7 @@ dataId = 1;
 cView = 2;
 % start with the current time step
 startT = 1;
-maxT = 300;
+maxT = 1;
 % draw delaunay tri?
 drawDelaunay = 1;
 % render only master file?
@@ -366,8 +367,11 @@ for dataIndex=startD:endD
     if ishandle( DATA )
       set( DATA, 'Visible', 'off' );
     end
-    if ishandle( CS )
-      set( CS, 'Visible', 'off' );
+    if ishandle( CSF )
+      set( CSF, 'Visible', 'off' );
+    end
+    if ishandle( CSL )
+      set( CSL, 'Visible', 'off' );
     end
     
     % add the contour points to generate a complete triangulation

@@ -3,7 +3,8 @@
 %%%% statistical tools in two or three dimensions, Eur. Phys. J.,
 %%%% pp 349 -- 369, 2008
 
-addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
+geomPath = strcat( pwd, '/geom3d' );
+addpath( geomPath );
 
 %%%%% setting of properties %%%%%%
 % data Index:

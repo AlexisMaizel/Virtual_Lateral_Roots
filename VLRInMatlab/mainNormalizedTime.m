@@ -3,11 +3,8 @@
 %%%% statistical tools in two or three dimensions, Eur. Phys. J.,
 %%%% pp 349 -- 369, 2008
 
-% linux path
-%addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
-% mac path
-addpath( '/Users/jens/Documents/Data/VLR_Repository/VLRInMatlab/geom3d' );
-%addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/treeStructure' );
+geomPath = strcat( pwd, '/geom3d' );
+addpath( geomPath );
 
 %%%%% setting of properties %%%%%%
 % color range for different data sets
