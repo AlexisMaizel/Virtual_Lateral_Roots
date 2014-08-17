@@ -3,7 +3,10 @@
 %%%% statistical tools in two or three dimensions, Eur. Phys. J.,
 %%%% pp 349 -- 369, 2008
 
-addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
+% linux path
+%addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
+% mac path
+addpath( '/Users/jens/Documents/Data/VLR_Repository/VLRInMatlab/geom3d' );
 
 %%%%% setting of properties %%%%%%
 % data Index:
@@ -14,25 +17,25 @@ addpath( '/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/VLRInMatlab/geom3d' );
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 5;
+dataId = 1;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
 % 3 -> radial
 cView = 2;
 % start with the current time step
-startT = 300;
+startT = 298;
 % draw delaunay tri?
 drawDelaunay = 0;
 % if set to one then only a single time step
 % is rendered given by startT
-exportType = 2;
+exportType = 3;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' 'AsVideo' };
 % render only master file?
 renderSingleCellFile = 1;
 % render principal components
-renderPrincipalComponents = 1;
+renderPrincipalComponents = 0;
 % render contour (=convexHull) instead of ellipses
 renderContour = 0;
 % vector of view offsets for x/Y/Z coordinates
@@ -73,7 +76,7 @@ viewStr = { 'Top' 'Side' 'Radial' '3D' };
 % master cell file information taken by the picture made of Daniel located in dropbox
 % and the trackGroup information of the raw data sets
 %masterCellFile = [ 4 3 4 2 3 0 ];
-masterCellFile = [ 4 5 4 3 3 0 ];
+masterCellFile = [ 0 0 0 0 0 0 ];
 
 % either loop over all data sets creating five figures or only
 % show one specific one
@@ -336,7 +339,7 @@ for dataIndex=startD:endD
 
   % get stored eigenvectors for the last time step to set the same
   % direction view for each time step
-  coeff = getPrincipalComponents( dataStr( 1, dataIndex ) );
+  coeff = getPrincipalComponents( dataStr( 1, dataIndex ), 1 );
   
   % set PC depending on the viewing direction
   if cView == 1
@@ -630,20 +633,6 @@ for dataIndex=startD:endD
         % the direction is now the normal of the x-y plane
         minMaxS = determineAxes( X, Y, Z, p1, [ 0 0 1 ] );
         minMaxSemiAxisVector = [ minMaxSemiAxisVector ; minMaxS ];  
-      end
-      
-      % draw principal components
-      if renderPrincipalComponents == 1
-        start = mean( cellFileMat );
-        %coeff = pca( cellFileMat );
-        arrowLength = 150;
-        for a=1:3
-          hold on;
-          P(a) = quiver3( start(1), start(2), start(3),...
-            coeff(1,a), coeff(2,a), coeff(3,a),...
-            arrowLength, 'LineWidth', 3,...
-            'Color', cm( a, : ) );
-        end
       end
       
       if overlapping == 1
