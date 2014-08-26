@@ -141,13 +141,15 @@ void SurfacePoints::getCoord( TrianglePoint &tp )
   p2 = _curPoints.at( _curTriangles.at( tp.triIndex ).j() - 1 );
   p3 = _curPoints.at( _curTriangles.at( tp.triIndex ).k() - 1 );
   
-  //std::cout << "p1: " << p1 << " p2: " << p2 << " p3: " << p3 << std::endl; 
-  
   // determine the smallest distance between old point and current point
   // such that the u,v,w parameters are satisfied
-  Point2d pos1 = tp.u * p1 + tp.v * p2 + tp.w * p3;
-  Point2d pos2 = tp.v * p1 + tp.w * p2 + tp.u * p3;
-  Point2d pos3 = tp.w * p1 + tp.u * p2 + tp.v * p3;
+  //Point2d pos1 = tp.u * p1 + tp.v * p2 + tp.w * p3;
+  //Point2d pos2 = tp.v * p1 + tp.w * p2 + tp.u * p3;
+  //Point2d pos3 = tp.w * p1 + tp.u * p2 + tp.v * p3;
+  
+  Point2d pos1 = tp.w * p1 + tp.v * p2 + tp.u * p3;
+  Point2d pos2 = tp.u * p1 + tp.w * p2 + tp.v * p3;
+  Point2d pos3 = tp.v * p1 + tp.u * p2 + tp.w * p3;
   
   double dist1, dist2, dist3;
   dist1 = norm(pos1 - tp.pos);
@@ -160,6 +162,16 @@ void SurfacePoints::getCoord( TrianglePoint &tp )
     tp.pos = pos2;
   else
     tp.pos = pos3;
+  
+  /*
+  if( tp.pos.i() == 0. )
+  {
+    std::cout << "zero" << std::endl;
+    std::cout << "p1: " << p1 << " p2: " << p2 << " p3: " << p3 << std::endl; 
+    std::cout << "p: " << tp.pos << std::endl; 
+    std::cout << "values: " << tp.u << " " << tp.v << " " << tp.w << " " << tp.triIndex << std::endl;
+  }
+  */
 }
 
 //----------------------------------------------------------------
@@ -203,7 +215,12 @@ void SurfacePoints::determineTriangleIndex( TrianglePoint &tp )
       
       //std::cout << "in tri p1: " << p1 << " p2: " << p2 << " p3: " << p3 << std::endl;
       tp.triIndex = t;
-      //this->getBarycentricCoord( tp, tp.pos );
+      
+      // if all barycentric ccordinates are zero, then this point was created
+      // due to a cell divsion; thus we have to determine u,v,w for this one
+      if( tp.u == 0. && tp.v == 0. && tp.w == 0. )
+        this->getBarycentricCoord( tp, tp.pos );
+      
       //std::cout << t << " in triangle" << std::endl;
       //std::cout << "p: " << p << std::endl;
       return;
@@ -241,11 +258,6 @@ void SurfacePoints::determinePosProperties( TrianglePoint &tp, const Point2d &p 
       //std::cout << "p: " << p << std::endl;
       return;
     }
-    /*else
-    {
-      std::cout << t << " not in triangle" << std::endl;
-      std::cout << "p: " << p << std::endl;
-    }*/
   }
 }
 
@@ -276,7 +288,6 @@ bool SurfacePoints::pointIsInTriangle( const Point2d &p, const Point2d &p1,
   double t = ((p3.j()-p1.j())*(p.i()-p3.i()) + (p1.i()-p3.i())*(p.j()-p3.j()))/detMat;
   double w = 1. - s - t;
   
-  //std::cout << "s: " << s << " t: " << t << std::endl;
   return (s >= 0. && t >= 0. && w >= 0.);
 }
 

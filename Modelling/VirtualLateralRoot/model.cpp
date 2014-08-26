@@ -517,23 +517,23 @@ public:
     
     std::vector<Point3d> conPoints;
     conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
-    conPoints.push_back( Point3d( 160.000000, -64.833333, 0. ) );
+    /*conPoints.push_back( Point3d( 160.000000, -64.833333, 0. ) );
     conPoints.push_back( Point3d( 230.000000, -58.743333, 0. ) );
     conPoints.push_back( Point3d( 299.916667, -64.633333, 0. ) );
     conPoints.push_back( Point3d( 370.000000, -64.750000, 0. ) );
-    conPoints.push_back( Point3d( 440.000000, -64.850000, 0. ) );
+    conPoints.push_back( Point3d( 440.000000, -64.850000, 0. ) );*/
     conPoints.push_back( Point3d( 520.000000, -64.956667, 0. ) );
-    conPoints.push_back( Point3d( 520.000000, -74.966667, 0. ) );
+    //conPoints.push_back( Point3d( 520.000000, -74.966667, 0. ) );
     conPoints.push_back( Point3d( 520.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 440.000000, -100.000000, 0. ) );
+    /*conPoints.push_back( Point3d( 440.000000, -100.000000, 0. ) );
     conPoints.push_back( Point3d( 370.000000, -100.000000, 0. ) );
     conPoints.push_back( Point3d( 300.000000, -100.000000, 0. ) );
     conPoints.push_back( Point3d( 230.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 160.000000, -100.000000, 0. ) );
+    conPoints.push_back( Point3d( 160.000000, -100.000000, 0. ) );*/
     conPoints.push_back( Point3d( 115.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 113.000000, -75.000000, 0. ) );
+    //conPoints.push_back( Point3d( 113.000000, -75.000000, 0. ) );
     
-    for( std::size_t w = 0; w < _numContourPoints; w++ )
+    for( std::size_t w = 0; w < 4; w++ )
     {
       junction j;
       j->id = _jId;
@@ -1145,7 +1145,7 @@ public:
   
   // Method needed by the tissue
   Point3d position(const cell& c) const
-  {
+  { 
     if( surfaceType == 0 )
       return c->sp.Pos();
     else
