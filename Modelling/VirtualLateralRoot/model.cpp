@@ -988,8 +988,8 @@ public:
         MyTissue::division_data ddata = this->setDivisionPoints( c );
         T.divideCell( c, ddata );
       }
-      //else
-        //T.divideCell(c);
+      else
+        T.divideCell(c);
     }
 
     return !to_divide.empty();

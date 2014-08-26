@@ -18,7 +18,7 @@ dataId = 1;
 cView = 2;
 % start with the current time step
 startT = 1;
-maxT = 300;
+maxT = 1;
 % draw delaunay tri?
 drawDelaunay = 1;
 % render only master file?
@@ -270,7 +270,7 @@ for dataIndex=startD:endD
   %%% Traversal over all time steps %%%
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
-  fileName = strcat( '../FinalVLRForMatlab/triangulation-', dataStr( 1, dataIndex ), '.txt' );
+  fileName = strcat( '/tmp/triangulation-', dataStr( 1, dataIndex ), '.txt' );
   fileId = fopen( char(fileName), 'w' );
   % first write the maximum number of time steps
   fprintf( fileId, '%1d\n', startT );
@@ -395,7 +395,7 @@ for dataIndex=startD:endD
     end
     
     % export triangulation properties
-    %exportTriangulation( curTri, curT, dataStr( 1, dataIndex ), triangulationType );
+    exportTriangulation( curTri, curT, dataStr( 1, dataIndex ), triangulationType );
     
     if curT ~= maxT
       fac = (curT+1)/300;
@@ -419,10 +419,10 @@ for dataIndex=startD:endD
       
       % draw the single cell as sphere
       radii = 8;
-      [ X, Y, Z ] = ellipsoid( p1(1), p1(2), p1(3), radii/2., radii/2., radii/2., 10 );
+      [ X, Y, Z ] = ellipsoid( p1(1), p1(2), p1(3), radii/2., radii/2., radii/2., 20 );
       
       % render sphere surfaces
-      S(c) = surface( X, Y, Z, 'FaceColor', color );
+      S(c) = surface( X, Y, Z, 'FaceColor', [ 0 0 1 ], 'EdgeColor', 'none', 'FaceLighting', 'gouraud' );
     end
     
     if size( points, 1 ) > 2 && renderContour == 1
@@ -431,10 +431,10 @@ for dataIndex=startD:endD
     end
     
     %DATAF(curT) = line( interPoints( :, 1 ), interPoints( :, 2 ), interPoints( :, 3 ), 'Color', [ 1 0 0 ], 'LineWidth', 1.2 );
-    radii = 3;
+    radii = 5;
     for cc=1:size( interPoints, 1 )-1
-      [ Xc, Yc, Zc ] = ellipsoid( interPoints(cc,1), interPoints(cc,2), interPoints(cc,3), radii/2., radii/2., radii/2., 10 );
-      CSF(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 1 0 0 ] );
+      [ Xc, Yc, Zc ] = ellipsoid( interPoints(cc,1), interPoints(cc,2), interPoints(cc,3), radii/2., radii/2., radii/2., 20 );
+      CSF(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 0 0 0 ], 'EdgeColor', 'none', 'FaceLighting', 'gouraud' );
     end
     
 %     DATAF(curT) = line( cPointsFirst( :, 1 ), cPointsFirst( :, 2 ), cPointsFirst( :, 3 ), 'Color', [ 1 0 0 ], 'LineWidth', 1.2 );

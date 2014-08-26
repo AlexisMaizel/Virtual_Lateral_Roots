@@ -1,5 +1,5 @@
 function exportTriangulation( tri, timeStep, dataName, triangulationType )
-fileName = strcat( '../FinalVLRForMatlab/triangulation-', dataName, '.txt' );
+fileName = strcat( '/tmp/triangulation-', dataName, '.txt' );
 fileId = fopen( char(fileName), 'a' );
 % first write the current time step
 fprintf( fileId, '%1d\n', timeStep );

@@ -1,5 +1,5 @@
 function exportNewPosOfTriangulation( contourPoints, nextPos, dataName )
-fileName = strcat( '../FinalVLRForMatlab/triangulation-', dataName, '.txt' );
+fileName = strcat( '/tmp/triangulation-', dataName, '.txt' );
 fileId = fopen( char(fileName), 'a' );
 
 nextPos = nextPos';
