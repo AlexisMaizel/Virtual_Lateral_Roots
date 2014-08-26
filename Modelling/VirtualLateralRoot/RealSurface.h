@@ -23,6 +23,8 @@ public:
   
   void growStep( const double dt );
   
+  void resetTriangleIndex( TrianglePoint &tp );
+  
   void getPos( TrianglePoint &tp );
   
   void setPos( TrianglePoint &tp, const Point3d &p );

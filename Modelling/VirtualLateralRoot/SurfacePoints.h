@@ -51,6 +51,7 @@ class TrianglePoint
     double u,v,w;
     std::size_t triIndex;
     Point2d pos;
+    Point2d oldPos;
     Point3d normal;
 };
 
@@ -63,10 +64,11 @@ public:
   SurfacePoints();
   void readTriangulation( const std::string &fileName );
   
-  Point2d getCoord( const double u, const double v, const double w, 
-                    std::size_t triIndex );
+  void getCoord( TrianglePoint &tp );
   
   void getBarycentricCoord( TrianglePoint &tp, const Point2d &p );
+  
+  void determineTriangleIndex( TrianglePoint &tp );
   
   void determinePosProperties( TrianglePoint &tp, const Point2d &p );
   
@@ -79,6 +81,9 @@ public:
   void interpolate( double timeStep );
   
   double checkBounds( double s, double min, double max ) ;
+  
+  std::size_t getNumTriangles() const
+  { return _curTriangles.size(); }
   
 private:
   

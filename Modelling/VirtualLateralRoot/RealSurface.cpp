@@ -47,10 +47,16 @@ void RealSurface::getPos( TrianglePoint &tp )
 
 //----------------------------------------------------------------
 
+void RealSurface::resetTriangleIndex( TrianglePoint &tp )
+{
+  _curSurface.determineTriangleIndex( tp );
+}
+
+//----------------------------------------------------------------
+
 void RealSurface::setPos( TrianglePoint &tp, const Point3d &p )
 {
-  Point2d pos( p.i(), p.j() );
-  _curSurface.determinePosProperties( tp, pos );
+  _curSurface.determinePosProperties( tp, Point2d( p.i(), p.j() ) );
   calcNormal(tp);
 }
 
@@ -61,7 +67,7 @@ void RealSurface::calcPos( TrianglePoint &tp )
   tp.u = _curSurface.checkBounds(tp.u, 0., 1.);
   tp.v = _curSurface.checkBounds(tp.v, 0., 1.);
   tp.w = _curSurface.checkBounds(tp.w, 0., 1.);
-  tp.pos = _curSurface.getCoord( tp.u, tp.v, tp.w, tp.triIndex );
+  _curSurface.getCoord( tp );
 }
 
 //----------------------------------------------------------------

@@ -1,5 +1,5 @@
 [Main]
-Dt: .005 // how fast the shape of the end stage is reached, default 0.1
+Dt: .003 // how fast the shape of the end stage is reached, default 0.1
 Growth: .1  // not considered in code
 InitialCellNumber: 1 // initial cell number designed for VLR: 1, 2 or 8
 InitialCellsOfRealData: none // valid entries are: none, 120830, 121204, 121211, 130508, 130607
@@ -7,14 +7,15 @@ SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additiona
 ExportLineage: false // export lineage information of cells
 ExportDivisionProperties: false // export division information of cells
 SurfaceType: 1 // type of surface: 0 -> bezier surface, 1 -> surface based on triangulation of real data
+NumberOfContourPoints: 16 // number of fixed contour points for each lateral root -> this is required to guarantee an unique mapping between subsequent time steps
 
 [View]
 StepPerView: 1
 BackgroundColor: 255
 
 [Division]
-DivisionArea: 0.005 // 0.075 threshold size of cells before they divide
-DivisionAreaRatio: 0.1 // 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionArea: 0.075 // 0.075 threshold size of cells before they divide
+DivisionAreaRatio: 0.2 // 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false

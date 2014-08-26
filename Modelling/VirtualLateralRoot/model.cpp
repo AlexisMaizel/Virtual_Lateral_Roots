@@ -28,6 +28,7 @@ public:
   bool useDecussationDivision;
   double _angleThreshold;
   std::size_t surfaceType;
+  std::size_t _numContourPoints;
   
   std::size_t _idCounter;
   std::size_t _time;
@@ -57,6 +58,7 @@ public:
     parms("Main", "ExportLineage", exportLineage);
     parms("Main", "ExportDivisionProperties", exportDivisionProperties);
     parms("Main", "SurfaceType", surfaceType);
+    parms("Main", "NumberOfContourPoints", _numContourPoints);
 
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
@@ -145,7 +147,7 @@ public:
                               1, sharedJunctions );
         }
         else
-          this->generateTriangleCell( 1 );
+          this->generateTriangleCell( 2 );
       }
       else if( _initialCellNumber == 2 )
       {
@@ -513,21 +515,29 @@ public:
     // set of junctions for the cell
     std::vector<junction> vs;
     
-    for( std::size_t w = 0; w < 4 * _cellSubdivisionLevel; w++ )
+    std::vector<Point3d> conPoints;
+    conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
+    conPoints.push_back( Point3d( 160.000000, -64.833333, 0. ) );
+    conPoints.push_back( Point3d( 230.000000, -58.743333, 0. ) );
+    conPoints.push_back( Point3d( 299.916667, -64.633333, 0. ) );
+    conPoints.push_back( Point3d( 370.000000, -64.750000, 0. ) );
+    conPoints.push_back( Point3d( 440.000000, -64.850000, 0. ) );
+    conPoints.push_back( Point3d( 520.000000, -64.956667, 0. ) );
+    conPoints.push_back( Point3d( 520.000000, -74.966667, 0. ) );
+    conPoints.push_back( Point3d( 520.000000, -100.000000, 0. ) );
+    conPoints.push_back( Point3d( 440.000000, -100.000000, 0. ) );
+    conPoints.push_back( Point3d( 370.000000, -100.000000, 0. ) );
+    conPoints.push_back( Point3d( 300.000000, -100.000000, 0. ) );
+    conPoints.push_back( Point3d( 230.000000, -100.000000, 0. ) );
+    conPoints.push_back( Point3d( 160.000000, -100.000000, 0. ) );
+    conPoints.push_back( Point3d( 115.000000, -100.000000, 0. ) );
+    conPoints.push_back( Point3d( 113.000000, -75.000000, 0. ) );
+    
+    for( std::size_t w = 0; w < _numContourPoints; w++ )
     {
       junction j;
       j->id = _jId;
-      switch(w)
-      {
-        //case 0: j->tp.setUVWT( 0., 0., 1., 0 ); break;
-        //case 1: j->tp.setUVWT( 0., 1., 0., 0 ); break;
-        //case 2: j->tp.setUVWT( 1., 0., 0., 0 ); break;
-        case 0: lateralRoot2.setPos( j->tp, Point3d( 115., -100., 0. ) ); break;
-        case 1: lateralRoot2.setPos( j->tp, Point3d( 112., -68., 0. ) ); break;
-        case 2: lateralRoot2.setPos( j->tp, Point3d( 520., -65., 0. ) ); break;
-        case 3: lateralRoot2.setPos( j->tp, Point3d( 520., -100., 0. ) ); break;
-      }
-      //lateralRoot2.initPoint( j->tp );
+      lateralRoot2.setPos( j->tp, conPoints.at(w) );
       vs.push_back(j);
       _jId++;
     }
@@ -678,6 +688,8 @@ public:
     }
     else if( useAreaRatio )
       status += QString( "Area divison ratio: %1 \t" ).arg(divisionAreaRatio);
+    else
+      status += QString( "Area divison: %1 \t" ).arg(divisionArea);
     
     if( useWallRatio )
       status += QString( "Wall divison ratio: %1 \t" ).arg(divisionWallRatio);
@@ -720,12 +732,17 @@ public:
     }
     
     if( surfaceType == 0 )
+    {
       center /= polygon.size();
+      cl->initialArea = geometry::polygonArea(polygon);
+    }
     else
+    {
       center /= polygon2D.size();
+      cl->initialArea = geometry::polygonArea(polygon2D);
+    }
     
     cl->center = center;
-    cl->initialArea = geometry::polygonArea(polygon);
     cl->area = cl->initialArea;
     cl->initialLongestWallLength = ModelUtils::determineLongestWallLength( cl, T );
     cl->longestWallLength = cl->initialLongestWallLength;
@@ -761,12 +778,17 @@ public:
     }
     
     if( surfaceType == 0 )
+    {
       center /= polygon.size();
+      cr->initialArea = geometry::polygonArea(polygon);
+    }
     else
+    {
       center /= polygon2D.size();
+      cr->initialArea = geometry::polygonArea(polygon2D);
+    }
     
     cr->center = center;
-    cr->initialArea = geometry::polygonArea(polygon);
     cr->area = cr->initialArea;
     cr->initialLongestWallLength = ModelUtils::determineLongestWallLength( cr, T );
     cr->longestWallLength = cr->initialLongestWallLength;
@@ -892,15 +914,16 @@ public:
       {
         center /= polygon.size();
         lateralRoot.SetPoint(c->sp, c->sp, center);
+        c->area = geometry::polygonArea(polygon);
       }
       else
       {
         center /= polygon2D.size();
         lateralRoot2.setPos(c->tp, center);
+        c->area = geometry::polygonArea(polygon2D);
       }
         
       c->center = center;
-      c->area = geometry::polygonArea(polygon);
       c->timeStep = _time;
       c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
       
@@ -917,7 +940,7 @@ public:
         
         if( a > initialArea || l > initialLongestLength )
           to_divide.push_back(c);
-      }
+      } 
       // apply a division if the cells area exceeds a certain threshold or area ratio
       else if( useCombinedAreaRatio && c->id > areaRatioStart )
       {
@@ -965,8 +988,8 @@ public:
         MyTissue::division_data ddata = this->setDivisionPoints( c );
         T.divideCell( c, ddata );
       }
-      else
-        T.divideCell(c);
+      //else
+        //T.divideCell(c);
     }
 
     return !to_divide.empty();
@@ -1013,21 +1036,20 @@ public:
     {
       lateralRoot.GrowStep(dt);
       forall(const junction& v, T.W)
-      {
-        std::cout << "old pos: " << v->sp.Pos() << std::endl;
         lateralRoot.GetPos(v->sp);
-        std::cout << "new pos: " << v->sp.Pos() << std::endl;
-      }
     }
     else
     {
       lateralRoot2.growStep( dt );
+      
       forall(const junction& v, T.W)
       {
-        std::cout << "old pos: " << v->tp.Pos() << std::endl;
-        lateralRoot2.getPos(v->tp);
-        std::cout << "new pos: " << v->tp.Pos() << std::endl;
+        //std::cout << "old pos: " << v->tp.Pos() << std::endl;
+        lateralRoot2.resetTriangleIndex( v->tp );
+        lateralRoot2.getPos( v->tp );
+        //std::cout << "new pos: " << v->tp.Pos() << std::endl;
       }
+      
     }
   }
 
@@ -1078,10 +1100,10 @@ public:
     forall(const cell& c, T.C)
     {
       //T.drawBorders = false;
-      T.cellWallWidth = 0.002;
+      T.cellWallWidth = 0.2;//0.001
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
-      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.1 );
+      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.5 );
     }
   }
 
@@ -1145,7 +1167,7 @@ public:
   
   // Method needed by the tissue
   void setPosition(const cell& c, const Point3d& p)
-  { 
+  {
     if( surfaceType == 0 )
       lateralRoot.SetPoint(c->sp, c->sp, p);
     else
@@ -1156,7 +1178,7 @@ public:
   
   // Method needed by the tissue
   void setPosition(const junction& j, const Point3d& p)
-  {
+  { 
     if( surfaceType == 0 )
       lateralRoot.SetPoint(j->sp, j->sp, p);
     else
