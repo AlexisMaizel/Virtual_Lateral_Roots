@@ -62,8 +62,6 @@ void SurfacePoints::readTriangulation( const std::string &fileName )
         _subsequentPoints.at(t).at(p) = Point2d( px, py );
       }
     }
-    
-    //std::cout << "psize: " << _points.at(t).size() << " tsize: " << _triangles.at(t).size() << std::endl; 
   }
   
   in.close();
@@ -97,28 +95,26 @@ void SurfacePoints::interpolate( double timeStep )
   
   // get range of time steps that fit the current timeStep value
   double time = timeStep * (timeStepRange-1);
-  std::size_t startT = (std::size_t)time;
+  _curTimeStep = (std::size_t)time;
   
   // the triangle list is just copied by the lower time step
-  _curTriangles = _triangles.at(startT);
+  _curTriangles = _triangles.at(_curTimeStep);
   
   // then interpolate linearly between these two time steps
   // depending on the factor difference
-  double factor = time - (double)startT;
+  double factor = time - (double)_curTimeStep;
   
-  std::cout << "startT: " << startT << " factor: " << factor << std::endl;
-  //std::cout << "psize: " << _points.at(startT).size() << " tsize: " << _triangles.at(startT).size() << std::endl; 
+  std::cout << "curT: " << _curTimeStep << " factor: " << factor << std::endl;
   
   // if the last time step is reached then just set the last entry
-  if( startT == timeStepRange-1 )
-    _curPoints = _points.at(startT);
+  if( _curTimeStep == timeStepRange-1 )
+    _curPoints = _points.at(_curTimeStep);
   else
   {
     _curPoints.clear();
-    for( std::size_t p = 0; p < _points.at(startT).size(); p++ )
+    for( std::size_t p = 0; p < _points.at(_curTimeStep).size(); p++ )
     {
-      Point2d pos = (1.-factor) * _points.at(startT).at(p) + _subsequentPoints.at(startT).at(p) * factor;
-      //std::cout << "pos: " << pos << std::endl;
+      Point2d pos = (1.-factor) * _points.at(_curTimeStep).at(p) + _subsequentPoints.at(_curTimeStep).at(p) * factor;
       _curPoints.push_back( pos );
     }
   }
@@ -128,14 +124,7 @@ void SurfacePoints::interpolate( double timeStep )
 
 // compute cartesian coordinates depending on the index of triangle
 void SurfacePoints::getCoord( TrianglePoint &tp )
-{
-  // TODO: not really good solution if the triIndex is out of bound
-  if( tp.triIndex >= _curTriangles.size() )
-    tp.triIndex = _curTriangles.size() - 1;
-  
-  //std::cout << "values: " << tp.u << " " << tp.v << " " << tp.w << " " << tp.triIndex << std::endl;
-  //std::cout << "cpsize: " << _curPoints.size() << " ctsize: " << _curTriangles.size() << std::endl; 
-  
+{ 
   Point2d p1,p2,p3;
   p1 = _curPoints.at( _curTriangles.at( tp.triIndex ).i() - 1 );
   p2 = _curPoints.at( _curTriangles.at( tp.triIndex ).j() - 1 );
@@ -143,13 +132,13 @@ void SurfacePoints::getCoord( TrianglePoint &tp )
   
   // determine the smallest distance between old point and current point
   // such that the u,v,w parameters are satisfied
-  //Point2d pos1 = tp.u * p1 + tp.v * p2 + tp.w * p3;
-  //Point2d pos2 = tp.v * p1 + tp.w * p2 + tp.u * p3;
-  //Point2d pos3 = tp.w * p1 + tp.u * p2 + tp.v * p3;
+  Point2d pos1 = tp.u * p1 + tp.v * p2 + tp.w * p3;
+  Point2d pos2 = tp.v * p1 + tp.w * p2 + tp.u * p3;
+  Point2d pos3 = tp.w * p1 + tp.u * p2 + tp.v * p3;
   
-  Point2d pos1 = tp.w * p1 + tp.v * p2 + tp.u * p3;
-  Point2d pos2 = tp.u * p1 + tp.w * p2 + tp.v * p3;
-  Point2d pos3 = tp.v * p1 + tp.u * p2 + tp.w * p3;
+  //Point2d pos1 = tp.w * p1 + tp.v * p2 + tp.u * p3;
+  //Point2d pos2 = tp.u * p1 + tp.w * p2 + tp.v * p3;
+  //Point2d pos3 = tp.v * p1 + tp.u * p2 + tp.w * p3;
   
   double dist1, dist2, dist3;
   dist1 = norm(pos1 - tp.pos);
@@ -162,16 +151,6 @@ void SurfacePoints::getCoord( TrianglePoint &tp )
     tp.pos = pos2;
   else
     tp.pos = pos3;
-  
-  /*
-  if( tp.pos.i() == 0. )
-  {
-    std::cout << "zero" << std::endl;
-    std::cout << "p1: " << p1 << " p2: " << p2 << " p3: " << p3 << std::endl; 
-    std::cout << "p: " << tp.pos << std::endl; 
-    std::cout << "values: " << tp.u << " " << tp.v << " " << tp.w << " " << tp.triIndex << std::endl;
-  }
-  */
 }
 
 //----------------------------------------------------------------
@@ -189,14 +168,46 @@ void SurfacePoints::getBarycentricCoord( TrianglePoint &tp, const Point2d &p )
   tp.u = ((p2.j()-p3.j())*(p.i()-p3.i()) + (p3.i()-p2.i())*(p.j()-p3.j()))/detMat;
   tp.v = ((p3.j()-p1.j())*(p.i()-p3.i()) + (p1.i()-p3.i())*(p.j()-p3.j()))/detMat;
   tp.w = 1. - tp.u - tp.v;
-  
-  //std::cout << "values: " << tp.u << " " << tp.v << " " << tp.w << " " << tp.triIndex << std::endl;
 }
 
 //----------------------------------------------------------------
 
 // determine triangle index for each new step because the number of triangles is changing
 void SurfacePoints::determineTriangleIndex( TrianglePoint &tp )
+{
+  // find point in current triangles
+  if( this->findPointInTriangles( tp.pos, tp ) )
+    return;
+  
+  // if the following code is executed then the current position was not found
+  // in any triangle of the current time step; however it can be that due to rounding
+  // errors a point IS actually located within a triangle; thus we perform a second check
+  // by investigating a epsilon environemnt (four checks) of the point and check if it is
+  // then located in a triangle
+  Point2d pos( tp.pos.i() + eps, tp.pos.j() + eps );
+  // check if point is in the current triangle
+  if( this->findPointInTriangles( pos, tp ) )
+    return;
+
+  pos =  Point2d( tp.pos.i() - eps, tp.pos.j() - eps );
+  // check if point is in the current triangle
+  if( this->findPointInTriangles( pos, tp ) )
+    return;
+  
+  pos =  Point2d( tp.pos.i() + eps, tp.pos.j() - eps );
+  // check if point is in the current triangle
+  if( this->findPointInTriangles( pos, tp ) )
+    return;
+  
+  pos =  Point2d( tp.pos.i() - eps, tp.pos.j() + eps );
+  // check if point is in the current triangle
+  if( this->findPointInTriangles( pos, tp ) )
+    return;
+}
+
+//----------------------------------------------------------------
+
+bool SurfacePoints::findPointInTriangles( const Point2d &pos, TrianglePoint &tp )
 {
   // iterate over all triangles in order to find the one in which cp is located
   for( std::size_t t = 0; t < _curTriangles.size(); t++ )
@@ -206,28 +217,20 @@ void SurfacePoints::determineTriangleIndex( TrianglePoint &tp )
     p2 = _curPoints.at( _curTriangles.at( t ).j() - 1 );
     p3 = _curPoints.at( _curTriangles.at( t ).k() - 1 );
     
-    //std::cout << "p1: " << p1 << " p2: " << p2 << " p3: " << p3 << std::endl;
-    
     // check if point is in the current triangle
-    if( this->pointIsInTriangle( tp.pos, p1, p2, p3 ) )
-    {
-      //std::cout << "p: " << tp.pos << std::endl;
-      
-      //std::cout << "in tri p1: " << p1 << " p2: " << p2 << " p3: " << p3 << std::endl;
+    if( this->pointIsInTriangle( pos, p1, p2, p3 ) )
+    {      
       tp.triIndex = t;
       
       // if all barycentric ccordinates are zero, then this point was created
       // due to a cell divsion; thus we have to determine u,v,w for this one
       if( tp.u == 0. && tp.v == 0. && tp.w == 0. )
         this->getBarycentricCoord( tp, tp.pos );
-      
-      //std::cout << t << " in triangle" << std::endl;
-      //std::cout << "p: " << p << std::endl;
-      return;
+      return true;
     }
-    //else
-      //std::cout << t << " not in triangle" << std::endl;
   }
+  
+  return false;
 }
 
 //----------------------------------------------------------------
@@ -244,18 +247,11 @@ void SurfacePoints::determinePosProperties( TrianglePoint &tp, const Point2d &p 
     p2 = _curPoints.at( _curTriangles.at( t ).j() - 1 );
     p3 = _curPoints.at( _curTriangles.at( t ).k() - 1 );
     
-    //std::cout << "p: " << p << std::endl;
-    //std::cout << "p1: " << p1 << " p2: " << p2 << " p3: " << p3 << std::endl;
-    
     // check if point is in the current triangle
     if( this->pointIsInTriangle( p, p1, p2, p3 ) )
     {
-      //std::cout << "p: " << p << std::endl;
-      //std::cout << "start p1: " << p1 << " p2: " << p2 << " p3: " << p3 << std::endl;
       tp.triIndex = t;
       this->getBarycentricCoord( tp, p );
-      //std::cout << t << " in triangle" << std::endl;
-      //std::cout << "p: " << p << std::endl;
       return;
     }
   }

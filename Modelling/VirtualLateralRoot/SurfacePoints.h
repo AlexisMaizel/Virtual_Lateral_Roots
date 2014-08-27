@@ -16,6 +16,8 @@ typedef util::Vector<2, double> Point2d;
 typedef util::Vector<3, double> Point3d;
 typedef util::Vector<3, std::size_t> Point3i;
 
+const double eps = 0.000001;
+
 class TrianglePoint
 {
   public:
@@ -34,6 +36,14 @@ class TrianglePoint
                   const double nw, const std::size_t ti )
     { u = nu; v = nv; w = nw; triIndex = ti; }
     std::size_t getTriIndex() const { return triIndex; }
+    void printProperties() const
+    {
+      std::cout << "pos: " << pos << std::endl;
+      std::cout << "u: " << u
+                << " v: " << v
+                << " w: " << w
+                << " i: " << triIndex << std::endl;
+    }
     void printPos() const
     { std::cout << "Point: [" << pos.i() << ", "
       << pos.j() << "]" << std::endl; }
@@ -51,7 +61,6 @@ class TrianglePoint
     double u,v,w;
     std::size_t triIndex;
     Point2d pos;
-    Point2d oldPos;
     Point3d normal;
 };
 
@@ -72,6 +81,8 @@ public:
   
   void determinePosProperties( TrianglePoint &tp, const Point2d &p );
   
+  bool findPointInTriangles( const Point2d &pos, TrianglePoint &tp );
+  
   void determineNormal( TrianglePoint &tp );
   
   bool pointIsInTriangle( const Point2d &p, const Point2d &p0,
@@ -84,6 +95,9 @@ public:
   
   std::size_t getNumTriangles() const
   { return _curTriangles.size(); }
+  
+  std::size_t getCurTimeStep() const
+  { return _curTimeStep; }
   
 private:
   
@@ -104,6 +118,8 @@ private:
   
   std::size_t _minTimeStep;
   std::size_t _maxTimeStep;
+  
+  std::size_t _curTimeStep;
 };
 
 #endif // SurfacePoints_HH

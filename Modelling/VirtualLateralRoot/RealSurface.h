@@ -33,6 +33,8 @@ public:
   
   void calcNormal( TrianglePoint &tp );
   
+  std::size_t getCurTimeStep() const;
+  
 private:
   double _time;
   double _surfTimeScale;

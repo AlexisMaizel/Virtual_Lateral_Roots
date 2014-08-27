@@ -28,7 +28,6 @@ public:
   bool useDecussationDivision;
   double _angleThreshold;
   std::size_t surfaceType;
-  std::size_t _numContourPoints;
   
   std::size_t _idCounter;
   std::size_t _time;
@@ -58,7 +57,6 @@ public:
     parms("Main", "ExportLineage", exportLineage);
     parms("Main", "ExportDivisionProperties", exportDivisionProperties);
     parms("Main", "SurfaceType", surfaceType);
-    parms("Main", "NumberOfContourPoints", _numContourPoints);
 
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
@@ -516,24 +514,29 @@ public:
     std::vector<junction> vs;
     
     std::vector<Point3d> conPoints;
-    conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
-    /*conPoints.push_back( Point3d( 160.000000, -64.833333, 0. ) );
+    /*conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
+    conPoints.push_back( Point3d( 160.000000, -64.833333, 0. ) );
     conPoints.push_back( Point3d( 230.000000, -58.743333, 0. ) );
     conPoints.push_back( Point3d( 299.916667, -64.633333, 0. ) );
     conPoints.push_back( Point3d( 370.000000, -64.750000, 0. ) );
-    conPoints.push_back( Point3d( 440.000000, -64.850000, 0. ) );*/
+    conPoints.push_back( Point3d( 440.000000, -64.850000, 0. ) );
     conPoints.push_back( Point3d( 520.000000, -64.956667, 0. ) );
-    //conPoints.push_back( Point3d( 520.000000, -74.966667, 0. ) );
+    conPoints.push_back( Point3d( 520.000000, -74.966667, 0. ) );
     conPoints.push_back( Point3d( 520.000000, -100.000000, 0. ) );
-    /*conPoints.push_back( Point3d( 440.000000, -100.000000, 0. ) );
+    conPoints.push_back( Point3d( 440.000000, -100.000000, 0. ) );
     conPoints.push_back( Point3d( 370.000000, -100.000000, 0. ) );
     conPoints.push_back( Point3d( 300.000000, -100.000000, 0. ) );
     conPoints.push_back( Point3d( 230.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 160.000000, -100.000000, 0. ) );*/
+    conPoints.push_back( Point3d( 160.000000, -100.000000, 0. ) );
     conPoints.push_back( Point3d( 115.000000, -100.000000, 0. ) );
-    //conPoints.push_back( Point3d( 113.000000, -75.000000, 0. ) );
+    conPoints.push_back( Point3d( 113.000000, -75.000000, 0. ) );*/
     
-    for( std::size_t w = 0; w < 4; w++ )
+    conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
+    conPoints.push_back( Point3d( 520.000000, -64.956667, 0. ) );
+    conPoints.push_back( Point3d( 520.000000, -100.000000, 0. ) );
+    conPoints.push_back( Point3d( 115.000000, -100.000000, 0. ) );
+    
+    for( std::size_t w = 0; w < conPoints.size(); w++ )
     {
       junction j;
       j->id = _jId;
@@ -1041,15 +1044,11 @@ public:
     else
     {
       lateralRoot2.growStep( dt );
-      
       forall(const junction& v, T.W)
       {
-        //std::cout << "old pos: " << v->tp.Pos() << std::endl;
         lateralRoot2.resetTriangleIndex( v->tp );
         lateralRoot2.getPos( v->tp );
-        //std::cout << "new pos: " << v->tp.Pos() << std::endl;
       }
-      
     }
   }
 
@@ -1100,10 +1099,10 @@ public:
     forall(const cell& c, T.C)
     {
       //T.drawBorders = false;
-      T.cellWallWidth = 0.2;//0.001
+      T.cellWallWidth = 0.3;//0.001
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
-      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.5 );
+      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.1 );
     }
   }
 
