@@ -1,4 +1,4 @@
-function exportTriangulation( tri, timeStep, dataName, triangulationType )
+function exportTriangulation( tri, pos, timeStep, dataName, triangulationType )
 fileName = strcat( '/tmp/triangulation-', dataName, '.txt' );
 fileId = fopen( char(fileName), 'a' );
 % first write the current time step
@@ -9,15 +9,24 @@ fprintf( fileId, '%1d\n', timeStep );
 if triangulationType == 1
   mat = tri.Points';
 else
-  mat = tri;
+  mat = pos';
 end
 
 % number of points
 fprintf( fileId, '%1d\n', size( mat, 2 ) );
-fprintf( fileId, '%4f %4f\n', mat );
+if triangulationType == 1
+  fprintf( fileId, '%4f %4f\n', mat );
+else
+  fprintf( fileId, '%4f %4f\n', mat( 1:2, : ) );
+end
 
 % and finally write the list of triangulations
-mat = tri.ConnectivityList';
+if triangulationType == 1
+  mat = tri.ConnectivityList';
+else
+  mat = tri';
+end
+
 % number of triangles
 fprintf( fileId, '%1d\n', size( mat, 2 ) );
 if size( mat, 2 ) > 0

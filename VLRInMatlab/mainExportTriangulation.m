@@ -18,13 +18,16 @@ dataId = 1;
 cView = 2;
 % start with the current time step
 startT = 1;
-maxT = 1;
+maxT = 300;
+maxDataT = 300;
 % draw delaunay tri?
 drawDelaunay = 1;
 % render only master file?
 renderSingleCellFile = 1;
 % render contour (=convexHull) instead of ellipses
 renderContour = 0;
+% include contour points
+includeContourPoints = 1;
 % use triangulation based on delaunay or alpha shape
 % 1 -> delaunay
 % 2 -> alpha shape
@@ -233,6 +236,7 @@ for dataIndex=startD:endD
   DATAL = [];
   CSF = [];
   CSL = [];
+  TEXT = [];
   
   % get stored eigenvectors for the last time step to set the same
   % direction view for each time step
@@ -283,7 +287,7 @@ for dataIndex=startD:endD
   % loop over all time steps
   for curT=startT:maxT
      % draw contour of data and the single marks
-    factor = curT/300;
+    factor = curT/maxDataT;
     interPoints = (1-factor) * cPointsFirst + factor * cPointsLast;
     
     % number of cells for the current time step
@@ -379,10 +383,29 @@ for dataIndex=startD:endD
     if ishandle( CSL )
       set( CSL, 'Visible', 'off' );
     end
+    if ishandle( TEXT )
+      set( TEXT, 'Visible', 'off' );
+    end
+    
+    % substract each point by mean of all positions to have a
+    % better origin for the model
+%     mean = [ 0 0 0 ];
+%     for k=1:size( curPos, 1 )
+%       mean = mean + curPos( k, : );
+%     end
+%     mean = mean/size( curPos, 1 );    
+    %mean = getDataMeanPos( dataStr( 1, dataIndex ) );
+    mean = [ 0 0 0 ];
     
     % add the contour points to generate a complete triangulation
-    for cc=1:size( interPoints, 1 )-1
-      curPos = [ curPos; interPoints( cc, : ) ];
+    if includeContourPoints == 1
+      for cc=1:size( interPoints, 1 )-1
+        curPos = [ curPos; interPoints( cc, : ) ];
+      end
+    end
+    
+    for k=1:size( curPos, 1 )
+      curPos(k, :) = curPos(k, :) - mean;
     end
     
     if triangulationType == 1
@@ -390,23 +413,45 @@ for dataIndex=startD:endD
       curTri = delaunayTriangulation( curPos(:,1), curPos(:,2) );
     else
       % alpha shape triangulation
-      [Vol,Shape] = alphavol( [ curPos(:,1) curPos(:,2) ], 50 );
+      [Vol,Shape] = alphavol( [ curPos(:,1) curPos(:,2) ], 85 );
       curTri = Shape.tri;
     end
     
     % export triangulation properties
-    exportTriangulation( curTri, curT, dataStr( 1, dataIndex ), triangulationType );
+    exportTriangulation( curTri, curPos, curT, dataStr( 1, dataIndex ), triangulationType );
     
     if curT ~= maxT
-      fac = (curT+1)/300;
-      interPoints = (1-fac) * cPointsFirst + fac * cPointsLast;
-      numConMarks = size( interPoints, 1 );
-      exportNewPosOfTriangulation( interPoints( 1:numConMarks-1, : ), nextPos, dataStr( 1, dataIndex ) );
+      fac = (curT+1)/maxDataT;
+      for k=1:size(nextPos,1)
+        nextPos(k, :) = nextPos(k, :) - mean;
+      end
+      if includeContourPoints == 1
+        nextInterPoints = (1-fac) * cPointsFirst + fac * cPointsLast;
+        numConMarks = size( nextInterPoints, 1 );
+        for k=1:numConMarks-1
+          nextInterPoints(k, :) = nextInterPoints(k, :) - mean;
+        end
+        exportNewPosOfTriangulation( nextInterPoints( 1:numConMarks-1, : ), nextPos, dataStr( 1, dataIndex ) );
+      else
+        fileName = strcat( '/tmp/triangulation-', dataStr( 1, dataIndex ), '.txt' );
+        fileId = fopen( char(fileName), 'a' );
+        nextPos = nextPos';
+        fprintf( fileId, '%4f %4f\n', nextPos( 1:2, : ) );
+        fprintf( fileId, '\n' );
+        fclose( fileId );
+      end
     end
     
     % if at least three cells exists
-    if drawDelaunay == 1 && triangulationType == 1 && size( curPos, 1 ) > 2
-      triplot( curTri, 'r' );
+    if drawDelaunay == 1 && size( curPos, 1 ) > 2
+      if triangulationType == 1
+        triplot( curTri, 'b' );
+        % draw triangle labels in the center of each triangle
+        TEXT = drawTriangleLabels( curTri );
+      else
+        trisurf( curTri, curPos(:,1), curPos(:,2), curPos(:,3),...
+                 'FaceColor', 'blue', 'FaceAlpha', 0. );
+      end
     end
     
     points = zeros( numCells, 3 );
@@ -422,7 +467,7 @@ for dataIndex=startD:endD
       [ X, Y, Z ] = ellipsoid( p1(1), p1(2), p1(3), radii/2., radii/2., radii/2., 20 );
       
       % render sphere surfaces
-      S(c) = surface( X, Y, Z, 'FaceColor', [ 0 0 1 ], 'EdgeColor', 'none', 'FaceLighting', 'gouraud' );
+      S(c) = surface( X, Y, Z, 'FaceColor', [ 1 0 0 ], 'EdgeColor', 'none', 'FaceLighting', 'gouraud' );
     end
     
     if size( points, 1 ) > 2 && renderContour == 1
@@ -431,10 +476,13 @@ for dataIndex=startD:endD
     end
     
     %DATAF(curT) = line( interPoints( :, 1 ), interPoints( :, 2 ), interPoints( :, 3 ), 'Color', [ 1 0 0 ], 'LineWidth', 1.2 );
-    radii = 5;
-    for cc=1:size( interPoints, 1 )-1
-      [ Xc, Yc, Zc ] = ellipsoid( interPoints(cc,1), interPoints(cc,2), interPoints(cc,3), radii/2., radii/2., radii/2., 20 );
-      CSF(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 0 0 0 ], 'EdgeColor', 'none', 'FaceLighting', 'gouraud' );
+    if includeContourPoints == 1
+      radii = 5;
+      for cc=1:size( interPoints, 1 )-1
+        interPoints(cc, :) = interPoints(cc, :) - mean;
+        [ Xc, Yc, Zc ] = ellipsoid( interPoints(cc,1), interPoints(cc,2), interPoints(cc,3), radii/2., radii/2., radii/2., 20 );
+        CSF(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 0 0 0 ], 'EdgeColor', 'none', 'FaceLighting', 'gouraud' );
+      end
     end
     
 %     DATAF(curT) = line( cPointsFirst( :, 1 ), cPointsFirst( :, 2 ), cPointsFirst( :, 3 ), 'Color', [ 1 0 0 ], 'LineWidth', 1.2 );
@@ -453,8 +501,8 @@ for dataIndex=startD:endD
     hold off;
     set( f,'nextplot','replacechildren' );
     viewOffset = 100;
-    axis( [ 75 550 -120 60 ] );
-    axis off
+    axis( [ 75-mean(1,1) 550-mean(1,1) -120-mean(1,2) 60-mean(1,2) ] );
+    axis on
     daspect( [ 1 1 1 ] );
     
     grid off;
