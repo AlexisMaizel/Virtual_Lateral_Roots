@@ -16,7 +16,7 @@ typedef util::Vector<2, double> Point2d;
 typedef util::Vector<3, double> Point3d;
 typedef util::Vector<3, std::size_t> Point3i;
 
-const double eps = 0.000001;
+const double eps = 0.1;
 
 class TrianglePoint
 {

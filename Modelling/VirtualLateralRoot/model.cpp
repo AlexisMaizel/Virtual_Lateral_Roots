@@ -142,7 +142,7 @@ public:
         {
           this->generateCell( std::make_pair( 0., 0. ),
                               std::make_pair( 1., 1. ),
-                              1, sharedJunctions );
+                              2, sharedJunctions );
         }
         else
           this->generateTriangleCell( 2 );
@@ -513,6 +513,9 @@ public:
     // set of junctions for the cell
     std::vector<junction> vs;
     
+    Point3d dataMean( 289.023540405678, -25.7548027981398, 0. );
+    //Point3d dataMean( 0., 0., 0. );
+    
     std::vector<Point3d> conPoints;
     /*
     conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
@@ -540,6 +543,8 @@ public:
     
     for( std::size_t w = 0; w < conPoints.size(); w++ )
     {
+      conPoints.at(w) -= dataMean;
+      
       junction j;
       j->id = _jId;
       lateralRoot2.setPos( j->tp, conPoints.at(w) );
@@ -990,8 +995,12 @@ public:
       lateralRoot2.growStep( dt );
       forall(const junction& v, T.W)
       {
+        //std::cout << "old" << std::endl;
+        //v->tp.printProperties();
         lateralRoot2.resetTriangleIndex( v->tp );
         lateralRoot2.getPos( v->tp );
+        //std::cout << "new" << std::endl;
+        //v->tp.printProperties();
       }
     }
   }
@@ -1043,7 +1052,11 @@ public:
     forall(const cell& c, T.C)
     {
       //T.drawBorders = false;
-      T.cellWallWidth = 0.3;//0.001
+      if( surfaceType == 0 )
+        T.cellWallWidth = 0.001;
+      else
+        T.cellWallWidth = 0.3;
+          
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
       T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.1 );

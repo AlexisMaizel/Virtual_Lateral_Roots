@@ -104,6 +104,7 @@ void SurfacePoints::interpolate( double timeStep )
   // depending on the factor difference
   double factor = time - (double)_curTimeStep;
   
+  std::cout << std::endl;
   std::cout << "curT: " << _curTimeStep << " factor: " << factor << std::endl;
   
   // if the last time step is reached then just set the last entry
@@ -221,7 +222,7 @@ bool SurfacePoints::findPointInTriangles( const Point2d &pos, TrianglePoint &tp 
       // if all barycentric ccordinates are zero, then this point was created
       // due to a cell divsion; thus we have to determine u,v,w for this one
       if( tp.u == 0. && tp.v == 0. && tp.w == 0. )
-        this->getBarycentricCoord( tp, tp.pos );
+        this->getBarycentricCoord( tp, pos );
       return true;
     }
   }
