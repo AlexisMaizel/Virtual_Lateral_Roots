@@ -1,11 +1,11 @@
 [Main]
-Dt: .05 // how fast the shape of the end stage is reached, default 0.1
+Dt: .005 // how fast the shape of the end stage is reached, default 0.1
 Growth: .1  // not considered in code
 InitialCellNumber: 1 // initial cell number designed for VLR: 1, 2 or 8
 InitialCellsOfRealData: none // valid entries are: none, 120830, 121204, 121211, 130508, 130607
 SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
 ExportLineage: false // export lineage information of cells
-ExportDivisionProperties: false // export division information of cells
+ExportDivisionProperties: true // export division information of cells
 SurfaceType: 1 // type of surface: 0 -> bezier surface, 1 -> surface based on triangulation of real data
 
 [View]
@@ -26,14 +26,14 @@ CellColoringType: 0 // cell coloring type: 0 -> cells are colored based on found
 
 [Tissue]
 DivisionAlgorithm: ShortWall // ClosestWall ShortWall ClosestMid
-CellPinch: 0.75 // 0.75 displacement of the position of the newly inserted vertexes
-CellMaxPinch: 0.1 // 0.05 max displacement of the position of the newly inserted vertexes
+CellPinch: 0 // 0.75 displacement of the position of the newly inserted vertexes
+CellMaxPinch: 0 // 0.1 max displacement of the position of the newly inserted vertexes
 CellMaxArea: 1 // not considered in code
 CellWallMin: 0.0 // for SW, CW, CM
 StrictCellWallMin: false // for SW, CW, CM
-CellWallSample: 0.005 // for SW; not sure but influences the ratio of how a division wall is generated, default .005
+CellWallSample: 0.5 // for SW; not sure but influences the ratio of how a division wall is generated, default 0.005
 OrderCellDivision: true  // not considered in code
-CellSampleDx: 0.01 // for SW 
+CellSampleDx: 0.000000001 // for SW, default 0.01
 
 [TissueView]
 CellColorBegin: 1

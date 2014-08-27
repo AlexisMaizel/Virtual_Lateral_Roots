@@ -12,13 +12,8 @@ RealSurface::RealSurface( util::Parms &parms,
                           const std::string &section )
   : _time( 0. )
 {
-  //parms(section.data(), "SurfTimeScale", _surfTimeScale);
-  
   // depending on data set -> TODO
   _curSurface.readTriangulation( "/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/FinalVLRForMatlab/triangulation-120830_raw.txt" );
-  
-  //this->growStep( 0.5 );
-  //_curSurface.printTriangleProperties( 0 );
 }
 
 //----------------------------------------------------------------
@@ -34,7 +29,6 @@ void RealSurface::growStep( const double dt )
 void RealSurface::initPoint( TrianglePoint &tp )
 {
   this->getPos( tp );
-  //std::cout << "pos: " << tp.Pos() << std::endl;
 }
 
 //----------------------------------------------------------------
@@ -82,7 +76,6 @@ std::size_t RealSurface::getCurTimeStep() const
 void RealSurface::calcNormal( TrianglePoint &tp )
 {
   _curSurface.determineNormal( tp );
-  //std::cout << "normal: " << tp.normal << std::endl;
 }
 
 //----------------------------------------------------------------

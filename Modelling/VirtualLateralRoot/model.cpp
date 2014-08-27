@@ -514,7 +514,8 @@ public:
     std::vector<junction> vs;
     
     std::vector<Point3d> conPoints;
-    /*conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
+    /*
+    conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
     conPoints.push_back( Point3d( 160.000000, -64.833333, 0. ) );
     conPoints.push_back( Point3d( 230.000000, -58.743333, 0. ) );
     conPoints.push_back( Point3d( 299.916667, -64.633333, 0. ) );
@@ -529,7 +530,8 @@ public:
     conPoints.push_back( Point3d( 230.000000, -100.000000, 0. ) );
     conPoints.push_back( Point3d( 160.000000, -100.000000, 0. ) );
     conPoints.push_back( Point3d( 115.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 113.000000, -75.000000, 0. ) );*/
+    conPoints.push_back( Point3d( 113.000000, -75.000000, 0. ) );
+    */
     
     conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
     conPoints.push_back( Point3d( 520.000000, -64.956667, 0. ) );
@@ -715,97 +717,12 @@ public:
     // set properties of dividing cell
     c->angle = angle;
     
-		// set daughter cell properties
-    // left cell
-    std::vector<Point3d> polygon;
-    std::vector<Point2d> polygon2D;
-    Point3d center;
-    forall(const junction& j, T.S.neighbors(cl))
-    {
-      if( surfaceType == 0 )
-      {
-        polygon.push_back(j->sp.Pos());
-        center += j->sp.Pos();
-      }
-      else
-      {
-        polygon2D.push_back(j->tp.Pos());
-        center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-      }
-    }
+		// set cell properties for left cell
+    this->setCellProperties( cl, c );
     
-    if( surfaceType == 0 )
-    {
-      center /= polygon.size();
-      cl->initialArea = geometry::polygonArea(polygon);
-    }
-    else
-    {
-      center /= polygon2D.size();
-      cl->initialArea = geometry::polygonArea(polygon2D);
-    }
+    // set cell properties for right cell
+    this->setCellProperties( cr, c );
     
-    cl->center = center;
-    cl->area = cl->initialArea;
-    cl->initialLongestWallLength = ModelUtils::determineLongestWallLength( cl, T );
-    cl->longestWallLength = cl->initialLongestWallLength;
-    
-		cl->treeId = c->treeId;
-    cl->id = _idCounter;
-    cl->parentId = c->id;
-    cl->timeStep = _time;
-    cl->previousAngle = c->angle;
-    cl->angle = angle;
-    cl->previousDivDir = c->divDir;
-    cl->divDir = cl->center - c->center;
-    cl->cellCycle = c->cellCycle+1;
-    _idCounter++;
-
-    
-    // right cell
-    polygon.clear();
-    polygon2D.clear();
-    center = Point3d( 0., 0., 0. );
-    forall(const junction& j, T.S.neighbors(cr))
-    {
-      if( surfaceType == 0 )
-      {
-        polygon.push_back(j->sp.Pos());
-        center += j->sp.Pos();
-      }
-      else
-      {
-        polygon2D.push_back(j->tp.Pos());
-        center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-      }
-    }
-    
-    if( surfaceType == 0 )
-    {
-      center /= polygon.size();
-      cr->initialArea = geometry::polygonArea(polygon);
-    }
-    else
-    {
-      center /= polygon2D.size();
-      cr->initialArea = geometry::polygonArea(polygon2D);
-    }
-    
-    cr->center = center;
-    cr->area = cr->initialArea;
-    cr->initialLongestWallLength = ModelUtils::determineLongestWallLength( cr, T );
-    cr->longestWallLength = cr->initialLongestWallLength;
-    
-    cr->treeId = c->treeId;
-    cr->id = _idCounter;
-    cr->parentId = c->id;
-    cr->timeStep = _time;
-    cr->previousAngle = c->angle;
-    cr->previousDivDir = c->divDir;
-    cr->divDir = cr->center - c->center;
-    cr->cellCycle = c->cellCycle+1;
-    _idCounter++;
-        
     // check which cell is the upper one and only increase the layer value
     // of the upper one in the case of having a periclinal division if 
     // updateBothLayers is set to false
@@ -835,6 +752,53 @@ public:
     }
   }
 
+  //----------------------------------------------------------------
+  
+  void setCellProperties( const cell &c, const cell &parentCell )
+  {
+    Point3d center;
+    double area;
+    this->setCellCenter( c, center, area );
+    c->initialArea = area;
+    c->center = center;
+    c->area = c->initialArea;
+    c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
+    c->longestWallLength = c->initialLongestWallLength;
+    c->treeId = parentCell->treeId;
+    c->id = _idCounter;
+    c->parentId = parentCell->id;
+    c->timeStep = _time;
+    c->previousAngle = parentCell->angle;
+    c->angle = parentCell->angle;
+    c->previousDivDir = parentCell->divDir;
+    c->divDir = c->center - parentCell->center;
+    c->cellCycle = parentCell->cellCycle+1;
+    _idCounter++; 
+  }
+
+  //----------------------------------------------------------------
+  
+  void setCellCenter( const cell &c, Point3d &center, double &area )
+  {
+    center = Point3d( 0., 0., 0. );
+    std::vector<Point2d> polygon;
+    forall(const junction& j, T.S.neighbors(c))
+    {
+      Point3d pos;
+      
+      if( surfaceType == 0 )
+        pos = j->sp.Pos();
+      else
+        pos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+      
+      polygon.push_back( Point2d( pos.i(), pos.j() ) );
+      center += pos;
+    }
+    
+    center /= polygon.size();
+    area = geometry::polygonArea(polygon);
+  }
+  
   //----------------------------------------------------------------
   
   void setLayerValues( const cell& cl, const cell& cr, const cell& c,
@@ -896,36 +860,16 @@ public:
     forall(const cell& c, T.C)
     {
       // update center position
-      std::vector<Point3d> polygon;
-      std::vector<Point2d> polygon2D;
       Point3d center;
-      forall(const junction& j, T.S.neighbors(c))
-      {
-        if( surfaceType == 0 )
-        {
-          polygon.push_back(j->sp.Pos());
-          center += j->sp.Pos();
-        }
-        else
-        {
-          polygon2D.push_back(j->tp.Pos());
-          center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-        }
-      }
-      
+      double area;
+      this->setCellCenter( c, center, area );
+    
       if( surfaceType == 0 )
-      {
-        center /= polygon.size();
         lateralRoot.SetPoint(c->sp, c->sp, center);
-        c->area = geometry::polygonArea(polygon);
-      }
       else
-      {
-        center /= polygon2D.size();
         lateralRoot2.setPos(c->tp, center);
-        c->area = geometry::polygonArea(polygon2D);
-      }
         
+      c->area = area;
       c->center = center;
       c->timeStep = _time;
       c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
