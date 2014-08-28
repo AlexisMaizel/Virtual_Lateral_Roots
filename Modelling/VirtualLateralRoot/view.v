@@ -13,8 +13,8 @@ StepPerView: 1
 BackgroundColor: 255
 
 [Division]
-DivisionArea: 1500 // 0.075 threshold size of cells before they divide
-DivisionAreaRatio: 0.20 // 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionArea: 1200 // 0.075 threshold size of cells before they divide
+DivisionAreaRatio: 0.18 // 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
@@ -26,8 +26,8 @@ CellColoringType: 0 // cell coloring type: 0 -> cells are colored based on found
 
 [Tissue]
 DivisionAlgorithm: ShortWall // ClosestWall ShortWall ClosestMid
-CellPinch: 0 // 0.75 displacement of the position of the newly inserted vertexes
-CellMaxPinch: 0 // 0.1 max displacement of the position of the newly inserted vertexes
+CellPinch: 0.75 // 0.75 displacement of the position of the newly inserted vertexes
+CellMaxPinch: 0.1 // 0.1 max displacement of the position of the newly inserted vertexes
 CellMaxArea: 1 // not considered in code
 CellWallMin: 0.0 // for SW, CW, CM
 StrictCellWallMin: false // for SW, CW, CM

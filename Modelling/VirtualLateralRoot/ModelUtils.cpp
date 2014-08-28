@@ -104,6 +104,68 @@ double getDivisionAngle( const MyTissue::division_data& ddata )
 
 // ---------------------------------------------------------------------
 
+void determineConvexHull( const cell &c, const MyTissue& T )
+{
+  std::vector<Point2d> points;
+  // determine points
+  forall(const junction& j, T.S.neighbors(c))
+    points.push_back( j->tp.Pos() );
+  
+  if( points.size() < 1 )
+    return;
+  
+  // sort after y values
+  std::sort( points.begin(), points.end(), ModelUtils::ySort );
+  
+  Point2d ymin = points.at(0);
+  
+  for( std::size_t i = 0; i < points.size(); ++i )
+    std::cout << points.at(i) << std::endl;
+  
+  // TODO
+  /*
+  // compute orientation for all points with respect to
+  // the first one
+  for( std::size_t i = 1; i < points.size(); ++i )
+  {
+    Point2d pT = points.at(i);
+    double aT = dotProduct( ymin, pT );
+    std::size_t kT = i;
+    for( std::size_t j = 0; j < points.size()-2; ++j )
+    {
+      if( dotProduct( ymin, points.at(i+j) ) < aT )
+      {
+        pT = points.at(i+j);
+        aT = dotProduct( ymin, points.at(i+j) );
+        kT = i+j;
+      }
+    }
+    points.at(kT) = points.at(i);
+    points.at(i) = pT;
+  }
+  */
+  //points.at(0) = points.at(points.size()-1);
+}
+
+// ---------------------------------------------------------------------
+
+bool ySort( const Point2d &p1, const Point2d &p2 )
+{
+  if( p1.j() != p2.j() )
+    return (p1.j() < p2.j());
+  else
+    return ( p1.i() <= p2.i() );
+}
+
+// ---------------------------------------------------------------------
+
+double dotProduct( const Point2d &p1, const Point2d &p2 )
+{
+  return (p2.i()-p1.i())/std::sqrt((p2.i()-p1.i())*(p2.i()-p1.i()) + (p2.j()-p1.j())*(p2.j()-p1.j()));
+}
+
+// ---------------------------------------------------------------------
+
 double determineDivisionAngle( const MyTissue::division_data& ddata )
 {
   // get pair of points of division wall

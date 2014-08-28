@@ -104,7 +104,7 @@ void SurfacePoints::interpolate( double timeStep )
   // depending on the factor difference
   double factor = time - (double)_curTimeStep;
   
-  std::cout << std::endl;
+  //std::cout << std::endl;
   std::cout << "curT: " << _curTimeStep << " factor: " << factor << std::endl;
   
   // if the last time step is reached then just set the last entry

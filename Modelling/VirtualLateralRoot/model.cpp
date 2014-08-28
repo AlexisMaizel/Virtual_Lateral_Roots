@@ -993,18 +993,36 @@ public:
     else
     {
       lateralRoot2.growStep( dt );
-      forall(const junction& v, T.W)
+      
+      this->checkPointLocationInCells( );
+      
+      forall(const junction& j, T.W)
       {
         //std::cout << "old" << std::endl;
-        //v->tp.printProperties();
-        lateralRoot2.resetTriangleIndex( v->tp );
-        lateralRoot2.getPos( v->tp );
+        //j->tp.printProperties();
+        lateralRoot2.resetTriangleIndex( j->tp );
+        lateralRoot2.getPos( j->tp );
         //std::cout << "new" << std::endl;
-        //v->tp.printProperties();
+        //j->tp.printProperties();
       }
     }
   }
 
+  //----------------------------------------------------------------
+  
+  void checkPointLocationInCells()
+  {
+    forall(const cell& c, T.C) 
+    {
+      //forall(const junction& j, T.S.neighbors(c))
+      //{
+      //}
+      std::cout << "cell" << std::endl;
+      ModelUtils::determineConvexHull( c, T );
+      std::cout << std::endl;
+    }
+  }
+  
   //----------------------------------------------------------------
   
   void step()

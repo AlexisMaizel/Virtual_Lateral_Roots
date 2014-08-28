@@ -48,10 +48,10 @@ class TrianglePoint
     { std::cout << "Point: [" << pos.i() << ", "
       << pos.j() << "]" << std::endl; }
 
-    friend std::ostream& operator<<(std::ostream& os, const TrianglePoint &sp) {
+    friend std::ostream& operator<<(std::ostream& os, const TrianglePoint &tp) {
       return os;
      };
-    friend std::istream& operator>>(std::istream& is, TrianglePoint &sp) {
+    friend std::istream& operator>>(std::istream& is, TrianglePoint &tp) {
       return is;
     };
     friend class RealSurface;
