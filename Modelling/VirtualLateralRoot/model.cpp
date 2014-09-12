@@ -994,34 +994,40 @@ public:
     {
       lateralRoot2.growStep( dt );
       
-      this->checkPointLocationInCells( );
+      this->determineConvexHulls();
       
       forall(const junction& j, T.W)
       {
-        //std::cout << "old" << std::endl;
-        //j->tp.printProperties();
         lateralRoot2.resetTriangleIndex( j->tp );
+        
+        bool inHull = false;
+        forall(const cell& c, T.C) 
+        {
+          if( ModelUtils::pointInHull( j->tp.Pos(), c->convexHull ) )
+          {
+            inHull = true;
+            break;
+          }
+        }
+        
         lateralRoot2.getPos( j->tp );
+        
+        //std::cout << "old" << std::endl;
+        //j->tp.printPos();
+        //if( T.border(j) )
+        
         //std::cout << "new" << std::endl;
-        //j->tp.printProperties();
+        //j->tp.printPos();
       }
     }
   }
-
+  
   //----------------------------------------------------------------
   
-  void checkPointLocationInCells()
+  void determineConvexHulls()
   {
-    forall(const cell& c, T.C) 
-    {
-      //forall(const junction& j, T.S.neighbors(c))
-      //{
-      //}
-      std::cout << "cell" << std::endl;
-      std::vector<Point2d> hull;
-      hull = ModelUtils::determineConvexHull( c, T );
-      std::cout << std::endl;
-    }
+    forall(const cell& c, T.C)
+      c->convexHull = ModelUtils::determineConvexHull( c, T );
   }
   
   //----------------------------------------------------------------

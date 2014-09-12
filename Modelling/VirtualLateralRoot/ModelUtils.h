@@ -23,6 +23,13 @@ namespace ModelUtils
   
   std::vector<Point2d> determineConvexHull( const cell &c, const MyTissue& T );
   
+  bool pointInHull( const Point2d &p, const std::vector<Point2d> &hull );
+  
+  bool doIntersect( const Point2d &p1, const Point2d &q1,
+                    const Point2d &p2, const Point2d &q2 );
+  
+  bool onSegment( const Point2d &p1, const Point2d &p2, const Point2d &p3 );
+  
   int orientation( const Point2d &p1, const Point2d &p2, const Point2d &p3 );
   
   double cross( const Point2d &p1, const Point2d &p2, const Point2d &p3 );

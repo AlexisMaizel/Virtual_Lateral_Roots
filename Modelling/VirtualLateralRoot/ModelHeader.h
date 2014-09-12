@@ -88,6 +88,8 @@ struct CellContent
   Point3d previousDivDir;
   // current division direction of cell
   Point3d divDir;
+  // convex hull of cell
+  std::vector<Point2d> convexHull;
 };
 
 struct WallContent

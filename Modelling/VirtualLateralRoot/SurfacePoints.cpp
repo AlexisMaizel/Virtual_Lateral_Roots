@@ -136,7 +136,7 @@ void SurfacePoints::getCoord( TrianglePoint &tp )
   Point2d pos1 = tp.u * p1 + tp.v * p2 + tp.w * p3;
   Point2d pos2 = tp.v * p1 + tp.w * p2 + tp.u * p3;
   Point2d pos3 = tp.w * p1 + tp.u * p2 + tp.v * p3;
-  
+
   double dist1, dist2, dist3;
   dist1 = norm(pos1 - tp.pos);
   dist2 = norm(pos2 - tp.pos);

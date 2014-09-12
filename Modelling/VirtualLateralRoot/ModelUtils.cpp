@@ -104,6 +104,10 @@ double getDivisionAngle( const MyTissue::division_data& ddata )
 
 // ---------------------------------------------------------------------
 
+//void preserveConvexity( const cell &c, const MyTissue& T )
+
+// ---------------------------------------------------------------------
+
 std::vector<Point2d> determineConvexHull( const cell &c, const MyTissue& T )
 {
   std::vector<Point2d> points;
@@ -112,9 +116,6 @@ std::vector<Point2d> determineConvexHull( const cell &c, const MyTissue& T )
     points.push_back( j->tp.Pos() );
   
   std::size_t n = points.size();
-  
-  for( std::size_t p=0; p<n;++p )
-   std::cout << points.at(p) << std::endl;
   
   if( n < 3 )
     return points;
@@ -146,6 +147,94 @@ std::vector<Point2d> determineConvexHull( const cell &c, const MyTissue& T )
   
   H.resize(k);
   return H;
+}
+
+// ---------------------------------------------------------------------
+
+bool pointInHull( const Point2d &p, const std::vector<Point2d> &hull )
+{
+  // use ray casting check: if the number of intersections is odd -> inside hull
+  // if even -> outside of hull
+  
+  // create edges of point pairs of hull
+  Point2d rightMostPoint( hull.at(0) );
+  std::vector< std::pair<Point2d,Point2d> > edges;
+  for( std::size_t p=0;p<hull.size()-1; ++p )
+  {
+    if( hull.at(p+1).i() > rightMostPoint.i() )
+      rightMostPoint = hull.at(p+1);
+    
+    // ignore horizontal edges
+    if( hull.at(p).j() != hull.at(p+1).j() )
+      edges.push_back( std::make_pair( hull.at(p), hull.at(p+1) ) );
+  }
+  
+  rightMostPoint.i() += 5.;
+  
+  std::size_t count = 0;
+  for( std::size_t e=0; e< edges.size(); ++e )
+  {
+    if( doIntersect( p, rightMostPoint, edges.at(e).first, edges.at(e).second ) )
+      count++;
+  }
+  
+  if( count%2 )
+    return true;
+  else
+    return false;
+}
+
+// ---------------------------------------------------------------------
+
+bool doIntersect( const Point2d &p1, const Point2d &q1,
+                  const Point2d &p2, const Point2d &q2 )
+{
+  int o1 = orientation( p1, q1, p2 );
+  int o2 = orientation( p1, q1, q2 );
+  int o3 = orientation( p2, q2, p1 );
+  int o4 = orientation( p2, q2, q1 );
+
+  // General case
+  if(o1 != o2 && o3 != o4)
+    return true;
+
+  // Special Cases
+  // p1, q1 and p2 are colinear and p2 lies on segment p1q1
+  if(o1 == 0 && onSegment(p1, p2, q1)) return true;
+
+  // p1, q1 and p2 are colinear and q2 lies on segment p1q1
+  if(o2 == 0 && onSegment(p1, q2, q1)) return true;
+
+  // p2, q2 and p1 are colinear and p1 lies on segment p2q2
+  if(o3 == 0 && onSegment(p2, p1, q2)) return true;
+
+    // p2, q2 and q1 are colinear and q1 lies on segment p2q2
+  if(o4 == 0 && onSegment(p2, q1, q2)) return true;
+
+  return false; // Doesn't fall in any of the above cases
+}
+
+// ---------------------------------------------------------------------
+
+bool onSegment( const Point2d &p1, const Point2d &p2, const Point2d &p3 )
+{
+  if( p2.i() <= std::max(p1.i(), p3.i()) && p2.i() >= std::min(p1.i(), p3.i()) &&
+      p2.j() <= std::max(p1.j(), p3.j()) && p2.j() >= std::min(p1.j(), p3.j()))
+    return true;
+ 
+  return false;  
+}
+
+// ---------------------------------------------------------------------
+
+int orientation( const Point2d &p1, const Point2d &p2, const Point2d &p3 )
+{
+  int val = (p2.j() - p1.j()) * (p3.i() - p2.i()) - (p2.i() - p1.i()) * (p3.j() - p2.j());
+ 
+  if(val == 0)
+    return 0;  // colinear
+ 
+  return (val > 0)? 1: 2; // clock or counterclock wise
 }
 
 // ---------------------------------------------------------------------
