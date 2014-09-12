@@ -104,64 +104,65 @@ double getDivisionAngle( const MyTissue::division_data& ddata )
 
 // ---------------------------------------------------------------------
 
-void determineConvexHull( const cell &c, const MyTissue& T )
+std::vector<Point2d> determineConvexHull( const cell &c, const MyTissue& T )
 {
   std::vector<Point2d> points;
   // determine points
   forall(const junction& j, T.S.neighbors(c))
     points.push_back( j->tp.Pos() );
   
-  if( points.size() < 1 )
-    return;
+  std::size_t n = points.size();
   
-  // sort after y values
-  std::sort( points.begin(), points.end(), ModelUtils::ySort );
+  for( std::size_t p=0; p<n;++p )
+   std::cout << points.at(p) << std::endl;
   
-  Point2d ymin = points.at(0);
+  if( n < 3 )
+    return points;
   
-  for( std::size_t i = 0; i < points.size(); ++i )
-    std::cout << points.at(i) << std::endl;
+  std::size_t k = 0;
+  std::vector<Point2d> H(2*n);
+ 
+  // sort points lexicographically
+  std::sort( points.begin(), points.end(), ModelUtils::xSort );
   
-  // TODO
-  /*
-  // compute orientation for all points with respect to
-  // the first one
-  for( std::size_t i = 1; i < points.size(); ++i )
+  // lower hull
+  for(std::size_t i = 0; i < n; ++i)
   {
-    Point2d pT = points.at(i);
-    double aT = dotProduct( ymin, pT );
-    std::size_t kT = i;
-    for( std::size_t j = 0; j < points.size()-2; ++j )
-    {
-      if( dotProduct( ymin, points.at(i+j) ) < aT )
-      {
-        pT = points.at(i+j);
-        aT = dotProduct( ymin, points.at(i+j) );
-        kT = i+j;
-      }
-    }
-    points.at(kT) = points.at(i);
-    points.at(i) = pT;
+    while(k >= 2 && cross( H.at(k-2), H.at(k-1), points.at(i) ) <= 0)
+      k--;
+  
+    H.at(k++) = points.at(i);
   }
-  */
-  //points.at(0) = points.at(points.size()-1);
+ 
+  // upper hull
+  std::size_t t = k+1;
+  for(int i = n-2; i >= 0; i--)
+  {
+    while(k >= t && cross( H.at(k-2), H.at(k-1), points.at(i) ) <= 0)
+      k--;
+      
+    H.at(k++) = points.at(i);
+  }
+  
+  H.resize(k);
+  return H;
 }
 
 // ---------------------------------------------------------------------
 
-bool ySort( const Point2d &p1, const Point2d &p2 )
+double cross( const Point2d &p1, const Point2d &p2, const Point2d &p3 )
 {
-  if( p1.j() != p2.j() )
-    return (p1.j() < p2.j());
+  return (p2.i() - p1.i()) * (p3.j() - p1.j()) - (p2.j() - p1.j()) * (p3.i() - p1.i());
+}
+
+// ---------------------------------------------------------------------
+
+bool xSort( const Point2d &p1, const Point2d &p2 )
+{
+  if( p1.i() != p2.i() )
+    return (p1.i() < p2.i());
   else
-    return ( p1.i() <= p2.i() );
-}
-
-// ---------------------------------------------------------------------
-
-double dotProduct( const Point2d &p1, const Point2d &p2 )
-{
-  return (p2.i()-p1.i())/std::sqrt((p2.i()-p1.i())*(p2.i()-p1.i()) + (p2.j()-p1.j())*(p2.j()-p1.j()));
+    return ( p1.j() <= p2.j() );
 }
 
 // ---------------------------------------------------------------------

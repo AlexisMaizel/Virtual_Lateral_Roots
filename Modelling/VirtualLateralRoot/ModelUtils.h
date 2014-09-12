@@ -21,13 +21,13 @@ namespace ModelUtils
   
   double determineDivisionAngle( const MyTissue::division_data& ddata );
   
-  void determineConvexHull( const cell &c, const MyTissue& T );
+  std::vector<Point2d> determineConvexHull( const cell &c, const MyTissue& T );
   
   int orientation( const Point2d &p1, const Point2d &p2, const Point2d &p3 );
   
-  double dotProduct( const Point2d &p1, const Point2d &p2 );
+  double cross( const Point2d &p1, const Point2d &p2, const Point2d &p3 );
   
-  bool ySort( const Point2d &p1, const Point2d &p2 );
+  bool xSort( const Point2d &p1, const Point2d &p2 );
 }
 
 #endif // ModelUtils_HH

@@ -1018,7 +1018,8 @@ public:
       //{
       //}
       std::cout << "cell" << std::endl;
-      ModelUtils::determineConvexHull( c, T );
+      std::vector<Point2d> hull;
+      hull = ModelUtils::determineConvexHull( c, T );
       std::cout << std::endl;
     }
   }
