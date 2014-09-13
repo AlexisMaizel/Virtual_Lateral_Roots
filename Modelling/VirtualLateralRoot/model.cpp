@@ -992,25 +992,60 @@ public:
     }
     else
     {
+      // generate new triangulation surface based on real data points
       lateralRoot2.growStep( dt );
       
+      // determine the convex hull for each cell which is later used
+      // to preserve convexity
       this->determineConvexHulls();
       
       forall(const junction& j, T.W)
       {
+        // check in which new triangle the old position is located
         lateralRoot2.resetTriangleIndex( j->tp );
         
+        // determine the new position without setting it
+        Point2d newPos = lateralRoot2.determinePos( j->tp );
+        
+        // solution idea
+        
+        // check if the new pos of the junction preservs the
+        // convexity or not
+        /*
         bool inHull = false;
+        std::vector<Point2d> convexHull;
         forall(const cell& c, T.C) 
         {
-          if( ModelUtils::pointInHull( j->tp.Pos(), c->convexHull ) )
+          // new pos destroys the convexity
+          if( ModelUtils::pointInHull( newPos, c->convexHull ) )
           {
+            convexHull = c->convexHull;
             inHull = true;
             break;
           }
         }
         
-        lateralRoot2.getPos( j->tp );
+        
+        // if the new pos destroys the convexity
+        // then we slighty change its position and check
+        // again is convexity
+        if( inHull )
+        {
+          //std::cout << "old" << std::endl;
+          //std::cout << newPos.i() << " " << newPos.j() << std::endl;
+          this->preserveConvexity( convexHull, newPos );
+          //std::cout << "new" << std::endl;
+          //std::cout << newPos.i() << " " << newPos.j() << std::endl;
+          lateralRoot2.setPos( j->tp, Point3d( newPos.i(), newPos.j(), 0. ) );
+        }
+        // determine and set the new position
+        else
+          lateralRoot2.getPos( j->tp );
+        */
+        
+        
+        //if( T.border(j) )
+          lateralRoot2.getPos( j->tp );
         
         //std::cout << "old" << std::endl;
         //j->tp.printPos();
@@ -1019,6 +1054,44 @@ public:
         //std::cout << "new" << std::endl;
         //j->tp.printPos();
       }
+    }
+  }
+  
+  //----------------------------------------------------------------
+  
+  void preserveConvexity( const std::vector<Point2d> cH, Point2d &pos )
+  {
+    // in order to preserve convexity, the pos is slightly changed in four
+    // directions such that the point does is not longer located in the
+    // convex hull of the cell
+    double offset = 0.005;
+   
+    bool posIsInHull = true;
+    int step = 1;
+    while( posIsInHull )
+    {
+      for( std::size_t c=0; c < 4; ++c )
+      {
+        Point2d cPos;
+        switch( c )
+        {
+          case 0: cPos = Point2d( pos.i() + step*offset, pos.j() + step*offset ); break;
+          case 1: cPos = Point2d( pos.i() - step*offset, pos.j() - step*offset ); break;
+          case 2: cPos = Point2d( pos.i() + step*offset, pos.j() - step*offset ); break;
+          case 3: cPos = Point2d( pos.i() - step*offset, pos.j() + step*offset ); break;
+        }
+        
+        // if the point is not located in the convex hull
+        // then set the new point and return
+        if( !ModelUtils::pointInHull( cPos, cH ) )
+        {
+          posIsInHull = false;
+          pos = cPos;
+          return;
+        }
+      }
+      
+      ++step;
     }
   }
   

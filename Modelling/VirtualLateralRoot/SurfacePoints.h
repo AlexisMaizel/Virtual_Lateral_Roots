@@ -75,6 +75,8 @@ public:
   
   void getCoord( TrianglePoint &tp );
   
+  Point2d determineCoord( const TrianglePoint &tp );
+  
   void getBarycentricCoord( TrianglePoint &tp, const Point2d &p );
   
   void determineTriangleIndex( TrianglePoint &tp );

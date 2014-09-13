@@ -27,6 +27,8 @@ public:
   
   void getPos( TrianglePoint &tp );
   
+  Point2d determinePos( const TrianglePoint &tp );
+  
   void setPos( TrianglePoint &tp, const Point3d &p );
   
   void calcPos( TrianglePoint &tp );

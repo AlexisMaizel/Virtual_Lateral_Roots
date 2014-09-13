@@ -41,6 +41,13 @@ void RealSurface::getPos( TrianglePoint &tp )
 
 //----------------------------------------------------------------
 
+Point2d RealSurface::determinePos( const TrianglePoint &tp )
+{
+  return _curSurface.determineCoord( tp );
+}
+
+//----------------------------------------------------------------
+
 void RealSurface::resetTriangleIndex( TrianglePoint &tp )
 {
   _curSurface.determineTriangleIndex( tp );

@@ -152,6 +152,36 @@ void SurfacePoints::getCoord( TrianglePoint &tp )
 
 //----------------------------------------------------------------
 
+Point2d SurfacePoints::determineCoord( const TrianglePoint &tp )
+{
+  Point2d p1,p2,p3,newPos;
+  p1 = _curPoints.at( _curTriangles.at( tp.triIndex ).i() - 1 );
+  p2 = _curPoints.at( _curTriangles.at( tp.triIndex ).j() - 1 );
+  p3 = _curPoints.at( _curTriangles.at( tp.triIndex ).k() - 1 );
+  
+  // determine the smallest distance between old point and current point
+  // such that the u,v,w parameters are satisfied
+  Point2d pos1 = tp.u * p1 + tp.v * p2 + tp.w * p3;
+  Point2d pos2 = tp.v * p1 + tp.w * p2 + tp.u * p3;
+  Point2d pos3 = tp.w * p1 + tp.u * p2 + tp.v * p3;
+
+  double dist1, dist2, dist3;
+  dist1 = norm(pos1 - tp.pos);
+  dist2 = norm(pos2 - tp.pos);
+  dist3 = norm(pos3 - tp.pos);
+  
+  if( dist1 <= dist2 && dist1 <= dist3 )
+   newPos = pos1;
+  else if( dist2 <= dist1 && dist2 <= dist3 )
+    newPos = pos2;
+  else
+    newPos = pos3;
+  
+  return newPos;
+}
+
+//----------------------------------------------------------------
+
 // compute area coordinates depending on the index of triangle
 void SurfacePoints::getBarycentricCoord( TrianglePoint &tp, const Point2d &p )
 {
