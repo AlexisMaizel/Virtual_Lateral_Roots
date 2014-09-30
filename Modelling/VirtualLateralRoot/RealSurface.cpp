@@ -13,7 +13,7 @@ RealSurface::RealSurface( util::Parms &parms,
   : _time( 0. )
 {
   // depending on data set -> TODO
-  _curSurface.readTriangulation( "/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/FinalVLRForMatlab/triangulation-120830_raw.txt" );
+  _curSurface.readTriangulation( "triangulation-120830_raw.txt" );
 }
 
 //----------------------------------------------------------------
