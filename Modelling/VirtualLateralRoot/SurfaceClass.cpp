@@ -299,7 +299,61 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
   std::vector<Point3d> conPoints =
     ModelUtils::loadContourPoints( name, surfaceScale );
   
-  if( dataset == "121211_raw" )
+   if( dataset == "120830_raw" )
+  {
+    this->generateCell( T, std::make_pair( 0., 0. ),
+                        std::make_pair( 0.5, 1. ),
+                        1, sharedJunctions, lateralRoot, conPoints );
+    
+    // insert ids of shared junctions
+    sharedJunctions.insert( std::make_pair( 5*_lod, 2*_lod ) );
+    sharedJunctions.insert( std::make_pair( 4*_lod, 3*_lod ) );
+    
+    for( std::size_t l=1; l<_lod;l++ )
+    {
+      std::size_t u = 4*_lod + l;
+      std::size_t v = 3*_lod - l;
+      sharedJunctions.insert( std::make_pair( u, v ) );
+    }
+    
+    this->generateCell( T, std::make_pair( 0.5, 0. ),
+                        std::make_pair( 0.5, 1. ),
+                        2, sharedJunctions, lateralRoot, conPoints );
+  }
+  else if( dataset == "121204_raw_2014" )
+  {
+    std::size_t lineageCounter = 1;
+  
+    for( std::size_t c = 0; c < 2; c++ )
+    {
+      double u = 0. + c*2./5.;
+      double v = 0.;
+      double length;
+      if( c == 0 )
+        length = 2./5.;
+      else
+        length = 3./5.;
+        
+      this->generateCell( T, std::make_pair( u, v ),
+                          std::make_pair( length, 1. ),
+                          lineageCounter, sharedJunctions,
+                          lateralRoot, conPoints );
+      
+      lineageCounter++;
+      
+      // insert ids of shared junctions
+      sharedJunctions.insert( std::make_pair( 5*_lod, 2*_lod ) );
+      sharedJunctions.insert( std::make_pair( 4*_lod, 3*_lod ) );
+    
+      for( std::size_t l=1; l<_lod;l++ )
+      {
+        std::size_t u = 4*_lod + l;
+        std::size_t v = 3*_lod - l;
+        sharedJunctions.insert( std::make_pair( u, v ) );
+      }
+    }
+  }
+  else if( dataset == "121211_raw" )
   {
     std::size_t lineageCounter = 1;
   
@@ -350,6 +404,53 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
                         lineageCounter, sharedJunctions,
                         lateralRoot, conPoints );
   }
+  else if( dataset == "130508_raw" )
+  {
+    this->generateCell( T, std::make_pair( 0., 0. ),
+                        std::make_pair( 1., 1. ),
+                        1, sharedJunctions, lateralRoot, conPoints );
+  }
+  else if( dataset == "130607_raw" )
+  {
+    std::size_t lineageCounter = 1;
+  
+    for( std::size_t c = 0; c < 3; c++ )
+    {
+      double length,u,v;
+      if( c == 0 )
+      {
+        length = 1./5.;
+        u = 0.;
+        v = 0.;
+      }
+      else
+      {
+        length = 2./5.;
+        u = 1./5. + (c-1)*2./5.;
+        v = 0.;
+      }
+        
+      this->generateCell( T, std::make_pair( u, v ),
+                          std::make_pair( length, 1. ),
+                          lineageCounter, sharedJunctions,
+                          lateralRoot, conPoints );
+      
+      lineageCounter++;
+      
+      // insert ids of shared junctions
+      sharedJunctions.insert( std::make_pair( (4*(c+1)+1)*_lod, (4*(c+1)-2)*_lod ) );
+      sharedJunctions.insert( std::make_pair( 4*(c+1)*_lod, (4*(c+1)-1)*_lod ) );
+    
+      for( std::size_t l=1; l<_lod;l++ )
+      {
+        std::size_t u = 4*(c+1)*_lod + l;
+        std::size_t v = (4*(c+1)-1)*_lod - l;
+        sharedJunctions.insert( std::make_pair( u, v ) );
+      }
+    }
+  }
+  else
+    std::cerr << "Selected data set is not supported!" << std::endl; 
   
   /*
   // set of junctions for the cell

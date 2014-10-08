@@ -245,6 +245,8 @@ void SurfacePoints::determinePosProperties( TrianglePoint &tp, const Point2d &p 
       return;
     }
   }
+  
+  std::cout << "not in triangle" << std::endl;
 }
 //----------------------------------------------------------------
 // determine triangle index and barycentric coordinates of triangle
@@ -268,6 +270,8 @@ void SurfacePoints::determineBoundaryPosProperties( TrianglePoint &tp, const Poi
       return;
     }
   }
+  
+  std::cout << "not in triangle" << std::endl;
 }
 //----------------------------------------------------------------
 
