@@ -1,4 +1,4 @@
-OBJECTS=model.o bezier.o surface.o ModelExporter.o SurfacePoints.o RealSurface.o ModelUtils.o
+OBJECTS=model.o bezier.o surface.o ModelExporter.o SurfacePoints.o RealSurface.o ModelUtils.o SurfaceClass.o
 
 default: model.vve
 
@@ -20,6 +20,8 @@ LD_EXE_FLAGS+=
 model.o: model.moc
 
 bezier.o: bezier.cpp bezier.h
+
+SurfaceClass.o: SurfaceClass.cpp SurfaceClass.h
 
 SurfacePoints.o: SurfacePoints.cpp SurfacePoints.h
 

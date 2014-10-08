@@ -71,19 +71,18 @@ class SurfacePoints
 public:
   
   SurfacePoints();
-  void readTriangulation( const std::string &fileName );
+  void readTriangulation( const std::string &fileName,
+                          const double surfaceScale );
   
   void getCoord( TrianglePoint &tp );
-  
-  Point2d determineCoord( const TrianglePoint &tp );
+
+  void getBoundaryCoord( TrianglePoint &tp, size_t timeStep );
   
   void getBarycentricCoord( TrianglePoint &tp, const Point2d &p );
-  
-  void determineTriangleIndex( TrianglePoint &tp );
-  
+
   void determinePosProperties( TrianglePoint &tp, const Point2d &p );
-  
-  bool findPointInTriangles( const Point2d &pos, TrianglePoint &tp );
+
+  void determineBoundaryPosProperties( TrianglePoint &tp, const Point2d &p, size_t timeStep );
   
   void determineNormal( TrianglePoint &tp );
   
@@ -91,7 +90,8 @@ public:
                           const Point2d &p1, const Point2d &p2 );
   void printTriangleProperties( const std::size_t timeStep );
   
-  void interpolate( double timeStep );
+  void interpolate( double timeStep,
+                    std::vector<TrianglePoint> &tps );
   
   double checkBounds( double s, double min, double max ) ;
   

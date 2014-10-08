@@ -12,16 +12,26 @@ RealSurface::RealSurface( util::Parms &parms,
                           const std::string &section )
   : _time( 0. )
 {
-  // depending on data set -> TODO
-  _curSurface.readTriangulation( "triangulation-120830_raw.txt" );
 }
 
 //----------------------------------------------------------------
 
-void RealSurface::growStep( const double dt )
+void RealSurface::init( const double surfaceScale,
+                        const std::string &fileName )
+{
+  std::string name = "triangulation-";
+  name += fileName;
+  name += ".txt";
+  _curSurface.readTriangulation( name, surfaceScale );
+}
+
+//----------------------------------------------------------------
+
+void RealSurface::growStep( const double dt,
+                            std::vector<TrianglePoint> &tps )
 { 
   _time += dt;
-  _curSurface.interpolate( _time );
+  _curSurface.interpolate( _time , tps );
 }
 
 //----------------------------------------------------------------
@@ -37,20 +47,6 @@ void RealSurface::getPos( TrianglePoint &tp )
 {
   calcPos(tp);
   calcNormal(tp);
-}
-
-//----------------------------------------------------------------
-
-Point2d RealSurface::determinePos( const TrianglePoint &tp )
-{
-  return _curSurface.determineCoord( tp );
-}
-
-//----------------------------------------------------------------
-
-void RealSurface::resetTriangleIndex( TrianglePoint &tp )
-{
-  _curSurface.determineTriangleIndex( tp );
 }
 
 //----------------------------------------------------------------

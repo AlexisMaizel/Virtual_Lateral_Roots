@@ -1,14 +1,15 @@
 #include "ModelHeader.h"
 #include "ModelExporter.h"
 #include "ModelUtils.h"
+#include "SurfaceClass.h"
 
 class MyModel : public Model 
 {
   Q_OBJECT
 public: 
   util::Parms parms;
-	Surface lateralRoot;
-  RealSurface lateralRoot2;
+	Surface _VLRBezierSurface;
+  RealSurface _VLRDataPointSurface;
   util::Palette palette;
   MyTissue T;
   double dt;
@@ -22,17 +23,14 @@ public:
   int stepPerView;
   std::size_t _initialCellNumber;
   std::string _initialCellsOfRealData;
-  bool exportLineage;
+  bool _exportLineage;
   bool exportDivisionProperties;
   double probabilityOfDecussationDivision;
   bool useDecussationDivision;
   double _angleThreshold;
   std::size_t surfaceType;
+  double _surfaceScale;
   
-  std::size_t _idCounter;
-  std::size_t _time;
-  std::size_t _maxTime;
-  std::size_t _jId;
   std::string _lineageFileName;
   std::string _cellWallsFileName;
   std::string _divisionFileName;
@@ -40,23 +38,25 @@ public:
   double _cellPinch;
   double _cellMaxPinch;
   std::size_t _cellColoringType;
-  // defines the number of vertices for each wall of the init cells
-  // #inner vertices of each wall = _cellSubdivisionLevel - 1
-  std::size_t _cellSubdivisionLevel;
 	std::pair<std::size_t, std::size_t> _divOccurrences;
+  
+  SurfaceClass _surfaceClass;
   
   //----------------------------------------------------------------
   
   void readParms()
   {
+    std::size_t lod;
+    
     // read the parameters here
     parms("Main", "Dt", dt);
     parms("Main", "InitialCellNumber", _initialCellNumber);
     parms("Main", "InitialCellsOfRealData", _initialCellsOfRealData);
-    parms("Main", "SubDivisionLevelOfCells", _cellSubdivisionLevel);
-    parms("Main", "ExportLineage", exportLineage);
+    parms("Main", "SubDivisionLevelOfCells", lod);
+    parms("Main", "ExportLineage", _exportLineage);
     parms("Main", "ExportDivisionProperties", exportDivisionProperties);
     parms("Main", "SurfaceType", surfaceType);
+    parms("Main", "SurfaceScale", _surfaceScale);
 
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
@@ -77,6 +77,8 @@ public:
     
     T.readParms(parms, "Tissue");
     T.readViewParms(parms, "TissueView");
+    
+    _surfaceClass.init( lod, _lineageFileName, _exportLineage );
   }
 
   //----------------------------------------------------------------
@@ -96,8 +98,9 @@ public:
   //----------------------------------------------------------------
   
   MyModel(QObject *parent) : Model(parent), parms("view.v"),
-    lateralRoot( parms, "Surface" ), lateralRoot2( parms, "Surface" ), palette("pal.map"), T(palette, this),
-    _idCounter(1), _time(1), _maxTime(300), _jId( 0 ),
+    _VLRBezierSurface( parms, "Surface" ),
+    _VLRDataPointSurface( parms, "Surface" ),
+    palette("pal.map"), T(palette, this),
     _lineageFileName( "/tmp/model.csv" ),
     _cellWallsFileName( "/tmp/modelCellWalls.csv" ),
     _divisionFileName( "/tmp/divisionPropertiesModel.csv" ),
@@ -114,7 +117,7 @@ public:
     for( std::size_t l = 14; l < 45; l++ )
       _layerColorIndex.push_back( l );
     
-    if( exportLineage )
+    if( _exportLineage )
     {
       ModelExporter::initExportFile( _lineageFileName );
       ModelExporter::initCellWallFile( _cellWallsFileName );
@@ -123,493 +126,34 @@ public:
     if( exportDivisionProperties )
       ModelExporter::initDivisionDaughterFile( _divisionFileName );
     
-    if( _cellSubdivisionLevel < 1 )
-      _cellSubdivisionLevel = 1;
-    
+    // bezier
     if( surfaceType == 0 )
-      lateralRoot.GrowStep(0);
-    else
-      lateralRoot2.growStep(0);
-      
-    idPairSet sharedJunctions;
-    
-    // special cases of number of cells at the beginning
-    if( _initialCellsOfRealData == "none" )
     {
-      if( _initialCellNumber == 1 )
-      {
-        if( surfaceType == 0 )
-        {
-          this->generateCell( std::make_pair( 0., 0. ),
-                              std::make_pair( 1., 1. ),
-                              2, sharedJunctions );
-        }
-        else
-          this->generateTriangleCell( 2 );
-      }
-      else if( _initialCellNumber == 2 )
-      {
-        this->generateCell( std::make_pair( 0., 0. ),
-                            std::make_pair( 0.5, 1. ),
-                            1, sharedJunctions );
-        
-        // insert ids of shared junctions
-        sharedJunctions.insert( std::make_pair( 5, 2 ) );
-        sharedJunctions.insert( std::make_pair( 4, 3 ) );
-        
-        this->generateCell( std::make_pair( 0.5, 0. ),
-                            std::make_pair( 0.5, 1. ),
-                            2, sharedJunctions );
-      }
-      else if( _initialCellNumber == 8 )
-        this->initLateralRoot();
+      _VLRBezierSurface.GrowStep(0);
+      
+      // special cases of number of cells at the beginning
+      if( _initialCellsOfRealData == "none" )
+        _surfaceClass.initModelBasedOnBezier( T, _initialCellNumber,
+                                              _VLRBezierSurface );
+      // else constellation of founder cells according to real data
       else
-      {
-        std::cerr << "Selected number of cells at the beginning is not implemented yet!" << std::endl;
-      }
+        _surfaceClass.initLateralRootBasedOnBezier( T, _initialCellsOfRealData,
+                                                    _VLRBezierSurface );
     }
-    // else constellation of cells depending on the real data
+    // real data points
     else
-      this->initLateralRoot( _initialCellsOfRealData );
+    {
+      _VLRDataPointSurface.init( _surfaceScale, _initialCellsOfRealData );
+      
+      std::vector<TrianglePoint> tps;
+      _VLRDataPointSurface.growStep( 0, tps );
+      
+      _surfaceClass.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
+                                                    _initialCellsOfRealData,
+                                                    _surfaceScale );
+    }
     
     setStatus();
-  }
- 
-  //----------------------------------------------------------------
-
-  void initLateralRoot( const std::string &dataset )
-	{
-    std::cout << "Init constellation of data: " << dataset << std::endl;
-    idPairSet sharedJunctions;
-    
-		if( dataset == "120830" )
-    {
-      this->generateCell( std::make_pair( 0., 0. ),
-                          std::make_pair( 0.5, 1. ),
-                          1, sharedJunctions );
-      
-      // insert ids of shared junctions
-      sharedJunctions.insert( std::make_pair( 5*_cellSubdivisionLevel,
-                                              2*_cellSubdivisionLevel ) );
-      sharedJunctions.insert( std::make_pair( 4*_cellSubdivisionLevel,
-                                              3*_cellSubdivisionLevel ) );
-      
-      for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
-      {
-        std::size_t u = 4*_cellSubdivisionLevel + l;
-        std::size_t v = 3*_cellSubdivisionLevel - l;
-        sharedJunctions.insert( std::make_pair( u, v ) );
-      }
-      
-      this->generateCell( std::make_pair( 0.5, 0. ),
-                          std::make_pair( 0.5, 1. ),
-                          2, sharedJunctions );
-    }
-		else if( dataset == "121204" )
-    {
-      std::size_t lineageCounter = 1;
-   
-      for( std::size_t c = 0; c < 2; c++ )
-      {
-        double u = 0. + c*2./5.;
-        double v = 0.;
-        double length;
-        if( c == 0 )
-          length = 2./5.;
-        else
-          length = 3./5.;
-         
-        this->generateCell( std::make_pair( u, v ),
-                            std::make_pair( length, 1. ),
-                            lineageCounter, sharedJunctions );
-        
-        lineageCounter++;
-        
-        // insert ids of shared junctions
-        sharedJunctions.insert( std::make_pair( 5*_cellSubdivisionLevel,
-                                                2*_cellSubdivisionLevel ) );
-        sharedJunctions.insert( std::make_pair( 4*_cellSubdivisionLevel,
-                                                3*_cellSubdivisionLevel ) );
-      
-        for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
-        {
-          std::size_t u = 4*_cellSubdivisionLevel + l;
-          std::size_t v = 3*_cellSubdivisionLevel - l;
-          sharedJunctions.insert( std::make_pair( u, v ) );
-        }
-      }
-    }
-    else if( dataset == "121211" )
-    {
-      std::size_t lineageCounter = 1;
-   
-      this->generateCell( std::make_pair( 0., 0. ),
-                          std::make_pair( 1./3., 1. ),
-                          lineageCounter, sharedJunctions );
-      
-      // insert ids of shared junctions
-      sharedJunctions.insert( std::make_pair( 5*_cellSubdivisionLevel,
-                                              2*_cellSubdivisionLevel ) );
-      sharedJunctions.insert( std::make_pair( 4*_cellSubdivisionLevel,
-                                              3*_cellSubdivisionLevel ) );
-    
-      for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
-      {
-        std::size_t u = 4*_cellSubdivisionLevel + l;
-        std::size_t v = 3*_cellSubdivisionLevel - l;
-        sharedJunctions.insert( std::make_pair( u, v ) );
-      }
-      
-      lineageCounter++;
-      
-      // inner smaller cells
-      for( std::size_t c = 0; c < 3; c++ )
-      {
-        double u = 1./3. + c*1./9.;
-        double v = 0.;
-        this->generateCell( std::make_pair( u, v ),
-                            std::make_pair( 1./9., 1. ),
-                            lineageCounter, sharedJunctions );
-        
-        lineageCounter++;
-        
-        // insert ids of shared junctions
-        sharedJunctions.insert( std::make_pair( (4*(c+2)+1)*_cellSubdivisionLevel,
-                                                (4*(c+2)-2)*_cellSubdivisionLevel ) );
-        sharedJunctions.insert( std::make_pair( 4*(c+2)*_cellSubdivisionLevel,
-                                                (4*(c+2)-1)*_cellSubdivisionLevel ) );
-      
-        for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
-        {
-          std::size_t u = 4*(c+2)*_cellSubdivisionLevel + l;
-          std::size_t v = (4*(c+2)-1)*_cellSubdivisionLevel - l;
-          sharedJunctions.insert( std::make_pair( u, v ) );
-        }
-      }
-      
-      this->generateCell( std::make_pair( 2./3., 0. ),
-                          std::make_pair( 1./3., 1. ),
-                          lineageCounter, sharedJunctions );
-    }
-    else if( dataset == "130508" )
-    {
-      this->generateCell( std::make_pair( 0., 0. ),
-                          std::make_pair( 1., 1. ),
-                          1, sharedJunctions );
-    }
-    else if( dataset == "130607" )
-    {
-      std::size_t lineageCounter = 1;
-   
-      for( std::size_t c = 0; c < 3; c++ )
-      {
-        double length,u,v;
-        if( c == 0 )
-        {
-          length = 1./5.;
-          u = 0.;
-          v = 0.;
-        }
-        else
-        {
-          length = 2./5.;
-          u = 1./5. + (c-1)*2./5.;
-          v = 0.;
-        }
-          
-        this->generateCell( std::make_pair( u, v ),
-                            std::make_pair( length, 1. ),
-                            lineageCounter, sharedJunctions );
-        
-        lineageCounter++;
-        
-        // insert ids of shared junctions
-        sharedJunctions.insert( std::make_pair( (4*(c+1)+1)*_cellSubdivisionLevel,
-                                                (4*(c+1)-2)*_cellSubdivisionLevel ) );
-        sharedJunctions.insert( std::make_pair( 4*(c+1)*_cellSubdivisionLevel,
-                                                (4*(c+1)-1)*_cellSubdivisionLevel ) );
-      
-        for( std::size_t l=1; l<_cellSubdivisionLevel;l++ )
-        {
-          std::size_t u = 4*(c+1)*_cellSubdivisionLevel + l;
-          std::size_t v = (4*(c+1)-1)*_cellSubdivisionLevel - l;
-          sharedJunctions.insert( std::make_pair( u, v ) );
-        }
-      }
-    }
-    else
-      std::cerr << "Selected data set name is not supported!" << std::endl;
-        
-	}
-  
-	//----------------------------------------------------------------
-	
-  void initLateralRoot()
-  {
-    // render eight cells at the beginning for which each pair shares an
-    // area ratio of 2:1. The bigger cell will always be located at the left
-    // and right boundary
-    
-    idPairSet sharedJunctions;
-    
-    // insert ids of shared junctions
-    for( std::size_t c = 1; c < 7; c++ )
-    {
-      sharedJunctions.insert( std::make_pair( 4*(c+1), 4*(c+1)-5 ) );
-      sharedJunctions.insert( std::make_pair( 4*(c+1)+1, 4*(c+1)-6 ) );
-      if( c < 5 )
-      {
-        sharedJunctions.insert( std::make_pair( 8*c-4, 8*c-7 ) );
-        sharedJunctions.insert( std::make_pair( 8*c-1, 8*c-6 ) );
-      }
-      
-      // vertices shared by 4 points
-      if( c < 4 )
-      {
-        sharedJunctions.insert( std::make_pair( 8*c+1, 8*c-1 ) );
-        sharedJunctions.insert( std::make_pair( 8*(c+1)-4, 8*(c-1)+2 ) );
-      }
-    }
-    
-    std::size_t lineageCounter = 1;
-    
-    for( std::size_t h = 0; h < 2; h++ )
-    {
-      double u = 0.;
-      double v = h*1./2.;
-      this->generateCell( std::make_pair( u, v ),
-                          std::make_pair( 1./3., 1./2. ),
-                          lineageCounter, sharedJunctions );
-      
-      lineageCounter++;
-    }
-    
-    // init the inner smaller cells
-    for( std::size_t w = 0; w < 2; w++ )
-    {
-      for( std::size_t h = 0; h < 2; h++ )
-      {
-        double u = 1./3. + w*1./6.;
-        double v = 0. + h*1./2.;
-        this->generateCell( std::make_pair( u, v ),
-                            std::make_pair( 1./6., 1./2. ),
-                            lineageCounter, sharedJunctions );
-        
-        lineageCounter++;
-      }
-    }
-    
-    for( std::size_t h = 0; h < 2; h++ )
-    {
-      double u = 2./3.;
-      double v = h*1./2.;
-      this->generateCell( std::make_pair( u, v ),
-                          std::make_pair( 1./3., 1./2. ),
-                          lineageCounter, sharedJunctions );
-      
-      lineageCounter++;
-    }
-  }
-  //----------------------------------------------------------------
-  
-  // generate a cell starting at the bottom left with coord u and v with different lengths
-  void generateCell( const std::pair<double, double> &start,
-                     const std::pair<double, double> &length,
-                     const std::size_t treeId,
-                     const idPairSet &sharedJunctions )
-  {
-    // TODO: use of mergeCells method instead of checking shared junctions
-    // set of junctions for the cell
-    std::vector<junction> vs;
-    std::vector< std::pair<double,double> > vertices;
-    vertices.resize( 4 * _cellSubdivisionLevel );
-    
-    for( std::size_t w = 0; w < vertices.size(); w++ )
-    {
-      junction j;
-      unsigned int uiw = (unsigned int)(w/_cellSubdivisionLevel);
-      double cellLength;
-      double curLength = (double)w/(double)_cellSubdivisionLevel - (double)uiw;
-      double u,v;
-      switch(uiw)
-      {
-        case 0:
-          cellLength = length.second;
-          u = start.first;
-          v = start.second + curLength*cellLength;
-          break;
-        case 1:
-          cellLength = length.first;
-          u = start.first + curLength*cellLength;
-          v = start.second + length.second;
-          break;
-        case 2:
-          cellLength = length.second;
-          u = start.first + length.first;
-          v = start.second + length.second - curLength*cellLength;
-          break;
-        case 3:
-          cellLength = length.first;
-          u = start.first + length.first - curLength*cellLength;
-          v = start.second;
-          break;
-        default: u = v = 0.; break;
-      }
-      
-      vertices.at( w ) = std::make_pair( u, v );
-      j->id = _jId;
-      lateralRoot.InitPoint( j->sp, u, v );
-        
-      junctionAlreadyShared( j->id, j, sharedJunctions );
-      
-      vs.push_back(j);
-      
-      _jId++;
-    }
-    
-    cell c;
-    c->treeId = treeId;
-    c->id = _idCounter;
-    c->parentId = _idCounter;
-    c->timeStep = _time;
-    c->previousAngle = 0.;
-    c->angle = 0.;
-    c->previousDivDir = Point3d( 0., 0., 0. );
-    c->divDir = Point3d( 0., 0., 0. );
-    c->divType = DivisionType::NONE;
-    c->layerValue = 1;
-    c->cellCycle = 0;
-    T.addCell( c, vs );
-    
-    std::vector<Point3d> polygon;
-    Point3d center;
-    forall(const junction& j, T.S.neighbors(c))
-    {
-      polygon.push_back(j->sp.Pos());
-      center += j->sp.Pos();
-    }
-    center /= polygon.size();
-
-    // store initial area for current cell
-    c->center = center;
-    c->initialArea = geometry::polygonArea(polygon);
-    c->area = c->initialArea;
-    c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
-    c->longestWallLength = c->initialLongestWallLength;
-    lateralRoot.SetPoint(c->sp, c->sp, center);
-    
-    if( exportLineage )
-      ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
-    
-    // afterwards increment the id counter
-    _idCounter++;
-  }
-  
-  //----------------------------------------------------------------
-  
-  // generate a triangle cell
-  void generateTriangleCell( const std::size_t treeId )
-  {
-    // set of junctions for the cell
-    std::vector<junction> vs;
-    
-    Point3d dataMean( 289.023540405678, -25.7548027981398, 0. );
-    //Point3d dataMean( 0., 0., 0. );
-    
-    std::vector<Point3d> conPoints;
-    /*
-    conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
-    conPoints.push_back( Point3d( 160.000000, -64.833333, 0. ) );
-    conPoints.push_back( Point3d( 230.000000, -58.743333, 0. ) );
-    conPoints.push_back( Point3d( 299.916667, -64.633333, 0. ) );
-    conPoints.push_back( Point3d( 370.000000, -64.750000, 0. ) );
-    conPoints.push_back( Point3d( 440.000000, -64.850000, 0. ) );
-    conPoints.push_back( Point3d( 520.000000, -64.956667, 0. ) );
-    conPoints.push_back( Point3d( 520.000000, -74.966667, 0. ) );
-    conPoints.push_back( Point3d( 520.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 440.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 370.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 300.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 230.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 160.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 115.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 113.000000, -75.000000, 0. ) );
-    */
-    
-    conPoints.push_back( Point3d( 111.960000, -67.913333, 0. ) );
-    conPoints.push_back( Point3d( 520.000000, -64.956667, 0. ) );
-    conPoints.push_back( Point3d( 520.000000, -100.000000, 0. ) );
-    conPoints.push_back( Point3d( 115.000000, -100.000000, 0. ) );
-    
-    for( std::size_t w = 0; w < conPoints.size(); w++ )
-    {
-      conPoints.at(w) -= dataMean;
-      
-      junction j;
-      j->id = _jId;
-      lateralRoot2.setPos( j->tp, conPoints.at(w) );
-      vs.push_back(j);
-      _jId++;
-    }
-    
-    cell c;
-    c->treeId = treeId;
-    c->id = _idCounter;
-    c->parentId = _idCounter;
-    c->timeStep = _time;
-    c->previousAngle = 0.;
-    c->angle = 0.;
-    c->previousDivDir = Point3d( 0., 0., 0. );
-    c->divDir = Point3d( 0., 0., 0. );
-    c->divType = DivisionType::NONE;
-    c->layerValue = 1;
-    c->cellCycle = 0;
-    T.addCell( c, vs );
-    
-    std::vector<Point2d> polygon;
-    Point3d center;
-    forall(const junction& j, T.S.neighbors(c))
-    {
-      polygon.push_back(j->tp.Pos());
-      center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-    }
-    center /= polygon.size();
-
-    //std::cout << "center: " << center << std::endl;
-    
-    // store initial area for current cell
-    c->center = center;
-    c->initialArea = geometry::polygonArea(polygon);
-    c->area = c->initialArea;
-    c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
-    c->longestWallLength = c->initialLongestWallLength;
-    lateralRoot2.setPos(c->tp, center);
-    
-    if( exportLineage )
-      ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
-    
-    // afterwards increment the id counter
-    _idCounter++;
-  }
-  
-  //----------------------------------------------------------------
-  
-  void junctionAlreadyShared( const std::size_t jId, junction &js,
-                              const idPairSet &sharedJunctions )
-  {
-    forall( const cell& c, T.C )
-    {
-      forall(const junction& j, T.S.neighbors(c))
-      {
-        idPairSet::const_iterator iter =
-        sharedJunctions.find( std::make_pair( jId, j->id ) );
-        if( iter != sharedJunctions.end() )
-        {
-          js = j;
-          return;
-        }
-      }
-    }
   }
   
   //----------------------------------------------------------------
@@ -618,7 +162,7 @@ public:
   {
     // here we radomly decide which kind of division the current cell
     // will do based on a probability value given as a parameter
-    srand( _time + _idCounter + time(NULL) );
+    srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
     
     // generate a value between 1 and 10
     int val = rand() % 10 + 1;
@@ -676,9 +220,10 @@ public:
   
   void setStatus()
   {
-		//double time = lateralRoot.GetTime();
-    if( _time > _maxTime )
-      _time = _maxTime;
+		//double time = _VLRBezierSurface.GetTime();
+    std::size_t time = _surfaceClass.getTime();
+    if( time > _surfaceClass.getMaxTime() )
+      time = _surfaceClass.getMaxTime();
     
     QString status = QString( "# Vertices: %1 \t "
                               "# Cells: %2 \t"
@@ -687,7 +232,7 @@ public:
                               "PD: %5 \t ").
                               arg(T.W.size()).
                               arg(T.C.size()).
-                              arg(_time).
+                              arg(time).
                               arg(_divOccurrences.first).
                               arg(_divOccurrences.second);
     
@@ -770,15 +315,15 @@ public:
     c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
     c->longestWallLength = c->initialLongestWallLength;
     c->treeId = parentCell->treeId;
-    c->id = _idCounter;
+    c->id = _surfaceClass.getCellID();
     c->parentId = parentCell->id;
-    c->timeStep = _time;
+    c->timeStep = _surfaceClass.getTime();
     c->previousAngle = parentCell->angle;
     c->angle = parentCell->angle;
     c->previousDivDir = parentCell->divDir;
     c->divDir = c->center - parentCell->center;
     c->cellCycle = parentCell->cellCycle+1;
-    _idCounter++; 
+    _surfaceClass.incrementCellID();
   }
 
   //----------------------------------------------------------------
@@ -870,13 +415,13 @@ public:
       this->setCellCenter( c, center, area );
     
       if( surfaceType == 0 )
-        lateralRoot.SetPoint(c->sp, c->sp, center);
+        _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
       else
-        lateralRoot2.setPos(c->tp, center);
+        _VLRDataPointSurface.setPos(c->tp, center);
         
       c->area = area;
       c->center = center;
-      c->timeStep = _time;
+      c->timeStep = _surfaceClass.getTime();
       c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
       
       double a = c->area;
@@ -951,13 +496,13 @@ public:
   
   void step_cellWalls()
   {
-    if( _time <= _maxTime + 1 )
+    if( _surfaceClass.getTime() <= _surfaceClass.getMaxTime() + 1 )
     {
-      if( exportLineage )
+      if( _exportLineage )
       {
         forall(const cell& c, T.C)
         {
-          if( c->timeStep > _maxTime )
+          if( c->timeStep > _surfaceClass.getMaxTime() )
             break;
             
           ModelExporter::exportCellWalls( _cellWallsFileName, c, T );
@@ -970,12 +515,13 @@ public:
   
   void step_tracking()
   {
-    if( _time <= _maxTime )
+    if( _surfaceClass.getTime() <= _surfaceClass.getMaxTime() )
     {
-      if( exportLineage )
+      if( _exportLineage )
       {
         forall(const cell& c, T.C)
-          ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
+          ModelExporter::exportLineageInformation( _lineageFileName, c, T,
+                                                   _surfaceClass.getTime() );
       }
     }
   }
@@ -986,129 +532,43 @@ public:
   {
     if( surfaceType == 0 )
     {
-      lateralRoot.GrowStep(dt);
+      _VLRBezierSurface.GrowStep(dt);
       forall(const junction& v, T.W)
-        lateralRoot.GetPos(v->sp);
+        _VLRBezierSurface.GetPos(v->sp);
     }
     else
     {
       // generate new triangulation surface based on real data points
-      lateralRoot2.growStep( dt );
+      std::vector<TrianglePoint> tps;
+      forall(const junction& j, T.W)
+        tps.push_back(j->tp);
+
+      _VLRDataPointSurface.growStep( dt, tps );
       
-      // determine the convex hull for each cell which is later used
-      // to preserve convexity
-      this->determineConvexHulls();
-      
+      int i = 0;
       forall(const junction& j, T.W)
       {
-        // check in which new triangle the old position is located
-        lateralRoot2.resetTriangleIndex( j->tp );
-        
-        // determine the new position without setting it
-        Point2d newPos = lateralRoot2.determinePos( j->tp );
-        
-        // solution idea
-        
-        // check if the new pos of the junction preservs the
-        // convexity or not
-        /*
-        bool inHull = false;
-        std::vector<Point2d> convexHull;
-        forall(const cell& c, T.C) 
-        {
-          // new pos destroys the convexity
-          if( ModelUtils::pointInHull( newPos, c->convexHull ) )
-          {
-            convexHull = c->convexHull;
-            inHull = true;
-            break;
-          }
-        }
-        
-        
-        // if the new pos destroys the convexity
-        // then we slighty change its position and check
-        // again is convexity
-        if( inHull )
-        {
-          //std::cout << "old" << std::endl;
-          //std::cout << newPos.i() << " " << newPos.j() << std::endl;
-          this->preserveConvexity( convexHull, newPos );
-          //std::cout << "new" << std::endl;
-          //std::cout << newPos.i() << " " << newPos.j() << std::endl;
-          lateralRoot2.setPos( j->tp, Point3d( newPos.i(), newPos.j(), 0. ) );
-        }
-        // determine and set the new position
-        else
-          lateralRoot2.getPos( j->tp );
-        */
-        
-        
-        //if( T.border(j) )
-          lateralRoot2.getPos( j->tp );
-        
-        //std::cout << "old" << std::endl;
-        //j->tp.printPos();
-        //if( T.border(j) )
-        
-        //std::cout << "new" << std::endl;
-        //j->tp.printPos();
+        j->tp = tps[i++];
+        _VLRDataPointSurface.getPos( j->tp );
       }
     }
-  }
-  
-  //----------------------------------------------------------------
-  
-  void preserveConvexity( const std::vector<Point2d> cH, Point2d &pos )
-  {
-    // in order to preserve convexity, the pos is slightly changed in four
-    // directions such that the point does is not longer located in the
-    // convex hull of the cell
-    double offset = 0.005;
-   
-    bool posIsInHull = true;
-    int step = 1;
-    while( posIsInHull )
+
+// perhaps not required
+    /*forall(const cell& c, T.C)
     {
-      for( std::size_t c=0; c < 4; ++c )
-      {
-        Point2d cPos;
-        switch( c )
-        {
-          case 0: cPos = Point2d( pos.i() + step*offset, pos.j() + step*offset ); break;
-          case 1: cPos = Point2d( pos.i() - step*offset, pos.j() - step*offset ); break;
-          case 2: cPos = Point2d( pos.i() + step*offset, pos.j() - step*offset ); break;
-          case 3: cPos = Point2d( pos.i() - step*offset, pos.j() + step*offset ); break;
-        }
-        
-        // if the point is not located in the convex hull
-        // then set the new point and return
-        if( !ModelUtils::pointInHull( cPos, cH ) )
-        {
-          posIsInHull = false;
-          pos = cPos;
-          return;
-        }
-      }
-      
-      ++step;
-    }
-  }
-  
-  //----------------------------------------------------------------
-  
-  void determineConvexHulls()
-  {
-    forall(const cell& c, T.C)
-      c->convexHull = ModelUtils::determineConvexHull( c, T );
+      // update center position
+      Point3d center;
+      double area;
+      this->setCellCenter( c, center, area );
+      _VLRDataPointSurface.setPos(c->tp, center);
+    }*/
   }
   
   //----------------------------------------------------------------
   
   void step()
   {
-    if( _time <= _maxTime )
-      _time++;
+    _surfaceClass.incrementTime();
     
     for(int i = 0 ; i < stepPerView ; ++i)
     {
@@ -1153,11 +613,11 @@ public:
       if( surfaceType == 0 )
         T.cellWallWidth = 0.001;
       else
-        T.cellWallWidth = 0.3;
+        T.cellWallWidth = 0.2;
           
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
-      T.drawCell(c, this->cellColor(c), this->cellColor(c)*0.1 );
+      T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.1) );
     }
   }
 
@@ -1223,9 +683,9 @@ public:
   void setPosition(const cell& c, const Point3d& p)
   {
     if( surfaceType == 0 )
-      lateralRoot.SetPoint(c->sp, c->sp, p);
+      _VLRBezierSurface.SetPoint(c->sp, c->sp, p);
     else
-      lateralRoot2.setPos( c->tp, p );
+      _VLRDataPointSurface.setPos( c->tp, p );
   }
   
   //----------------------------------------------------------------
@@ -1234,9 +694,9 @@ public:
   void setPosition(const junction& j, const Point3d& p)
   { 
     if( surfaceType == 0 )
-      lateralRoot.SetPoint(j->sp, j->sp, p);
+      _VLRBezierSurface.SetPoint(j->sp, j->sp, p);
     else
-      lateralRoot2.setPos( j->tp, p );
+      _VLRDataPointSurface.setPos( j->tp, p );
   }
 
   //----------------------------------------------------------------

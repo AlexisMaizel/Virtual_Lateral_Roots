@@ -3,6 +3,8 @@ ModelExporter.cpp
 ModelExporter.h
 ModelUtils.cpp
 ModelUtils.h
+SurfaceClass.cpp
+SurfaceClass.h
 RealSurface.cpp
 RealSurface.h
 SurfacePoints.cpp
@@ -20,6 +22,9 @@ view.v
 LSspecifications
 description.txt
 triangulation-120830_raw.txt
+conPoints-120830_raw.txt
+triangulation-121211_raw.txt
+conPoints-121211_raw.txt
 vlr1.s
 vlr2.s
 ignore:
@@ -43,7 +48,7 @@ VVE:
 
 Files:
 	all:
-		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h SurfacePoints.cpp SurfacePoints.h RealSurface.cpp RealSurface.h
+		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h SurfacePoints.cpp SurfacePoints.h RealSurface.cpp RealSurface.h specifications SurfaceClass.cpp SurfaceClass.h
 	program:
 		EDIT model.cpp
 	parameters:

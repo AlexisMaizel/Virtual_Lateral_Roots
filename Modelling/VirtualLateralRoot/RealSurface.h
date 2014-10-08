@@ -19,15 +19,15 @@ public:
   RealSurface( util::Parms &parms, 
                const std::string &section );
   
+  void init( const double surfaceScale,
+             const std::string &fileName );
+  
   void initPoint( TrianglePoint &tp );
   
-  void growStep( const double dt );
-  
-  void resetTriangleIndex( TrianglePoint &tp );
+  void growStep( const double dt,
+                 std::vector<TrianglePoint> &tps );
   
   void getPos( TrianglePoint &tp );
-  
-  Point2d determinePos( const TrianglePoint &tp );
   
   void setPos( TrianglePoint &tp, const Point3d &p );
   

@@ -34,6 +34,9 @@ namespace ModelUtils
   
   double cross( const Point2d &p1, const Point2d &p2, const Point2d &p3 );
   
+  std::vector<Point3d> loadContourPoints( const std::string &fileName,
+                                          const double surfaceScale );
+  
   bool xSort( const Point2d &p1, const Point2d &p2 );
 }
 

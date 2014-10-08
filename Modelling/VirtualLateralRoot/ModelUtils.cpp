@@ -104,10 +104,6 @@ double getDivisionAngle( const MyTissue::division_data& ddata )
 
 // ---------------------------------------------------------------------
 
-//void preserveConvexity( const cell &c, const MyTissue& T )
-
-// ---------------------------------------------------------------------
-
 std::vector<Point2d> determineConvexHull( const cell &c, const MyTissue& T )
 {
   std::vector<Point2d> points;
@@ -155,6 +151,9 @@ bool pointInHull( const Point2d &p, const std::vector<Point2d> &hull )
 {
   // use ray casting check: if the number of intersections is odd -> inside hull
   // if even -> outside of hull
+  
+  if( hull.size() == 0 )
+    return false;
   
   // create edges of point pairs of hull
   Point2d rightMostPoint( hull.at(0) );
@@ -252,6 +251,28 @@ bool xSort( const Point2d &p1, const Point2d &p2 )
     return (p1.i() < p2.i());
   else
     return ( p1.j() <= p2.j() );
+}
+
+// ---------------------------------------------------------------------
+
+std::vector<Point3d> loadContourPoints( const std::string &fileName,
+                                        const double surfaceScale )
+{
+  std::ifstream in( fileName.c_str(), std::ifstream::in );
+
+  std::vector<Point3d> conPoints;  
+  std::size_t numPoints;
+  in >> numPoints;
+  conPoints.resize(numPoints);
+  for( std::size_t p = 0; p< numPoints; ++p )
+  {
+    Point3d pos(0., 0., 0.);
+    in >> pos.i() >> pos.j();
+    conPoints.at(p) = surfaceScale*pos;
+  }
+    
+  in.close();
+  return conPoints;
 }
 
 // ---------------------------------------------------------------------
