@@ -1,6 +1,8 @@
 geomPath = strcat( pwd, '/geom3d' );
 addpath( geomPath );
 
+setenv('LC_ALL','C')
+
 %%%%% setting of properties %%%%%%
 % data Index:
 % 1 -> 120830
@@ -10,7 +12,7 @@ addpath( geomPath );
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 1;
+dataId = 3;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -44,6 +46,11 @@ if dataId ~= 7
   startD = dataId;
   endD = dataId;
 end
+
+% define offset for boundary points which is the distance between the
+% acutal location of the contour points and their initial position within
+% the model
+conOffset = 1;
 
 color = [ 0 1 0 ];
 
@@ -109,16 +116,6 @@ for dataIndex=startD:endD
     % Divison Type
     %DCol = data{14};
   end
-  
-  % get bounding box are by determining
-  % min and max of x/y/z values
-  % loop over all time steps
-  minX = min( XCol );
-  minY = min( YCol );
-  minZ = min( ZCol );
-  maxX = max( XCol );
-  maxY = max( YCol );
-  maxZ = max( ZCol );
   
   l = 1;
   % first determine dimension of cellData
@@ -250,7 +247,11 @@ for dataIndex=startD:endD
   elseif cView == 2
     dir = coeff(:,3);
     u = coeff(:,1);
-    v = coeff(:,2);
+    if strcmp( dataStr( 1, dataIndex ), '121211_raw' )
+      v = -coeff(:,2);
+    else
+      v = coeff(:,2);
+    end
   elseif cView == 3
     dir = -coeff(:,1);
     u = -coeff(:,3);
@@ -281,8 +282,8 @@ for dataIndex=startD:endD
   fprintf( fileId, '%1d\n', maxT );
 
   % contour points for the first and last time step
-  cPointsFirst = generateContourPoints( dataStr( 1, dataIndex ), true );
-  cPointsLast = generateContourPoints( dataStr( 1, dataIndex ), false );
+  cPointsFirst = generateContourPoints( dataStr( 1, dataIndex ), true, conOffset );
+  cPointsLast = generateContourPoints( dataStr( 1, dataIndex ), false, conOffset );
   
   % loop over all time steps
   for curT=startT:maxT
@@ -408,6 +409,12 @@ for dataIndex=startD:endD
       curPos(k, :) = curPos(k, :) - mean;
     end
     
+    % determine min and max values of x,y for view options
+    minX = min( curPos(:,1) )
+    minY = min( curPos(:,2) )
+    maxX = max( curPos(:,1) )
+    maxY = max( curPos(:,2) )
+    
     if triangulationType == 1
       % delaunay triangulation
       curTri = delaunayTriangulation( curPos(:,1), curPos(:,2) );
@@ -447,7 +454,7 @@ for dataIndex=startD:endD
       if triangulationType == 1
         triplot( curTri, 'b' );
         % draw triangle labels in the center of each triangle
-        TEXT = drawTriangleLabels( curTri );
+        %TEXT = drawTriangleLabels( curTri );
       else
         trisurf( curTri, curPos(:,1), curPos(:,2), curPos(:,3),...
                  'FaceColor', 'blue', 'FaceAlpha', 0. );
@@ -500,8 +507,10 @@ for dataIndex=startD:endD
 
     hold off;
     set( f,'nextplot','replacechildren' );
-    viewOffset = 100;
-    axis( [ 75-mean(1,1) 550-mean(1,1) -120-mean(1,2) 60-mean(1,2) ] );
+    viewOffset = 10;
+    minMax = getTotalMinMax( dataStr( 1, dataIndex ) );
+    %axis( [ 75-mean(1,1) 550-mean(1,1) -120-mean(1,2) 60-mean(1,2) ] );
+    axis( [ minMax(1,1)-viewOffset minMax(1,2)+viewOffset minMax(1,3)-viewOffset minMax(1,4)+viewOffset ] );
     axis on
     daspect( [ 1 1 1 ] );
     
