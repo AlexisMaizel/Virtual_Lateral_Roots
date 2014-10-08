@@ -2,7 +2,7 @@ function minMax = getTotalMinMax( dataName )
 % get the min and max values for each data set according to
 % the last time step of their real data points (including contour points)
 if strcmp( dataName, '120830_raw' )
-    minMax = [ ];
+    minMax = [ 99 521 -101 46 ];
   elseif strcmp( dataName, '121204_raw_2014' )
     minMax = [ ];
   elseif strcmp( dataName, '121211_raw' )

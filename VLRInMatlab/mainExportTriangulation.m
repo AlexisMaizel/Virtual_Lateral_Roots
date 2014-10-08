@@ -12,7 +12,7 @@ setenv('LC_ALL','C')
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 3;
+dataId = 1;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -50,7 +50,7 @@ end
 % define offset for boundary points which is the distance between the
 % acutal location of the contour points and their initial position within
 % the model
-conOffset = 1;
+conOffset = 2;
 
 color = [ 0 1 0 ];
 
