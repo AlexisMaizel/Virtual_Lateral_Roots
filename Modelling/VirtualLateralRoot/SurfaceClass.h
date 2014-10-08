@@ -29,7 +29,7 @@ public:
   
   void initLateralRootBasedOnRealData( MyTissue &T,
                                        RealSurface &lateralRoot,
-                                       const std::string &fileName,
+                                       const std::string &dataset,
                                        const double surfaceScale );
   
   void generateCell( MyTissue &T,
@@ -38,6 +38,17 @@ public:
                      const std::size_t treeId,
                      const idPairSet &sharedJunctions,
                      Surface &lateralRoot );
+  
+  void generateCell( MyTissue &T,
+                     const std::pair<double, double> &start,
+                     const std::pair<double, double> &length,
+                     const std::size_t treeId,
+                     const idPairSet &sharedJunctions,
+                     RealSurface &lateralRoot,
+                     const std::vector<Point3d> &conPoints );
+  
+  Point3d determinePos( const std::pair<double, double> &coord,
+                        const std::vector<Point3d> &conPoints );
   
   void incrementTime(){ if(_time <= _maxTime) _time++; }
   void incrementCellID(){ _IDCounter++; }

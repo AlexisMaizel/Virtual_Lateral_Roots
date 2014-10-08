@@ -15,8 +15,8 @@ StepPerView: 1
 BackgroundColor: 255
 
 [Division]
-DivisionArea: 1000 // 0.075 threshold size of cells before they divide
-DivisionAreaRatio: 0.10 // 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionArea: 1100 // 0.075 threshold size of cells before they divide
+DivisionAreaRatio: 0.11 // 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false

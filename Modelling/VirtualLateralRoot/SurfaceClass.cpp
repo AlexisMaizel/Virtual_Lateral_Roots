@@ -287,25 +287,87 @@ void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
 
 void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
                                                    RealSurface &lateralRoot,
-                                                   const std::string &fileName,
+                                                   const std::string &dataset,
                                                    const double surfaceScale )
 {
+  std::cout << "Lateral root constellation of data: " << dataset << std::endl;
+  idPairSet sharedJunctions;
+  
+  std::string name = "conPoints-";
+  name += dataset;
+  name += ".txt";
+  std::vector<Point3d> conPoints =
+    ModelUtils::loadContourPoints( name, surfaceScale );
+  
+  if( dataset == "121211_raw" )
+  {
+    std::size_t lineageCounter = 1;
+  
+    this->generateCell( T, std::make_pair( 0., 0. ),
+                        std::make_pair( 1./3., 1. ),
+                        lineageCounter, sharedJunctions,
+                        lateralRoot, conPoints );
+    
+    // insert ids of shared junctions
+    sharedJunctions.insert( std::make_pair( 5*_lod, 2*_lod ) );
+    sharedJunctions.insert( std::make_pair( 4*_lod, 3*_lod ) );
+  
+    for( std::size_t l=1; l<_lod;l++ )
+    {
+      std::size_t u = 4*_lod + l;
+      std::size_t v = 3*_lod - l;
+      sharedJunctions.insert( std::make_pair( u, v ) );
+    }
+    
+    lineageCounter++;
+    
+    // inner smaller cells
+    for( std::size_t c = 0; c < 3; c++ )
+    {
+      double u = 1./3. + c*1./9.;
+      double v = 0.;
+      this->generateCell( T, std::make_pair( u, v ),
+                          std::make_pair( 1./9., 1. ),
+                          lineageCounter, sharedJunctions,
+                          lateralRoot, conPoints );
+      
+      lineageCounter++;
+      
+      // insert ids of shared junctions
+      sharedJunctions.insert( std::make_pair( (4*(c+2)+1)*_lod, (4*(c+2)-2)*_lod ) );
+      sharedJunctions.insert( std::make_pair( 4*(c+2)*_lod, (4*(c+2)-1)*_lod ) );
+    
+      for( std::size_t l=1; l<_lod;l++ )
+      {
+        std::size_t u = 4*(c+2)*_lod + l;
+        std::size_t v = (4*(c+2)-1)*_lod - l;
+        sharedJunctions.insert( std::make_pair( u, v ) );
+      }
+    }
+    
+    this->generateCell( T, std::make_pair( 2./3., 0. ),
+                        std::make_pair( 1./3., 1. ),
+                        lineageCounter, sharedJunctions,
+                        lateralRoot, conPoints );
+  }
+  
+  /*
   // set of junctions for the cell
   std::vector<junction> vs;
   
   //Point3d dataMean( 289.023540405678, -25.7548027981398, 0. );
   
   std::string name = "conPoints-";
-  name += fileName;
+  name += dataset;
   name += ".txt";
   std::vector<Point3d> conPoints =
     ModelUtils::loadContourPoints( name, surfaceScale );
       
-  /*std::vector<Point3d> conPoints;
-  conPoints.push_back( cPoints.at(0) );
-  conPoints.push_back( cPoints.at(6) );
-  conPoints.push_back( cPoints.at(8) );
-  conPoints.push_back( cPoints.at(14) );*/
+  //std::vector<Point3d> conPoints;
+  //conPoints.push_back( cPoints.at(0) );
+  //conPoints.push_back( cPoints.at(6) );
+  //conPoints.push_back( cPoints.at(8) );
+  //conPoints.push_back( cPoints.at(14) );
   
   for( std::size_t w = 0; w < conPoints.size(); w++ )
   {
@@ -366,6 +428,134 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
   
   // afterwards increment the id counter
   _IDCounter++;
+  */
+}
+
+// ---------------------------------------------------------------------
+
+void SurfaceClass::generateCell( MyTissue &T,
+                                 const std::pair<double, double> &start,
+                                 const std::pair<double, double> &length,
+                                 const std::size_t treeId,
+                                 const idPairSet &sharedJunctions,
+                                 RealSurface &lateralRoot,
+                                 const std::vector<Point3d> &conPoints )
+{
+  // set of junctions for the cell
+  std::vector<junction> vs;
+  
+  for( std::size_t w = 0; w < 4; w++ )
+  {
+    std::pair<double, double> iPos;
+    switch(w)
+    {
+      case 0:
+      iPos.first = start.first;
+      iPos.second = start.second;
+      break;
+      case 1:
+      iPos.first = start.first;
+      iPos.second = start.second + length.second;
+      break;
+      case 2:
+      iPos.first = start.first + length.first;
+      iPos.second = start.second + length.second;
+      break;
+      case 3:
+      iPos.first = start.first + length.first;
+      iPos.second = start.second;
+      break;
+    }
+    
+    Point3d curPos = this->determinePos( iPos, conPoints );
+    junction j;
+    j->id = _jIDCounter;
+    lateralRoot.setPos( j->tp, curPos );
+    
+    this->junctionAlreadyShared( T, j->id, j, sharedJunctions );
+    
+    vs.push_back(j);
+    _jIDCounter++;
+  }
+  
+  cell c;
+  c->treeId = treeId;
+  c->id = _IDCounter;
+  c->parentId = _IDCounter;
+  c->timeStep = _time;
+  c->previousAngle = 0.;
+  c->angle = 0.;
+  c->previousDivDir = Point3d( 0., 0., 0. );
+  c->divDir = Point3d( 0., 0., 0. );
+  c->divType = DivisionType::NONE;
+  c->layerValue = 1;
+  c->cellCycle = 0;
+  T.addCell( c, vs );
+  
+  std::vector<Point2d> polygon;
+  Point3d center;
+  forall(const junction& j, T.S.neighbors(c))
+  {
+    polygon.push_back( j->tp.Pos() );
+    center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+  }
+  center /= polygon.size();
+
+  // store initial area for current cell
+  c->center = center;
+  c->initialArea = geometry::polygonArea(polygon);
+  c->area = c->initialArea;
+  c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
+  c->longestWallLength = c->initialLongestWallLength;
+    
+  lateralRoot.setPos(c->tp, center);
+  
+  if( _exportLineage )
+    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
+  
+  // afterwards increment the id counter
+  _IDCounter++;  
+}
+
+// ---------------------------------------------------------------------
+
+Point3d SurfaceClass::determinePos( const std::pair<double, double> &coord,
+                                    const std::vector<Point3d> &conPoints )
+{
+  // u and v coordinates of start should correspond to the
+  // following contour points
+  // u = 0, v = 0 -> conPoints.at(14)
+  // u = 0, v = 1 -> conPoints.at(0)
+  // u = 1, v = 0 -> conPoints.at(8)
+  // u = 1, v = 1 -> conPoints.at(6)
+  
+  Point3d pos;
+  
+  // v will always be 0 or 1
+  std::size_t v = (std::size_t)coord.second;
+  
+  double xPos = 6. * coord.first;
+  std::size_t xI = (std::size_t)xPos;
+  double factor = xPos - (double)xI;
+  
+  // left to right: between conPoints at 0 and 6
+  if( v == 1 )
+  {
+    if( xI < 6 )
+      pos = (1.-factor) * conPoints.at(xI) + factor * conPoints.at(xI+1);
+    else
+      pos = conPoints.at(xI);
+  }
+  // v == 0 -> right to left: between conPoints at 14 and 8
+  else
+  {
+    if( xI < 6 )
+      pos = (1.-factor) * conPoints.at(14-xI) + factor * conPoints.at(14-xI-1);
+    else
+      pos = conPoints.at(14-xI);
+  }
+  
+  return pos;
 }
 
 // ---------------------------------------------------------------------
