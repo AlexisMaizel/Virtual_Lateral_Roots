@@ -250,7 +250,9 @@ void SurfacePoints::determinePosProperties( TrianglePoint &tp, const Point2d &p 
 }
 //----------------------------------------------------------------
 // determine triangle index and barycentric coordinates of triangle
-void SurfacePoints::determineBoundaryPosProperties( TrianglePoint &tp, const Point2d &p, size_t timeStep )
+void SurfacePoints::determineBoundaryPosProperties( TrianglePoint &tp,
+                                                    const Point2d &p, 
+                                                    const size_t timeStep )
 {
   // set the position vector
   tp.pos = p;
@@ -271,8 +273,9 @@ void SurfacePoints::determineBoundaryPosProperties( TrianglePoint &tp, const Poi
     }
   }
   
-  std::cout << "not in triangle" << std::endl;
+  std::cout << "boundary not in triangle" << std::endl;
 }
+
 //----------------------------------------------------------------
 
 void SurfacePoints::determineNormal( TrianglePoint &tp )

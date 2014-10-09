@@ -82,7 +82,8 @@ public:
 
   void determinePosProperties( TrianglePoint &tp, const Point2d &p );
 
-  void determineBoundaryPosProperties( TrianglePoint &tp, const Point2d &p, size_t timeStep );
+  void determineBoundaryPosProperties( TrianglePoint &tp, const Point2d &p, 
+                                       const size_t timeStep );
   
   void determineNormal( TrianglePoint &tp );
   

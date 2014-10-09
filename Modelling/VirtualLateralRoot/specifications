@@ -23,8 +23,14 @@ LSspecifications
 description.txt
 triangulation-120830_raw.txt
 conPoints-120830_raw.txt
+triangulation-121204_raw_2014.txt
+conPoints-121204_raw_2014.txt
 triangulation-121211_raw.txt
 conPoints-121211_raw.txt
+triangulation-121211_raw_auto.txt
+conPoints-121211_raw_auto.txt
+triangulation-130508_raw.txt
+conPoints-130508_raw.txt
 vlr1.s
 vlr2.s
 ignore:

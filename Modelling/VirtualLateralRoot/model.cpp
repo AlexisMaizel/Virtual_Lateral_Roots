@@ -553,6 +553,18 @@ public:
       }
     }
 
+    if( _surfaceClass.getTime() >= 299 )
+    {
+      double maxY = -1000.;
+      forall(const junction& j, T.W)
+      {
+        if( j->tp.Pos().j() > maxY )
+          maxY =  j->tp.Pos().j();
+      }
+        
+      std::cout << "realmaxPosY: " << maxY << std::endl;
+    }
+    
 // perhaps not required
     /*forall(const cell& c, T.C)
     {
@@ -617,7 +629,7 @@ public:
           
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
-      T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.1) );
+      T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.2) );
     }
   }
 
