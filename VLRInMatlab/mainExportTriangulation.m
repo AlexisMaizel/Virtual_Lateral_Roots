@@ -12,7 +12,7 @@ setenv('LC_ALL','C')
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 1;
+dataId = 3;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -51,6 +51,12 @@ end
 % acutal location of the contour points and their initial position within
 % the model
 conOffset = 2;
+
+% distance from contour point to nearest nuclei position
+cellDist = 25;
+
+% generate contour points automatically or use the points set manually
+autoContour = 1;
 
 color = [ 0 1 0 ];
 
@@ -247,10 +253,9 @@ for dataIndex=startD:endD
   elseif cView == 2
     dir = coeff(:,3);
     u = coeff(:,1);
+    v = coeff(:,2);
     if strcmp( dataStr( 1, dataIndex ), '121211_raw' )
       v = -coeff(:,2);
-    else
-      v = coeff(:,2);
     end
   elseif cView == 3
     dir = -coeff(:,1);
@@ -398,6 +403,12 @@ for dataIndex=startD:endD
     %mean = getDataMeanPos( dataStr( 1, dataIndex ) );
     mean = [ 0 0 0 ];
     
+    % generate the contour points automatically
+    if autoContour == 1
+      interPoints = generateAutomaticContourPoints( curPos, cellDist, conOffset,...
+        curT == startT, dataStr( 1, dataIndex ) );
+    end
+    
     % add the contour points to generate a complete triangulation
     if includeContourPoints == 1
       for cc=1:size( interPoints, 1 )-1
@@ -508,7 +519,7 @@ for dataIndex=startD:endD
     hold off;
     set( f,'nextplot','replacechildren' );
     viewOffset = 10;
-    minMax = getTotalMinMax( dataStr( 1, dataIndex ) );
+    minMax = getTotalMinMax( dataStr( 1, dataIndex ), autoContour );
     %axis( [ 75-mean(1,1) 550-mean(1,1) -120-mean(1,2) 60-mean(1,2) ] );
     axis( [ minMax(1,1)-viewOffset minMax(1,2)+viewOffset minMax(1,3)-viewOffset minMax(1,4)+viewOffset ] );
     axis on
