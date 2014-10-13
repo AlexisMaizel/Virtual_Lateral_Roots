@@ -20,7 +20,8 @@ public:
                const std::string &section );
   
   void init( const double surfaceScale,
-             const std::string &fileName );
+             const std::string &fileName,
+             const bool useAutomaticContourPoints );
   
   void initPoint( TrianglePoint &tp );
   

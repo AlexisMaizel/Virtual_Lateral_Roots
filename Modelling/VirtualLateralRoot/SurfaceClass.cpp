@@ -288,14 +288,18 @@ void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
 void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
                                                    RealSurface &lateralRoot,
                                                    const std::string &dataset,
-                                                   const double surfaceScale )
+                                                   const double surfaceScale,
+                                                   const bool useAutomaticContourPoints )
 {
   std::cout << "Lateral root constellation of data: " << dataset << std::endl;
   idPairSet sharedJunctions;
   
   std::string name = "conPoints-";
   name += dataset;
-  name += ".txt";
+  if( useAutomaticContourPoints )
+    name += "_auto.txt";
+  else
+    name += ".txt";
   std::vector<Point3d> conPoints =
     ModelUtils::loadContourPoints( name, surfaceScale );
   
@@ -408,7 +412,8 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
   {
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1., 1. ),
-                        1, sharedJunctions, lateralRoot, conPoints );
+                        1, sharedJunctions, lateralRoot,
+                        conPoints, true );
   }
   else if( dataset == "130607_raw" )
   {
@@ -457,12 +462,6 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
   std::vector<junction> vs;
   
   //Point3d dataMean( 289.023540405678, -25.7548027981398, 0. );
-  
-  std::string name = "conPoints-";
-  name += dataset;
-  name += ".txt";
-  std::vector<Point3d> conPoints =
-    ModelUtils::loadContourPoints( name, surfaceScale );
       
   //std::vector<Point3d> conPoints;
   //conPoints.push_back( cPoints.at(0) );
@@ -540,43 +539,59 @@ void SurfaceClass::generateCell( MyTissue &T,
                                  const std::size_t treeId,
                                  const idPairSet &sharedJunctions,
                                  RealSurface &lateralRoot,
-                                 const std::vector<Point3d> &conPoints )
+                                 const std::vector<Point3d> &conPoints,
+                                 const bool oneCell )
 {
   // set of junctions for the cell
   std::vector<junction> vs;
   
-  for( std::size_t w = 0; w < 4; w++ )
+  if( !oneCell )
   {
-    std::pair<double, double> iPos;
-    switch(w)
+    for( std::size_t w = 0; w < 4; w++ )
     {
-      case 0:
-      iPos.first = start.first;
-      iPos.second = start.second;
-      break;
-      case 1:
-      iPos.first = start.first;
-      iPos.second = start.second + length.second;
-      break;
-      case 2:
-      iPos.first = start.first + length.first;
-      iPos.second = start.second + length.second;
-      break;
-      case 3:
-      iPos.first = start.first + length.first;
-      iPos.second = start.second;
-      break;
+      std::pair<double, double> iPos;
+      
+      switch(w)
+      {
+        case 0:
+        iPos.first = start.first;
+        iPos.second = start.second;
+        break;
+        case 1:
+        iPos.first = start.first;
+        iPos.second = start.second + length.second;
+        break;
+        case 2:
+        iPos.first = start.first + length.first;
+        iPos.second = start.second + length.second;
+        break;
+        case 3:
+        iPos.first = start.first + length.first;
+        iPos.second = start.second;
+        break;
+      }
+      
+      Point3d curPos = this->determinePos( iPos, conPoints );
+      junction j;
+      j->id = _jIDCounter;
+      lateralRoot.setPos( j->tp, curPos );
+      this->junctionAlreadyShared( T, j->id, j, sharedJunctions );
+      vs.push_back(j);
+      _jIDCounter++;
     }
-    
-    Point3d curPos = this->determinePos( iPos, conPoints );
-    junction j;
-    j->id = _jIDCounter;
-    lateralRoot.setPos( j->tp, curPos );
-    
-    this->junctionAlreadyShared( T, j->id, j, sharedJunctions );
-    
-    vs.push_back(j);
-    _jIDCounter++;
+  }
+  else
+  {
+    for( std::size_t w = 0; w < conPoints.size(); w++ )
+    {
+      Point3d curPos = conPoints.at(w);
+      junction j;
+      j->id = _jIDCounter;
+      lateralRoot.setPos( j->tp, curPos );
+      this->junctionAlreadyShared( T, j->id, j, sharedJunctions );
+      vs.push_back(j);
+      _jIDCounter++;
+    }
   }
   
   cell c;

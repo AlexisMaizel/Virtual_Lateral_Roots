@@ -30,7 +30,8 @@ public:
   void initLateralRootBasedOnRealData( MyTissue &T,
                                        RealSurface &lateralRoot,
                                        const std::string &dataset,
-                                       const double surfaceScale );
+                                       const double surfaceScale,
+                                       const bool useAutomaticContourPoints );
   
   void generateCell( MyTissue &T,
                      const std::pair<double, double> &start,
@@ -45,7 +46,8 @@ public:
                      const std::size_t treeId,
                      const idPairSet &sharedJunctions,
                      RealSurface &lateralRoot,
-                     const std::vector<Point3d> &conPoints );
+                     const std::vector<Point3d> &conPoints,
+                     const bool oneCell = false );
   
   Point3d determinePos( const std::pair<double, double> &coord,
                         const std::vector<Point3d> &conPoints );

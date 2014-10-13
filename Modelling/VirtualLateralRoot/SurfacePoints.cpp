@@ -105,7 +105,11 @@ void SurfacePoints::interpolate( double timeStep,
   {
     std::cout << "New timepoint:" <<  prevTimeStep << " " << _curTimeStep << std::endl;
     for(size_t i = 0; i < tps.size(); ++i)
-      this->getBoundaryCoord( tps[i], prevTimeStep );
+    {
+      this->getBoundaryCoord( tps.at(i), prevTimeStep );
+      //if( _curTimeStep == 238 )
+        //tps.at(i).printProperties();
+    }
   }
   
   // the triangle list is just copied by the lower time step
@@ -131,21 +135,16 @@ void SurfacePoints::interpolate( double timeStep,
     }
   }
   
-  if( _curTimeStep == 299 )
-  {
-    double maxY = -1000.;
-    for( std::size_t p = 0; p < _points.at(_curTimeStep).size(); p++ )
-    {
-      if( _curPoints.at(p).j() > maxY )
-          maxY = _curPoints.at(p).j();
-    }
-    std::cout << "maxPosY: " << maxY << std::endl;
-  }
-  
   if( newTriangulation )
   {
+    std::cout << "determine" << std::endl;
     for(size_t i = 0; i < tps.size(); ++i)
+    {
+      //this->determinePosProperties(tps[i], tps[i].Pos() );
       this->determineBoundaryPosProperties(tps[i], tps[i].Pos(), _curTimeStep);
+      //if( _curTimeStep == 238 )
+        //tps.at(i).printProperties();
+    }
   }
 }
 
@@ -204,23 +203,12 @@ void SurfacePoints::getCoord( TrianglePoint &tp )
     tp.pos = pos2;
   else
     tp.pos = pos3;
-}
-
-//----------------------------------------------------------------
-
-// compute area coordinates depending on the index of triangle
-void SurfacePoints::getBarycentricCoord( TrianglePoint &tp, const Point2d &p )
-{
-  Point2d p1,p2,p3;
-  p1 = _curPoints.at( _curTriangles.at( tp.triIndex ).i() - 1 );
-  p2 = _curPoints.at( _curTriangles.at( tp.triIndex ).j() - 1 );
-  p3 = _curPoints.at( _curTriangles.at( tp.triIndex ).k() - 1 );
   
-  // compute barycentric coordinates
-  double detMat = (p2.j()-p3.j())*(p1.i()-p3.i()) + (p3.i()-p2.i())*(p1.j()-p3.j());
-  tp.u = ((p2.j()-p3.j())*(p.i()-p3.i()) + (p3.i()-p2.i())*(p.j()-p3.j()))/detMat;
-  tp.v = ((p3.j()-p1.j())*(p.i()-p3.i()) + (p1.i()-p3.i())*(p.j()-p3.j()))/detMat;
-  tp.w = 1. - tp.u - tp.v;
+//   if( _curTimeStep == 238 )
+//   {
+//     std::cout << "newpos: ";
+//     tp.printPos();
+//   }
 }
 
 //----------------------------------------------------------------
@@ -237,22 +225,30 @@ void SurfacePoints::determinePosProperties( TrianglePoint &tp, const Point2d &p 
     p2 = _curPoints.at( _curTriangles.at( t ).j() - 1 );
     p3 = _curPoints.at( _curTriangles.at( t ).k() - 1 );
     
+    double u,v,w;
     // check if point is in the current triangle
-    if( this->pointIsInTriangle( p, p1, p2, p3 ) )
+    if( this->pointIsInTriangle( p, p1, p2, p3, u, v, w ) )
     {
       tp.triIndex = t;
-      this->getBarycentricCoord( tp, p );
+      tp.u = u;
+      tp.v = v;
+      tp.w = w;
+      
+      if( _curTimeStep == 238 )
+        tp.printProperties();
+      
       return;
     }
   }
   
   std::cout << "not in triangle" << std::endl;
+  tp.printProperties();
 }
 //----------------------------------------------------------------
 // determine triangle index and barycentric coordinates of triangle
 void SurfacePoints::determineBoundaryPosProperties( TrianglePoint &tp,
                                                     const Point2d &p, 
-                                                    const size_t timeStep )
+                                                    const std::size_t timeStep )
 {
   // set the position vector
   tp.pos = p;
@@ -264,16 +260,24 @@ void SurfacePoints::determineBoundaryPosProperties( TrianglePoint &tp,
     p2 = _points.at(timeStep).at( _curTriangles.at( t ).j() - 1 );
     p3 = _points.at(timeStep).at( _curTriangles.at( t ).k() - 1 );
     
+    double u,v,w;
     // check if point is in the current triangle
-    if( this->pointIsInTriangle( p, p1, p2, p3 ) )
+    if( this->pointIsInTriangle( p, p1, p2, p3, u, v, w ) )
     {
       tp.triIndex = t;
-      this->getBarycentricCoord( tp, p );
+      tp.u = u;
+      tp.v = v;
+      tp.w = w;
+      
+      if( _curTimeStep == 238 )
+        tp.printProperties();
+      
       return;
     }
   }
   
   std::cout << "boundary not in triangle" << std::endl;
+  tp.printProperties();
 }
 
 //----------------------------------------------------------------
@@ -295,15 +299,16 @@ void SurfacePoints::determineNormal( TrianglePoint &tp )
 //----------------------------------------------------------------
 
 bool SurfacePoints::pointIsInTriangle( const Point2d &p, const Point2d &p1,
-                                       const Point2d &p2, const Point2d &p3 )
+                                       const Point2d &p2, const Point2d &p3,
+                                       double &u, double &v, double &w )
 {
   // compute barycentric coordinates
   double detMat = (p2.j()-p3.j())*(p1.i()-p3.i()) + (p3.i()-p2.i())*(p1.j()-p3.j());
-  double s = ((p2.j()-p3.j())*(p.i()-p3.i()) + (p3.i()-p2.i())*(p.j()-p3.j()))/detMat;
-  double t = ((p3.j()-p1.j())*(p.i()-p3.i()) + (p1.i()-p3.i())*(p.j()-p3.j()))/detMat;
-  double w = 1. - s - t;
+  u = ((p2.j()-p3.j())*(p.i()-p3.i()) + (p3.i()-p2.i())*(p.j()-p3.j()))/detMat;
+  v = ((p3.j()-p1.j())*(p.i()-p3.i()) + (p1.i()-p3.i())*(p.j()-p3.j()))/detMat;
+  w = 1. - u - v;
   
-  return (s >= -0.0001 && t >= -0.0001 && w >= -0.0001);
+  return ( u >= -0.0001 && v >= -0.0001 && w >= -0.0001 );
 }
 
 //----------------------------------------------------------------

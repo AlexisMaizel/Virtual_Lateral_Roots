@@ -17,11 +17,15 @@ RealSurface::RealSurface( util::Parms &parms,
 //----------------------------------------------------------------
 
 void RealSurface::init( const double surfaceScale,
-                        const std::string &fileName )
+                        const std::string &fileName,
+                        const bool useAutomaticContourPoints )
 {
   std::string name = "triangulation-";
   name += fileName;
-  name += ".txt";
+  if( useAutomaticContourPoints )
+    name += "_auto.txt";
+  else
+    name += ".txt";
   _curSurface.readTriangulation( name, surfaceScale );
 }
 

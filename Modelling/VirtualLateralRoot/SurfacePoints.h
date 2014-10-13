@@ -78,17 +78,17 @@ public:
 
   void getBoundaryCoord( TrianglePoint &tp, size_t timeStep );
   
-  void getBarycentricCoord( TrianglePoint &tp, const Point2d &p );
-
   void determinePosProperties( TrianglePoint &tp, const Point2d &p );
 
   void determineBoundaryPosProperties( TrianglePoint &tp, const Point2d &p, 
-                                       const size_t timeStep );
+                                       const std::size_t timeStep );
   
   void determineNormal( TrianglePoint &tp );
   
   bool pointIsInTriangle( const Point2d &p, const Point2d &p0,
-                          const Point2d &p1, const Point2d &p2 );
+                          const Point2d &p1, const Point2d &p2,
+                          double &u, double &v, double &w );
+  
   void printTriangleProperties( const std::size_t timeStep );
   
   void interpolate( double timeStep,

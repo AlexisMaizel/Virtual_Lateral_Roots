@@ -30,6 +30,7 @@ public:
   double _angleThreshold;
   std::size_t surfaceType;
   double _surfaceScale;
+  bool _useAutomaticContourPoints;
   
   std::string _lineageFileName;
   std::string _cellWallsFileName;
@@ -57,6 +58,7 @@ public:
     parms("Main", "ExportDivisionProperties", exportDivisionProperties);
     parms("Main", "SurfaceType", surfaceType);
     parms("Main", "SurfaceScale", _surfaceScale);
+    parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
 
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
@@ -143,14 +145,17 @@ public:
     // real data points
     else
     {
-      _VLRDataPointSurface.init( _surfaceScale, _initialCellsOfRealData );
+      _VLRDataPointSurface.init( _surfaceScale,
+                                 _initialCellsOfRealData,
+                                 _useAutomaticContourPoints );
       
       std::vector<TrianglePoint> tps;
       _VLRDataPointSurface.growStep( 0, tps );
       
       _surfaceClass.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
                                                     _initialCellsOfRealData,
-                                                    _surfaceScale );
+                                                    _surfaceScale,
+                                                    _useAutomaticContourPoints );
     }
     
     setStatus();
@@ -225,16 +230,20 @@ public:
     if( time > _surfaceClass.getMaxTime() )
       time = _surfaceClass.getMaxTime();
     
-    QString status = QString( "# Vertices: %1 \t "
-                              "# Cells: %2 \t"
-                              "Time step: %3 \t"
-                              "AD: %4 \t"
-                              "PD: %5 \t ").
+    QString status = QString( "Vertices: %1 \t "
+                              "Cells: %2 \t").
                               arg(T.W.size()).
-                              arg(T.C.size()).
-                              arg(time).
-                              arg(_divOccurrences.first).
-                              arg(_divOccurrences.second);
+                              arg(T.C.size());
+    
+    if( surfaceType == 1 )
+    {
+      std::size_t timeStep = _VLRDataPointSurface.getCurTimeStep();
+      status += QString( "TS: %1 \t" ).arg(timeStep);
+    }                       
+    
+    status += QString( "MS: %1 \t" ).arg(time);
+    status += QString( "AD: %1 \t" ).arg(_divOccurrences.first);
+    status += QString( "PD: %1 \t" ).arg(_divOccurrences.second);
     
     if( useCombinedAreaRatio )
     {
@@ -549,10 +558,18 @@ public:
       forall(const junction& j, T.W)
       {
         j->tp = tps[i++];
+        
+        //if( _VLRDataPointSurface.getCurTimeStep() == 238 )
+          //j->tp.printPos();
+        
         _VLRDataPointSurface.getPos( j->tp );
+        
+         //if( _VLRDataPointSurface.getCurTimeStep() == 238 )
+           //j->tp.printProperties();
       }
     }
 
+    /*
     if( _surfaceClass.getTime() >= 299 )
     {
       double maxY = -1000.;
@@ -564,6 +581,7 @@ public:
         
       std::cout << "realmaxPosY: " << maxY << std::endl;
     }
+    */
     
 // perhaps not required
     /*forall(const cell& c, T.C)
