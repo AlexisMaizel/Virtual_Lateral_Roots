@@ -1,9 +1,7 @@
 function points = generateContourPoints( dataName, first, eps )
 % I always choose 16 contour points for which 7 are used
 % at the top and bottom while 1 is used for left and right
-% 17 are chosen because the first one has to be set again
-% to enclose the surface
-numContourMarks = 17;
+numContourMarks = 16;
 points = zeros( numContourMarks, 3 );
 if strcmp( dataName, '120830_raw' )
   if first == true
@@ -23,7 +21,6 @@ if strcmp( dataName, '120830_raw' )
     points( 14, 1:2 ) = [ 160 -100 ];
     points( 15, 1:2 ) = [ 115 -100 ];
     points( 16, 1:2 ) = [ 113 -75 ];
-    points( 17, 1:2 ) = [ 112 -68 ];
   else
     points( 1, 1:2 ) = [ 100 -42 ];
     points( 2, 1:2 ) = [ 160 -15 ];
@@ -41,7 +38,6 @@ if strcmp( dataName, '120830_raw' )
     points( 14, 1:2 ) = [ 160 -100 ];
     points( 15, 1:2 ) = [ 115 -100 ];
     points( 16, 1:2 ) = [ 113 -75 ];
-    points( 17, 1:2 ) = [ 100 -42 ];  
   end
 elseif strcmp( dataName, '121204_raw_2014' )
   if first == true
@@ -61,7 +57,6 @@ elseif strcmp( dataName, '121204_raw_2014' )
     points( 14, 1:2 ) = [ 160 -240 ];
     points( 15, 1:2 ) = [ 115 -250 ];
     points( 16, 1:2 ) = [ 113 -230 ];
-    points( 17, 1:2 ) = [ 112 -220 ];
   else
     points( 1, 1:2 ) = [ 112 -230 ];
     points( 2, 1:2 ) = [ 160 -210 ];
@@ -78,8 +73,7 @@ elseif strcmp( dataName, '121204_raw_2014' )
     points( 13, 1:2 ) = [ 230 -260 ];
     points( 14, 1:2 ) = [ 160 -260 ];
     points( 15, 1:2 ) = [ 115 -260 ];
-    points( 16, 1:2 ) = [ 113 -245 ];
-    points( 17, 1:2 ) = [ 112 -230 ]; 
+    points( 16, 1:2 ) = [ 113 -245 ]; 
   end  
 elseif strcmp( dataName, '121211_raw' )
   if first == true
@@ -99,7 +93,6 @@ elseif strcmp( dataName, '121211_raw' )
     points( 14, 1:2 ) = [ 90 -90 ];
     points( 15, 1:2 ) = [ -10 -90 ];
     points( 16, 1:2 ) = [ -10 -70 ];
-    points( 17, 1:2 ) = [ -10 -35 ];
   else
     points( 1, 1:2 ) = [ -10 -45 ];
     points( 2, 1:2 ) = [ 90 -25 ];
@@ -116,46 +109,43 @@ elseif strcmp( dataName, '121211_raw' )
     points( 13, 1:2 ) = [ 190 -90 ];
     points( 14, 1:2 ) = [ 90 -90 ];
     points( 15, 1:2 ) = [ -10 -90 ];
-    points( 16, 1:2 ) = [ -10 -70 ];
-    points( 17, 1:2 ) = [ -10 -45 ];  
+    points( 16, 1:2 ) = [ -10 -70 ];  
   end
 elseif strcmp( dataName, '130508_raw' )
   if first == true
-    points( 1, 1:2 ) = [ 25 265 ];
-    points( 2, 1:2 ) = [ 130 275 ];
-    points( 3, 1:2 ) = [ 230 275 ];
-    points( 4, 1:2 ) = [ 330 275 ];
-    points( 5, 1:2 ) = [ 430 275 ];
-    points( 6, 1:2 ) = [ 530 275 ];
-    points( 7, 1:2 ) = [ 675 265 ];
-    points( 8, 1:2 ) = [ 675 240 ];
-    points( 9, 1:2 ) = [ 675 210 ];
-    points( 10, 1:2 ) = [ 530 200 ];
-    points( 11, 1:2 ) = [ 430 200 ];
-    points( 12, 1:2 ) = [ 330 200 ];
-    points( 13, 1:2 ) = [ 230 200 ];
-    points( 14, 1:2 ) = [ 130 200 ];
-    points( 15, 1:2 ) = [ 25 210 ];
-    points( 16, 1:2 ) = [ 25 240 ];
-    points( 17, 1:2 ) = [ 25 265 ];
+    points( 1, 1:2 ) = [ 25 260 ];
+    points( 2, 1:2 ) = [ 130 270 ];
+    points( 3, 1:2 ) = [ 180 270 ];
+    points( 4, 1:2 ) = [ 230 270 ];
+    points( 5, 1:2 ) = [ 280 270 ];
+    points( 6, 1:2 ) = [ 330 270 ];
+    points( 7, 1:2 ) = [ 400 260 ];
+    points( 8, 1:2 ) = [ 400 245 ];
+    points( 9, 1:2 ) = [ 400 230 ];
+    points( 10, 1:2 ) = [ 330 220 ];
+    points( 11, 1:2 ) = [ 280 220 ];
+    points( 12, 1:2 ) = [ 230 220 ];
+    points( 13, 1:2 ) = [ 180 220 ];
+    points( 14, 1:2 ) = [ 130 220 ];
+    points( 15, 1:2 ) = [ 25 230 ];
+    points( 16, 1:2 ) = [ 25 245 ];
   else
     points( 1, 1:2 ) = [ 25 250 ];
-    points( 2, 1:2 ) = [ 130 275 ];
-    points( 3, 1:2 ) = [ 230 350 ];
-    points( 4, 1:2 ) = [ 330 300 ];
-    points( 5, 1:2 ) = [ 430 260 ];
-    points( 6, 1:2 ) = [ 530 250 ];
-    points( 7, 1:2 ) = [ 675 245 ];
-    points( 8, 1:2 ) = [ 675 240 ];
-    points( 9, 1:2 ) = [ 675 220 ];
-    points( 10, 1:2 ) = [ 530 200 ];
-    points( 11, 1:2 ) = [ 430 200 ];
-    points( 12, 1:2 ) = [ 330 200 ];
-    points( 13, 1:2 ) = [ 230 200 ];
+    points( 2, 1:2 ) = [ 130 300 ];
+    points( 3, 1:2 ) = [ 180 350 ];
+    points( 4, 1:2 ) = [ 230 350 ];
+    points( 5, 1:2 ) = [ 280 325 ];
+    points( 6, 1:2 ) = [ 330 300 ];
+    points( 7, 1:2 ) = [ 400 250 ];
+    points( 8, 1:2 ) = [ 400 225 ];
+    points( 9, 1:2 ) = [ 400 200 ];
+    points( 10, 1:2 ) = [ 330 200 ];
+    points( 11, 1:2 ) = [ 280 200 ];
+    points( 12, 1:2 ) = [ 230 200 ];
+    points( 13, 1:2 ) = [ 180 200 ];
     points( 14, 1:2 ) = [ 130 200 ];
     points( 15, 1:2 ) = [ 25 210 ];
     points( 16, 1:2 ) = [ 25 240 ];
-    points( 17, 1:2 ) = [ 25 250 ];
   end    
 elseif strcmp( dataName, '130607_raw' )
   if first == true
@@ -175,7 +165,6 @@ elseif strcmp( dataName, '130607_raw' )
     points( 14, 1:2 ) = [ 90 -90 ];
     points( 15, 1:2 ) = [ -10 -90 ];
     points( 16, 1:2 ) = [ -10 -70 ];
-    points( 17, 1:2 ) = [ -10 -35 ];
   else
     points( 1, 1:2 ) = [ -10 -45 ];
     points( 2, 1:2 ) = [ 90 -25 ];
@@ -192,8 +181,7 @@ elseif strcmp( dataName, '130607_raw' )
     points( 13, 1:2 ) = [ 190 -90 ];
     points( 14, 1:2 ) = [ 90 -90 ];
     points( 15, 1:2 ) = [ -10 -90 ];
-    points( 16, 1:2 ) = [ -10 -70 ];
-    points( 17, 1:2 ) = [ -10 -45 ];  
+    points( 16, 1:2 ) = [ -10 -70 ];  
   end
 end
 
@@ -203,8 +191,8 @@ end
 if first == true
   fileName = strcat( '/tmp/conPoints-', dataName, '.txt' );
   fileId = fopen( char(fileName), 'w' );
-  fprintf( fileId, '%1d\n', numContourMarks-1 );
-  for p=1:size(points,1)-1
+  fprintf( fileId, '%1d\n', numContourMarks );
+  for p=1:size(points,1)
     fprintf( fileId, '%4f %4f\n', points(p,1:2) );
   end
   fprintf( fileId, '\n' );
@@ -229,4 +217,3 @@ end
 % bottom left point
 points(15,1:2) = [ points(15,1)-eps points(15,2)-eps ];
 points(16,1:2) = [ points(16,1)-eps points(16,2) ];
-points(17,1:2) = [ points(17,1)-eps points(17,2)+eps ];

@@ -12,16 +12,16 @@ setenv('LC_ALL','C')
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 3;
+dataId = 4;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
 % 3 -> radial
 cView = 2;
 % start with the current time step
-startT = 1;
-maxT = 300;
-maxDataT = 300;
+startT = 238;
+maxT = 239;
+maxDataT = 350;
 % draw delaunay tri?
 drawDelaunay = 1;
 % render only master file?
@@ -50,13 +50,13 @@ end
 % define offset for boundary points which is the distance between the
 % acutal location of the contour points and their initial position within
 % the model
-conOffset = 2;
+conOffset = 5;
 
 % distance from contour point to nearest nuclei position
 cellDist = 25;
 
 % generate contour points automatically or use the points set manually
-autoContour = 1;
+autoContour = 0;
 
 color = [ 0 1 0 ];
 
@@ -280,21 +280,29 @@ for dataIndex=startD:endD
   %%% Traversal over all time steps %%%
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
-  fileName = strcat( '/tmp/triangulation-', dataStr( 1, dataIndex ), '.txt' );
+  if autoContour == 1
+    fileName = strcat( '/tmp/triangulation-', dataStr( 1, dataIndex ), '_auto.txt' );
+  else
+    fileName = strcat( '/tmp/triangulation-', dataStr( 1, dataIndex ), '.txt' );
+  end
   fileId = fopen( char(fileName), 'w' );
   % first write the maximum number of time steps
   fprintf( fileId, '%1d\n', startT );
   fprintf( fileId, '%1d\n', maxT );
 
   % contour points for the first and last time step
-  cPointsFirst = generateContourPoints( dataStr( 1, dataIndex ), true, conOffset );
-  cPointsLast = generateContourPoints( dataStr( 1, dataIndex ), false, conOffset );
+  if autoContour == 0
+    cPointsFirst = generateContourPoints( dataStr( 1, dataIndex ), true, conOffset );
+    cPointsLast = generateContourPoints( dataStr( 1, dataIndex ), false, conOffset );
+  end
   
   % loop over all time steps
   for curT=startT:maxT
-     % draw contour of data and the single marks
-    factor = curT/maxDataT;
-    interPoints = (1-factor) * cPointsFirst + factor * cPointsLast;
+    % draw contour of data and the single marks
+    if autoContour == 0
+      factor = curT/maxDataT;
+      cPoints = (1-factor) * cPointsFirst + factor * cPointsLast;
+    end
     
     % number of cells for the current time step
     numCells = 0;
@@ -309,6 +317,13 @@ for dataIndex=startD:endD
       if cellData{ j, 5 } == curT
         
         if renderSingleCellFile == 1 && cellData{ j, 7 } ~= 0
+          continue;
+        end
+        
+        % this is a special case for the data set 130508 for which we
+        % ignore the two cells that arise in the master cell file with
+        % lineage ID 5
+        if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) && cellData{ j, 6 } == 5
           continue;
         end
         
@@ -329,6 +344,13 @@ for dataIndex=startD:endD
       if cellData{ j, 5 } == curT+1
         
         if renderSingleCellFile == 1 && cellData{ j, 7 } ~= 0
+          continue;
+        end
+        
+        % this is a special case for the data set 130508 for which we
+        % ignore the two cells that arise in the master cell file with
+        % lineage ID 5
+        if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) && cellData{ j, 6 } == 5
           continue;
         end
         
@@ -393,31 +415,17 @@ for dataIndex=startD:endD
       set( TEXT, 'Visible', 'off' );
     end
     
-    % substract each point by mean of all positions to have a
-    % better origin for the model
-%     mean = [ 0 0 0 ];
-%     for k=1:size( curPos, 1 )
-%       mean = mean + curPos( k, : );
-%     end
-%     mean = mean/size( curPos, 1 );    
-    %mean = getDataMeanPos( dataStr( 1, dataIndex ) );
-    mean = [ 0 0 0 ];
-    
     % generate the contour points automatically
     if autoContour == 1
-      interPoints = generateAutomaticContourPoints( curPos, cellDist, conOffset,...
+      cPoints = generateAutomaticContourPoints( curPos, cellDist, conOffset,...
         curT == startT, dataStr( 1, dataIndex ) );
     end
     
     % add the contour points to generate a complete triangulation
     if includeContourPoints == 1
-      for cc=1:size( interPoints, 1 )-1
-        curPos = [ curPos; interPoints( cc, : ) ];
+      for cc=1:size( cPoints, 1 )
+        curPos = [ curPos; cPoints( cc, : ) ];
       end
-    end
-    
-    for k=1:size( curPos, 1 )
-      curPos(k, :) = curPos(k, :) - mean;
     end
     
     % determine min and max values of x,y for view options
@@ -439,17 +447,18 @@ for dataIndex=startD:endD
     exportTriangulation( curTri, curPos, curT, dataStr( 1, dataIndex ), triangulationType );
     
     if curT ~= maxT
-      fac = (curT+1)/maxDataT;
-      for k=1:size(nextPos,1)
-        nextPos(k, :) = nextPos(k, :) - mean;
-      end
       if includeContourPoints == 1
-        nextInterPoints = (1-fac) * cPointsFirst + fac * cPointsLast;
-        numConMarks = size( nextInterPoints, 1 );
-        for k=1:numConMarks-1
-          nextInterPoints(k, :) = nextInterPoints(k, :) - mean;
+        if autoContour == 0
+          fac = (curT+1)/maxDataT;
+          nextInterPoints = (1-fac) * cPointsFirst + fac * cPointsLast;
+          numConMarks = size( nextInterPoints, 1 );
+          exportNewPosOfTriangulation( nextInterPoints, nextPos, dataStr( 1, dataIndex ) );
+        else
+          newCPoints = generateAutomaticContourPoints( nextPos, cellDist, conOffset,...
+          false, dataStr( 1, dataIndex ) );
+          numCPoints = size( newCPoints, 1 );
+          exportNewPosOfTriangulation( newCPoints, nextPos, dataStr( 1, dataIndex ) );
         end
-        exportNewPosOfTriangulation( nextInterPoints( 1:numConMarks-1, : ), nextPos, dataStr( 1, dataIndex ) );
       else
         fileName = strcat( '/tmp/triangulation-', dataStr( 1, dataIndex ), '.txt' );
         fileId = fopen( char(fileName), 'a' );
@@ -465,7 +474,7 @@ for dataIndex=startD:endD
       if triangulationType == 1
         triplot( curTri, 'b' );
         % draw triangle labels in the center of each triangle
-        %TEXT = drawTriangleLabels( curTri );
+        TEXT = drawTriangleLabels( curTri );
       else
         trisurf( curTri, curPos(:,1), curPos(:,2), curPos(:,3),...
                  'FaceColor', 'blue', 'FaceAlpha', 0. );
@@ -482,7 +491,7 @@ for dataIndex=startD:endD
       
       % draw the single cell as sphere
       radii = 8;
-      [ X, Y, Z ] = ellipsoid( p1(1), p1(2), p1(3), radii/2., radii/2., radii/2., 20 );
+      %[ X, Y, Z ] = ellipsoid( p1(1), p1(2), p1(3), radii/2., radii/2., radii/2., 20 );
       
       % render sphere surfaces
       S(c) = surface( X, Y, Z, 'FaceColor', [ 1 0 0 ], 'EdgeColor', 'none', 'FaceLighting', 'gouraud' );
@@ -493,34 +502,18 @@ for dataIndex=startD:endD
       DATA(curT) = line( points( K, 1 ), points( K, 2 ), points( K, 3 ), 'Color', color, 'LineWidth', 1.2 );
     end
     
-    %DATAF(curT) = line( interPoints( :, 1 ), interPoints( :, 2 ), interPoints( :, 3 ), 'Color', [ 1 0 0 ], 'LineWidth', 1.2 );
     if includeContourPoints == 1
       radii = 5;
-      for cc=1:size( interPoints, 1 )-1
-        interPoints(cc, :) = interPoints(cc, :) - mean;
-        [ Xc, Yc, Zc ] = ellipsoid( interPoints(cc,1), interPoints(cc,2), interPoints(cc,3), radii/2., radii/2., radii/2., 20 );
+      for cc=1:size( cPoints, 1 )
+        [ Xc, Yc, Zc ] = ellipsoid( cPoints(cc,1), cPoints(cc,2), cPoints(cc,3), radii/2., radii/2., radii/2., 20 );
         CSF(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 0 0 0 ], 'EdgeColor', 'none', 'FaceLighting', 'gouraud' );
       end
     end
-    
-%     DATAF(curT) = line( cPointsFirst( :, 1 ), cPointsFirst( :, 2 ), cPointsFirst( :, 3 ), 'Color', [ 1 0 0 ], 'LineWidth', 1.2 );
-%     radii = 3;
-%     for cc=1:size( cPointsFirst, 1 )-1
-%       [ Xc, Yc, Zc ] = ellipsoid( cPointsFirst(cc,1), cPointsFirst(cc,2), cPointsFirst(cc,3), radii/2., radii/2., radii/2., 10 );
-%       CSF(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 1 0 0 ] );
-%     end
-%     
-%     DATAL(curT) = line( cPointsLast( :, 1 ), cPointsLast( :, 2 ), cPointsLast( :, 3 ), 'Color', [ 0 0 1 ], 'LineWidth', 1.2 );
-%     for cc=1:size( cPointsLast, 1 )-1
-%       [ Xc, Yc, Zc ] = ellipsoid( cPointsLast(cc,1), cPointsLast(cc,2), cPointsLast(cc,3), radii/2., radii/2., radii/2., 10 );
-%       CSL(cc) = surface( Xc, Yc, Zc, 'FaceColor', [ 0 0 1 ] );
-%     end
 
     hold off;
     set( f,'nextplot','replacechildren' );
     viewOffset = 10;
     minMax = getTotalMinMax( dataStr( 1, dataIndex ), autoContour );
-    %axis( [ 75-mean(1,1) 550-mean(1,1) -120-mean(1,2) 60-mean(1,2) ] );
     axis( [ minMax(1,1)-viewOffset minMax(1,2)+viewOffset minMax(1,3)-viewOffset minMax(1,4)+viewOffset ] );
     axis on
     daspect( [ 1 1 1 ] );
@@ -532,6 +525,13 @@ for dataIndex=startD:endD
     C = strsplit( char( dataStr( 1, dataIndex ) ), '_' );
     title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT) ) );
     
+    % name and type of contour points
+    if autoContour == 0
+      name = strcat( C( 1, 1 ), '_' );
+    else
+      name = strcat( C( 1, 1 ), '_auto_' );
+    end
+    
     if curT < 10
       digit = strcat( viewStr( 1, cView ), '_00' );
     elseif curT < 100
@@ -541,7 +541,7 @@ for dataIndex=startD:endD
     end
     
     % output with number of cells
-    filePath = strcat( imageDir, digit, num2str(curT), '.png' );
+    filePath = strcat( imageDir, name, digit, num2str(curT), '.png' );
     
     saveas( gcf, char(filePath) );
     

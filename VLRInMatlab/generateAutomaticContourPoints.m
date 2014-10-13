@@ -1,9 +1,7 @@
-function cPoints = generateAutomaticContourPoints( curPos, bDist, eps, first, dataName )
+function conPoints = generateAutomaticContourPoints( curPos, bDist, eps, first, dataName )
 % I always choose 16 contour points for which 7 are used
 % at the top and bottom while 1 is used for left and right
-% 17 are chosen because the first one has to be set again
-% to enclose the surface
-numContourMarks = 17;
+numContourMarks = 16;
 
 % initialize 16 contour points as the boundary of all
 % real data points
@@ -32,11 +30,9 @@ end
 cPoints(2.*(numRow+numColumn), 1:2) = [ minX minY+(maxY-minY)/2. ];
 % right
 cPoints(numRow+numColumn, 1:2) = [ maxX minY+(maxY-minY)/2. ];
-% and the first point again
-cPoints( size(cPoints,1), 1:2 ) = cPoints( 1, 1:2 );
 
 % find nearest real data point for each contour point
-for c=1:size( cPoints, 1 )-1
+for c=1:size( cPoints, 1 )
   dist = 100000;
   index = 1;
   for p=1:size( curPos, 1 )
@@ -61,18 +57,41 @@ for c=1:size( cPoints, 1 )-1
   end
   cPoints(c,:) = newPos;
 end
-% and the first point again
-cPoints( size(cPoints,1), 1:2 ) = cPoints( 1, 1:2 );
+
+% set the subdivision level for the initial 16 contour points
+% which means that between each pair of points an additional
+% contour point is inserted in the middle
+% 1 -> original 16 points
+% 2 -> 2*16 contour points
+level = 1;
+if level ~= 1
+  conPoints = zeros( level*numContourMarks, 3 );
+  for p=1:size(cPoints,1)
+    startPos = cPoints( p, : );
+    if p == size(cPoints,1)
+      endPos = cPoints( 1, : );
+    else
+      endPos = cPoints( p+1, : );
+    end
+    for l=1:level
+      factor = 1./l;
+      newPos = factor * startPos + (1-factor) * endPos;
+      conPoints( (p-1)*level+l, : ) = newPos;
+    end
+  end
+else
+  conPoints = cPoints;
+end
 
 % export of initial contour positions used in the model before the
 % offset is applied such that the model contour points are always
 % within the increased surface realized with the eps offset
 if first == true
-  fileName = strcat( '/tmp/conPoints-', dataName, '.txt' );
+  fileName = strcat( '/tmp/conPoints-', dataName, '_auto.txt' );
   fileId = fopen( char(fileName), 'w' );
-  fprintf( fileId, '%1d\n', numContourMarks-1 );
-  for p=1:size(cPoints,1)-1
-    fprintf( fileId, '%4f %4f\n', cPoints(p,1:2) );
+  fprintf( fileId, '%1d\n', size(conPoints,1) );
+  for p=1:size(conPoints,1)
+    fprintf( fileId, '%4f %4f\n', conPoints(p,1:2) );
   end
   fprintf( fileId, '\n' );
   fclose( fileId );
@@ -96,5 +115,22 @@ end
 % bottom left point
 cPoints(15,1:2) = [ cPoints(15,1)-eps cPoints(15,2)-eps ];
 cPoints(16,1:2) = [ cPoints(16,1)-eps cPoints(16,2) ];
-cPoints(17,1:2) = [ cPoints(17,1)-eps cPoints(17,2)+eps ];
 
+% set the subdivision level again for the slightly increased surface
+if level ~= 1
+  for p=1:size(cPoints,1)
+    startPos = cPoints( p, : );
+    if p == size(cPoints,1)
+      endPos = cPoints( 1, : );
+    else
+      endPos = cPoints( p+1, : );
+    end
+    for l=1:level
+      factor = 1./l;
+      newPos = factor * startPos + (1-factor) * endPos;
+      conPoints( (p-1)*level+l, : ) = newPos;
+    end
+  end
+else
+  conPoints = cPoints;
+end

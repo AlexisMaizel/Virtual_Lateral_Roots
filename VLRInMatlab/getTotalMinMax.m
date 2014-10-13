@@ -22,7 +22,7 @@ else
   elseif strcmp( dataName, '121211_raw' )
     minMax = [ -11 601 -91 131 ];
   elseif strcmp( dataName, '130508_raw' )
-    minMax = [ 15 685 190 360 ];
+    minMax = [ 20 405 195 355 ];
   elseif strcmp( dataName, '130607_raw' )
     minMax = [ 102 580 -270 -95 ];
   end
