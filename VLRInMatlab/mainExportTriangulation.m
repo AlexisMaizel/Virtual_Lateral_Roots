@@ -12,16 +12,16 @@ setenv('LC_ALL','C')
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 4;
+dataId = 3;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
 % 3 -> radial
 cView = 2;
 % start with the current time step
-startT = 238;
-maxT = 239;
-maxDataT = 350;
+startT = 300;
+maxT = 300;
+maxDataT = 300;
 % draw delaunay tri?
 drawDelaunay = 1;
 % render only master file?
@@ -444,7 +444,7 @@ for dataIndex=startD:endD
     end
     
     % export triangulation properties
-    exportTriangulation( curTri, curPos, curT, dataStr( 1, dataIndex ), triangulationType );
+    exportTriangulation( curTri, curPos, curT, dataStr( 1, dataIndex ), triangulationType, autoContour );
     
     if curT ~= maxT
       if includeContourPoints == 1
@@ -452,12 +452,12 @@ for dataIndex=startD:endD
           fac = (curT+1)/maxDataT;
           nextInterPoints = (1-fac) * cPointsFirst + fac * cPointsLast;
           numConMarks = size( nextInterPoints, 1 );
-          exportNewPosOfTriangulation( nextInterPoints, nextPos, dataStr( 1, dataIndex ) );
+          exportNewPosOfTriangulation( nextInterPoints, nextPos, dataStr( 1, dataIndex ), autoContour );
         else
           newCPoints = generateAutomaticContourPoints( nextPos, cellDist, conOffset,...
           false, dataStr( 1, dataIndex ) );
           numCPoints = size( newCPoints, 1 );
-          exportNewPosOfTriangulation( newCPoints, nextPos, dataStr( 1, dataIndex ) );
+          exportNewPosOfTriangulation( newCPoints, nextPos, dataStr( 1, dataIndex ), autoContour );
         end
       else
         fileName = strcat( '/tmp/triangulation-', dataStr( 1, dataIndex ), '.txt' );
@@ -474,7 +474,7 @@ for dataIndex=startD:endD
       if triangulationType == 1
         triplot( curTri, 'b' );
         % draw triangle labels in the center of each triangle
-        TEXT = drawTriangleLabels( curTri );
+        %TEXT = drawTriangleLabels( curTri );
       else
         trisurf( curTri, curPos(:,1), curPos(:,2), curPos(:,3),...
                  'FaceColor', 'blue', 'FaceAlpha', 0. );
@@ -491,7 +491,7 @@ for dataIndex=startD:endD
       
       % draw the single cell as sphere
       radii = 8;
-      %[ X, Y, Z ] = ellipsoid( p1(1), p1(2), p1(3), radii/2., radii/2., radii/2., 20 );
+      [ X, Y, Z ] = ellipsoid( p1(1), p1(2), p1(3), radii/2., radii/2., radii/2., 20 );
       
       % render sphere surfaces
       S(c) = surface( X, Y, Z, 'FaceColor', [ 1 0 0 ], 'EdgeColor', 'none', 'FaceLighting', 'gouraud' );

@@ -1,5 +1,9 @@
-function exportNewPosOfTriangulation( contourPoints, nextPos, dataName )
-fileName = strcat( '/tmp/triangulation-', dataName, '.txt' );
+function exportNewPosOfTriangulation( contourPoints, nextPos, dataName, autoContour )
+if autoContour == 0
+  fileName = strcat( '/tmp/triangulation-', dataName, '.txt' );
+else
+  fileName = strcat( '/tmp/triangulation-', dataName, '_auto.txt' );
+end
 fileId = fopen( char(fileName), 'a' );
 
 nextPos = nextPos';

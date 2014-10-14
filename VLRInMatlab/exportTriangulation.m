@@ -1,5 +1,9 @@
-function exportTriangulation( tri, pos, timeStep, dataName, triangulationType )
-fileName = strcat( '/tmp/triangulation-', dataName, '.txt' );
+function exportTriangulation( tri, pos, timeStep, dataName, triangulationType, autoContour )
+if autoContour == 0
+  fileName = strcat( '/tmp/triangulation-', dataName, '.txt' );
+else
+  fileName = strcat( '/tmp/triangulation-', dataName, '_auto.txt' );
+end
 fileId = fopen( char(fileName), 'a' );
 % first write the current time step
 fprintf( fileId, '%1d\n', timeStep );
