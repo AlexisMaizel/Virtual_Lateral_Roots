@@ -2,7 +2,7 @@
 Dt: 0.0003//0.0033333333333333 // how fast the shape of the end stage is reached, default 0.1
 Growth: .1  // not considered in code
 InitialCellNumber: 1 // initial cell number designed for VLR: 1, 2 or 8
-InitialCellsOfRealData: 130508_raw // valid entries are:
+InitialCellsOfRealData: 121211_raw // valid entries are:
 // none, 120830_raw, 121204_raw_2014, 121211_raw, 130508_raw, 130607_raw
 SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
 ExportLineage: false // export lineage information of cells
@@ -16,8 +16,8 @@ StepPerView: 1
 BackgroundColor: 255
 
 [Division]
-DivisionArea: 800 // 1100 ... 0.075 threshold size of cells before they divide
-DivisionAreaRatio: 0.25 // 0.10 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionArea: 1100 // 1100 ... 0.075 threshold size of cells before they divide
+DivisionAreaRatio: 0.145 // 0.10 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
@@ -30,7 +30,7 @@ CellColoringType: 0 // cell coloring type: 0 -> cells are colored based on found
 [Tissue]
 DivisionAlgorithm: ShortWall // ClosestWall ShortWall ClosestMid
 CellPinch: 5.1 // real data point: 10.75, default: 0.75 displacement of the position of the newly inserted vertexes
-CellMaxPinch: 2.15 // 0.1 max displacement of the position of the newly inserted vertexes
+CellMaxPinch: 1.5 // 0.1 max displacement of the position of the newly inserted vertexes
 CellMaxArea: 1 // not considered in code
 CellWallMin: 0.1 // for SW, CW, CM
 StrictCellWallMin: false // for SW, CW, CM

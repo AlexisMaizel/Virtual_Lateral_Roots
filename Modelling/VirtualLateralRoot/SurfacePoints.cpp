@@ -9,6 +9,7 @@
 //----------------------------------------------------------------
 
 SurfacePoints::SurfacePoints()
+  : _curTimeStep(0)
 {
 }
 
@@ -105,11 +106,7 @@ void SurfacePoints::interpolate( double timeStep,
   {
     std::cout << "New timepoint:" <<  prevTimeStep << " " << _curTimeStep << std::endl;
     for(size_t i = 0; i < tps.size(); ++i)
-    {
       this->getBoundaryCoord( tps.at(i), prevTimeStep );
-      //if( _curTimeStep == 238 )
-        //tps.at(i).printProperties();
-    }
   }
   
   // the triangle list is just copied by the lower time step
@@ -133,18 +130,13 @@ void SurfacePoints::interpolate( double timeStep,
       Point2d pos = (1.-factor) * _points.at(_curTimeStep).at(p) + _subsequentPoints.at(_curTimeStep).at(p) * factor;
       _curPoints.push_back( pos );
     }
+    
   }
   
   if( newTriangulation )
   {
-    std::cout << "determine" << std::endl;
     for(size_t i = 0; i < tps.size(); ++i)
-    {
-      //this->determinePosProperties(tps[i], tps[i].Pos() );
-      this->determineBoundaryPosProperties(tps[i], tps[i].Pos(), _curTimeStep);
-      //if( _curTimeStep == 238 )
-        //tps.at(i).printProperties();
-    }
+      this->determineBoundaryPosProperties(tps.at(i), tps.at(i).Pos(), _curTimeStep);
   }
 }
 
@@ -203,12 +195,6 @@ void SurfacePoints::getCoord( TrianglePoint &tp )
     tp.pos = pos2;
   else
     tp.pos = pos3;
-  
-//   if( _curTimeStep == 238 )
-//   {
-//     std::cout << "newpos: ";
-//     tp.printPos();
-//   }
 }
 
 //----------------------------------------------------------------
@@ -233,10 +219,6 @@ void SurfacePoints::determinePosProperties( TrianglePoint &tp, const Point2d &p 
       tp.u = u;
       tp.v = v;
       tp.w = w;
-      
-      if( _curTimeStep == 238 )
-        tp.printProperties();
-      
       return;
     }
   }
@@ -267,11 +249,7 @@ void SurfacePoints::determineBoundaryPosProperties( TrianglePoint &tp,
       tp.triIndex = t;
       tp.u = u;
       tp.v = v;
-      tp.w = w;
-      
-      if( _curTimeStep == 238 )
-        tp.printProperties();
-      
+      tp.w = w;      
       return;
     }
   }
