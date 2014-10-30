@@ -17,7 +17,8 @@ public:
   
   void init( const std::size_t lod,
              const std::string &lineageFileName,
-             const bool exportLineage );
+             const bool exportLineage,
+             const std::size_t timeSteps = 300 );
   
   void initModelBasedOnBezier( MyTissue &T,
                                const std::size_t cellNumber,
@@ -54,6 +55,7 @@ public:
   
   void incrementTime(){ if(_time <= _maxTime) _time++; }
   void incrementCellID(){ _IDCounter++; }
+  void setTime( const std::size_t time) {_time = time;}
   
   std::size_t getTime() const { return _time; }
   std::size_t getMaxTime() const { return _maxTime; }

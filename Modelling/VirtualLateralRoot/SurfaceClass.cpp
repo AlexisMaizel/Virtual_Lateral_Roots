@@ -12,7 +12,8 @@
 
 void SurfaceClass::init( const std::size_t lod,
                          const std::string &lineageFileName,
-                         const bool exportLineage )
+                         const bool exportLineage,
+                         const std::size_t timeSteps )
 {
   if( _lod == 0 )
     _lod = 1;
@@ -22,7 +23,7 @@ void SurfaceClass::init( const std::size_t lod,
   _IDCounter = 1;
   _jIDCounter = 0;
   _time = 1;
-  _maxTime = 300;
+  _maxTime = timeSteps;
   _lineageFileName = lineageFileName;
   _exportLineage = exportLineage;
 }
@@ -524,7 +525,7 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
   lateralRoot.setPos(c->tp, center);
   
   if( _exportLineage )
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
+    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false );
   
   // afterwards increment the id counter
   _IDCounter++;
@@ -627,7 +628,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   lateralRoot.setPos(c->tp, center);
   
   if( _exportLineage )
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
+    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false );
   
   // afterwards increment the id counter
   _IDCounter++;  
@@ -767,7 +768,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   lateralRoot.SetPoint(c->sp, c->sp, center);
   
   if( _exportLineage )
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time );
+    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false );
   
   // afterwards increment the id counter
   _IDCounter++;

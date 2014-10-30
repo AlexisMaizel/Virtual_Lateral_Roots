@@ -12,34 +12,35 @@
 
 namespace ModelExporter
 {
-  void initExportFile( const std::string &filename );
-  
   void exportLineageInformation( const std::string &filename,
                                  const cell& c,
                                  const MyTissue& T,
-                                 const std::size_t timeStep );
+                                 const std::size_t timeStep,
+                                 const bool init );
   
-  void initDivisionDaughterFile( const std::string &filename );
+  void exportTimeAgainstCells( const std::string &filename,
+                               const double dT,
+                               const std::size_t numCells,
+                               const bool init );
   
   void exportDivisionDaughterProperties( const std::string &filename,
                                          const cell& cl,
                                          const cell& cr,
                                          const MyTissue::division_data& ddata,
                                          const double angleThreshold,
-																				 std::pair<std::size_t, std::size_t> &divOccurrences );
-  
-  void initDivisionFile( const std::string &filename );
+                                         std::pair<std::size_t, std::size_t> &divOccurrences,
+                                         const bool init );
   
   void exportDivisionProperties( const std::string &filename,
                                  const cell& c,
                                  const MyTissue::division_data& ddata,
-                                 const double angleThreshold );
-  
-  void initCellWallFile( const std::string &filename );
+                                 const double angleThreshold,
+                                 const bool init );
   
   void exportCellWalls( const std::string &filename,
                         const cell& c,
-                        const MyTissue &T );
+                        const MyTissue &T,
+                        const bool init );
 }
 
 #endif // ModelExporter_HH

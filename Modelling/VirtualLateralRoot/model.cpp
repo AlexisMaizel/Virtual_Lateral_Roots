@@ -3,12 +3,16 @@
 #include "ModelUtils.h"
 #include "SurfaceClass.h"
 
+const double start = 0.001;
+const double steps = 0.0005;
+//static double dt = start;
+
 class MyModel : public Model 
 {
   Q_OBJECT
 public: 
   util::Parms parms;
-	Surface _VLRBezierSurface;
+  Surface _VLRBezierSurface;
   RealSurface _VLRDataPointSurface;
   util::Palette palette;
   MyTissue T;
@@ -35,13 +39,16 @@ public:
   std::string _lineageFileName;
   std::string _cellWallsFileName;
   std::string _divisionFileName;
+  std::string _timeAgainstCellsFileName;
   std::vector<std::size_t> _layerColorIndex;
   double _cellPinch;
   double _cellMaxPinch;
   std::size_t _cellColoringType;
-	std::pair<std::size_t, std::size_t> _divOccurrences;
+  std::pair<std::size_t, std::size_t> _divOccurrences;
   
   SurfaceClass _surfaceClass;
+  
+  bool _lastStep;
   
   //----------------------------------------------------------------
   
@@ -80,7 +87,11 @@ public:
     T.readParms(parms, "Tissue");
     T.readViewParms(parms, "TissueView");
     
-    _surfaceClass.init( lod, _lineageFileName, _exportLineage );
+    std::size_t t = 300;
+    if( _initialCellsOfRealData == "130508_raw" )
+      t = 350;
+    
+    _surfaceClass.init( lod, _lineageFileName, _exportLineage, t );
   }
 
   //----------------------------------------------------------------
@@ -106,27 +117,44 @@ public:
     _lineageFileName( "/tmp/model.csv" ),
     _cellWallsFileName( "/tmp/modelCellWalls.csv" ),
     _divisionFileName( "/tmp/divisionPropertiesModel.csv" ),
-    _divOccurrences( std::make_pair( 0, 0 ) )
+    _divOccurrences( std::make_pair( 0, 0 ) ),
+    _lastStep( false )
   {
     readParms();
     // Registering the configuration files
     registerFile("pal.map");
     registerFile("view.v");
-    
+
     // single layer assignment
     //for( std::size_t l = 9; l < 14; l++ )
     // multiple layer assignment for each new daughter cell
     for( std::size_t l = 14; l < 45; l++ )
       _layerColorIndex.push_back( l );
     
+    cell dummy;
+    MyTissue::division_data ddummy;
+    
     if( _exportLineage )
     {
-      ModelExporter::initExportFile( _lineageFileName );
-      ModelExporter::initCellWallFile( _cellWallsFileName );
+      ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, 0, true );
+      ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
     }
     
     if( exportDivisionProperties )
-      ModelExporter::initDivisionDaughterFile( _divisionFileName );
+    {
+      std::pair<std::size_t, std::size_t> pair;
+      ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
+                                                       dummy, dummy,
+                                                       ddummy, 0.,
+                                                       pair, true );
+    }
+    
+    _timeAgainstCellsFileName = "/tmp/timeAgainstCells";
+    _timeAgainstCellsFileName += _initialCellsOfRealData;
+    _timeAgainstCellsFileName += ".csv";
+    
+    if( dt < start+steps )
+      ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName, dt, 0, true );
     
     // bezier
     if( surfaceType == 0 )
@@ -225,7 +253,7 @@ public:
   
   void setStatus()
   {
-		//double time = _VLRBezierSurface.GetTime();
+    //double time = _VLRBezierSurface.GetTime();
     std::size_t time = _surfaceClass.getTime();
     if( time > _surfaceClass.getMaxTime() )
       time = _surfaceClass.getMaxTime();
@@ -276,7 +304,7 @@ public:
     // set properties of dividing cell
     c->angle = angle;
     
-		// set cell properties for left cell
+    // set cell properties for left cell
     this->setCellProperties( cl, c );
     
     // set cell properties for right cell
@@ -307,7 +335,8 @@ public:
                                                        cr,
                                                        ddata,
                                                        _angleThreshold,
-                                                       _divOccurrences );
+                                                       _divOccurrences,
+                                                       false );
     }
   }
 
@@ -514,7 +543,7 @@ public:
           if( c->timeStep > _surfaceClass.getMaxTime() )
             break;
             
-          ModelExporter::exportCellWalls( _cellWallsFileName, c, T );
+          ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
         }
       }
     }
@@ -530,7 +559,8 @@ public:
       {
         forall(const cell& c, T.C)
           ModelExporter::exportLineageInformation( _lineageFileName, c, T,
-                                                   _surfaceClass.getTime() );
+                                                   _surfaceClass.getTime(),
+                                                   false );
       }
     }
   }
@@ -558,46 +588,15 @@ public:
       forall(const junction& j, T.W)
       {
         j->tp = tps[i++];
-        
-        //if( _VLRDataPointSurface.getCurTimeStep() == 238 )
-          //j->tp.printPos();
-        
         _VLRDataPointSurface.getPos( j->tp );
-        
-         //if( _VLRDataPointSurface.getCurTimeStep() == 238 )
-           //j->tp.printProperties();
       }
     }
-
-    /*
-    if( _surfaceClass.getTime() >= 299 )
-    {
-      double maxY = -1000.;
-      forall(const junction& j, T.W)
-      {
-        if( j->tp.Pos().j() > maxY )
-          maxY =  j->tp.Pos().j();
-      }
-        
-      std::cout << "realmaxPosY: " << maxY << std::endl;
-    }
-    */
-    
-// perhaps not required
-    /*forall(const cell& c, T.C)
-    {
-      // update center position
-      Point3d center;
-      double area;
-      this->setCellCenter( c, center, area );
-      _VLRDataPointSurface.setPos(c->tp, center);
-    }*/
   }
   
   //----------------------------------------------------------------
   
   void step()
-  {
+  { 
     _surfaceClass.incrementTime();
     
     for(int i = 0 ; i < stepPerView ; ++i)
@@ -608,17 +607,28 @@ public:
       this->step_growth();
     }
     this->setStatus();
+    
+    if( _VLRDataPointSurface.getCurTimeStep() == _surfaceClass.getMaxTime()-1 &&
+        !_lastStep )
+    {
+      ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName,
+                                             dt, T.C.size(), false );
+      
+      _lastStep = true;
+      std::cout << "dt: " << dt << std::endl;
+      dt += steps;
+    }
   }
 
   //----------------------------------------------------------------
   
-	void initDraw(Viewer* viewer)
-	{
+  void initDraw(Viewer* viewer)
+  {
     viewer->setSceneBoundingBox(Vec(-10.0, -10.0, -1.0), Vec(10.0, 10.0, 1.0));
-	}
+  }
 
-	//----------------------------------------------------------------
-	
+  //----------------------------------------------------------------
+  
   void preDraw()
   {
     util::Palette::Color bg = palette.getColor(bgColor);
@@ -653,7 +663,7 @@ public:
 
   //----------------------------------------------------------------
   
-	// color for inner cells
+  // color for inner cells
   Colorf cellColor(const cell& c)
   {
     switch( _cellColoringType )
@@ -679,7 +689,7 @@ public:
 
   //----------------------------------------------------------------
   
-	// color for contour of cells
+  // color for contour of cells
   Colorf contourColor(const cell& c)
   {
     return palette.getColor(T.contourColor);

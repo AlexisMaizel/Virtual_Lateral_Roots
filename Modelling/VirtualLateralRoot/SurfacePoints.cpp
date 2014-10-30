@@ -104,7 +104,7 @@ void SurfacePoints::interpolate( double timeStep,
   
   if( newTriangulation )
   {
-    std::cout << "New timepoint:" <<  prevTimeStep << " " << _curTimeStep << std::endl;
+    //std::cout << "New timepoint:" <<  prevTimeStep << " " << _curTimeStep << std::endl;
     for(size_t i = 0; i < tps.size(); ++i)
       this->getBoundaryCoord( tps.at(i), prevTimeStep );
   }
@@ -117,7 +117,7 @@ void SurfacePoints::interpolate( double timeStep,
   double factor = time - (double)_curTimeStep;
   
   //std::cout << std::endl;
-  std::cout << "curT: " << _curTimeStep << " factor: " << factor << std::endl;
+  //std::cout << "curT: " << _curTimeStep << " factor: " << factor << std::endl;
   
   // if the last time step is reached then just set the last entry
   if( _curTimeStep == timeStepRange-1 )

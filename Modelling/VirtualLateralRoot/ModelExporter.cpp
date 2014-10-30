@@ -9,29 +9,30 @@
 namespace ModelExporter
 {
 
-// ---------------------------------------------------------------------
-
-void initExportFile( const std::string &filename )
-{
-  std::ofstream out( filename.c_str(), std::ofstream::out );
-
-  // rotation information
-  out << "0 0 0\n";
-  // center of root
-  out << "0 -2 0\n";
-  // dimension
-  out << "3 2 0\n";
-  // header
-  out << "ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer\n";
-}
-
 //----------------------------------------------------------------
 
 void exportLineageInformation( const std::string &filename,
                                const cell& c,
                                const MyTissue& T,
-                               const std::size_t timeStep )
+                               const std::size_t timeStep,
+                               const bool init )
 {
+  if( init )
+  {
+    std::ofstream out( filename.c_str(), std::ofstream::out );
+  
+    // rotation information
+    out << "0 0 0\n";
+    // center of root
+    out << "0 -2 0\n";
+    // dimension
+    out << "3 2 0\n";
+    // header
+    out << "ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer\n";
+    out.close();
+    return;
+  }
+ 
   std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
   
   std::vector<Point3d> polygon;
@@ -79,22 +80,39 @@ void exportLineageInformation( const std::string &filename,
 
 // ---------------------------------------------------------------------
 
-void initCellWallFile( const std::string &filename )
+void exportTimeAgainstCells( const std::string &filename,
+                             const double dT,
+                             const std::size_t numCells,
+                             const bool init )
 {
-  std::ofstream out( filename.c_str(), std::ofstream::out );
-
+  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  
   // header
-  out << "ID Time CellCorners\n";
+  if( init )
+    out << "dT Cells\n";
+  else
+    out << dT << " " << numCells << "\n";
+  
+  out.close();
 }
 
 // ---------------------------------------------------------------------
 
 void exportCellWalls( const std::string &filename,
                       const cell& c,
-                      const MyTissue &T )
+                      const MyTissue &T,
+                      const bool init )
 {
-  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  // header
+  if( init )
+  {
+    std::ofstream out( filename.c_str(), std::ofstream::out );
+    out << "ID Time CellCorners\n";
+    out.close();
+    return;
+  }
   
+  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
   out << c->id << " " << c->timeStep << " ";
   bool first = true;
   forall(const junction& j, T.S.neighbors(c))
@@ -110,19 +128,8 @@ void exportCellWalls( const std::string &filename,
   }
   
   out << "\n";
-}
-
-// ---------------------------------------------------------------------
-
-void initDivisionDaughterFile( const std::string &filename )
-{
-  std::ofstream out( filename.c_str(), std::ofstream::out );
-
-  // header
-  out << "'ID' 'ParentID' 'Lineage' 'Time' 'CellCycle' 'XPos' 'YPos' 'ZPos' 'Area' 'LongestCellWall' "
-      << "'Dir of last Division X' 'Dir of last Division Y' 'Dir of last Division Z' "
-      << "'Dir of this Division X' 'Dir of this Division Y' 'Dir of this Division Z' "
-      << "'Angle' 'Layer' 'DivisionType'\n";
+  
+  out.close();
 }
 
 // ---------------------------------------------------------------------
@@ -132,10 +139,22 @@ void exportDivisionDaughterProperties( const std::string &filename,
                                        const cell& cr,
                                        const MyTissue::division_data& ddata,
                                        const double angleThreshold,
-																			 std::pair<std::size_t, std::size_t> &divOccurrences )
+                                       std::pair<std::size_t, std::size_t> &divOccurrences,
+                                       const bool init )
 {
-  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  if( init )
+  {
+    std::ofstream out( filename.c_str(), std::ofstream::out );
+    // header
+    out << "'ID' 'ParentID' 'Lineage' 'Time' 'CellCycle' 'XPos' 'YPos' 'ZPos' 'Area' 'LongestCellWall' "
+        << "'Dir of last Division X' 'Dir of last Division Y' 'Dir of last Division Z' "
+        << "'Dir of this Division X' 'Dir of this Division Y' 'Dir of this Division Z' "
+        << "'Angle' 'Layer' 'DivisionType'\n";
+    out.close();
+    return;
+  }
   
+  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
   // left daughter cell
   out << cl->id << " "
       << cl->parentId << " "
@@ -171,15 +190,15 @@ void exportDivisionDaughterProperties( const std::string &filename,
   
   DivisionType::type divType = ModelUtils::determineDivisionType( ddata, angleThreshold );
   if( divType == DivisionType::ANTICLINAL )
-	{
-		divOccurrences.first++;
+  {
+    divOccurrences.first++;
     out << "0\n";
-	}
+  }
   else
-	{
-		divOccurrences.second++;
+  {
+    divOccurrences.second++;
     out << "1\n";
-	}
+  }
       
   
   // right daughter cell
@@ -225,23 +244,22 @@ void exportDivisionDaughterProperties( const std::string &filename,
 
 // ---------------------------------------------------------------------
 
-void initDivisionFile( const std::string &filename )
-{
-  std::ofstream out( filename.c_str(), std::ofstream::out );
-
-  // header
-  out << "'ID' 'ParentID' 'X' 'Y' 'Z' 'Time' 'CellCycle' 'Area' 'LongestCellWall' 'Lineage' 'Layer' 'DivisionAngle' 'AngleBetweenCurrentAndPreviousDivision' 'DivisionType'\n";
-}
-
-// ---------------------------------------------------------------------
-
 void exportDivisionProperties( const std::string &filename,
                                const cell& c,
                                const MyTissue::division_data& ddata,
-                               const double angleThreshold )
+                               const double angleThreshold,
+                               const bool init )
 {
-  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  if( init )
+  {
+    std::ofstream out( filename.c_str(), std::ofstream::out );
+    // header
+    out << "'ID' 'ParentID' 'X' 'Y' 'Z' 'Time' 'CellCycle' 'Area' 'LongestCellWall' 'Lineage' 'Layer' 'DivisionAngle' 'AngleBetweenCurrentAndPreviousDivision' 'DivisionType'\n";
+    out.close();
+    return;
+  }
   
+  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
   out << c->id << " ";
   
   if( c->cellCycle != 0 )
