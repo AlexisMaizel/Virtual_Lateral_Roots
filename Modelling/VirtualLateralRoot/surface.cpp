@@ -53,6 +53,9 @@ Surface::Surface(util::Parms &parms, string section)
 
   time = 0;
 
+  // testing
+  surface[0].LoadBezierSurface( "/home/necrolyte/Uni/LateralRootGrowth/TIFFStacks/120830Bezier.mgxv" );
+  
   // Load surfaces 
   parms(section.data(), "Surfaces", surfaces);
   parms(section.data(), "SurfTimeScale", surfTimeScale);

@@ -11,7 +11,7 @@
 #include <iostream>
 #include <sstream>
 
-//#define USEONESURFACE
+#define USEONESURFACE
 
 //----------------------------------------------------------------
 
@@ -322,6 +322,54 @@ void Bezier::Load( const std::string bezFile )
   //this->Print();
   
   bIn.close();
+}
+
+//----------------------------------------------------------------
+
+void Bezier::LoadBezierSurface( const std::string &bezFile )
+{
+  std::ifstream bIn( bezFile.c_str() );
+  if(!bIn)
+  {
+    cerr << "Bezier::Bezier:Error opening " << bezFile << endl;
+    exit(1);
+  }
+  
+  std::string line;
+  while(bIn)
+  {
+    getline( bIn, line );
+    if(line.substr(0, 9) == "BezPoints")
+      break;
+  }
+    
+  std::stringstream ss( line );
+  std::size_t elements;
+  std::string dummy;
+  ss >> dummy >> elements;
+  
+  //std::cout << "elements: " << elements << std::endl;
+  
+  // skip next line
+  getline( bIn, line );
+  
+  // initialize control points matrix
+  _cpMatrix.resize( elements );
+  for( std::size_t r=0;r<elements;r++ )
+    _cpMatrix.at(r).resize( elements );
+  
+  for(std::size_t i = 0; i < elements; i++)
+    for(std::size_t j = 0; j < elements; j++)
+    {
+      getline( bIn, line );
+      std::stringstream ss( line );
+      
+      double x,y,z;
+      ss >> dummy >> x >> y >> z;
+      Point3d pos( x, y, z );
+      _cpMatrix.at(i).at(j) = pos;
+      //std::cout << "i:" << i << " j:" << j << " pos: " << pos << std::endl;
+    }
 }
 
 //----------------------------------------------------------------

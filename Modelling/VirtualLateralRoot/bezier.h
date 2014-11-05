@@ -38,6 +38,8 @@ class Bezier {
     // Load from file written by interactice editor.
     void Load( const std::string bezFile );
     
+    void LoadBezierSurface( const std::string &bezFile );
+    
     // Copy and/or scale
     void Scale( Bezier &b, double Scale );
 
