@@ -138,7 +138,7 @@ void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
   if( dataset == "120830_raw" )
   {
     this->generateCell( T, std::make_pair( 0., 0. ),
-                        std::make_pair( 0.5, 1. ),
+                        std::make_pair( 0.55, 1. ),
                         1, sharedJunctions, lateralRoot );
     
     // insert ids of shared junctions
@@ -152,8 +152,8 @@ void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
       sharedJunctions.insert( std::make_pair( u, v ) );
     }
     
-    this->generateCell( T, std::make_pair( 0.5, 0. ),
-                        std::make_pair( 0.5, 1. ),
+    this->generateCell( T, std::make_pair( 0.55, 0. ),
+                        std::make_pair( 0.45, 1. ),
                         2, sharedJunctions, lateralRoot );
   }
   else if( dataset == "121204_raw_2014" )

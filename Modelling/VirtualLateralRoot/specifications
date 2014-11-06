@@ -13,6 +13,8 @@ model.cpp
 model.expmap
 bezier.cpp
 bezier.h
+BezierSurface.cpp
+BezierSurface.h
 surface.cpp
 surface.h
 Makefile
@@ -21,6 +23,8 @@ anim.a
 view.v
 LSspecifications
 description.txt
+120830Bezier1.mgxv
+120830Bezier2.mgxv
 triangulation-120830_raw.txt
 conPoints-120830_raw.txt
 triangulation-120830_raw_auto.txt
@@ -64,7 +68,7 @@ VVE:
 
 Files:
 	all:
-		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h SurfacePoints.cpp SurfacePoints.h RealSurface.cpp RealSurface.h specifications SurfaceClass.cpp SurfaceClass.h
+		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h BezierSurface.cpp BezierSurface.h SurfacePoints.cpp SurfacePoints.h RealSurface.cpp RealSurface.h specifications SurfaceClass.cpp SurfaceClass.h
 	program:
 		EDIT model.cpp
 	parameters:

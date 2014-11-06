@@ -1,6 +1,5 @@
 // Implement surface and surface point class
 #include "surface.h"
-#include "bezier.h"
 
 #include <string>
 #include <iostream>
@@ -54,7 +53,8 @@ Surface::Surface(util::Parms &parms, string section)
   time = 0;
 
   // testing
-  surface[0].LoadBezierSurface( "/home/necrolyte/Uni/LateralRootGrowth/TIFFStacks/120830Bezier.mgxv" );
+  surface[0].Load( "120830Bezier1.mgxv" );
+  surface[1].Load( "120830Bezier2.mgxv" );
   
   // Load surfaces 
   parms(section.data(), "Surfaces", surfaces);
@@ -62,10 +62,10 @@ Surface::Surface(util::Parms &parms, string section)
   parms(section.data(), "SurfMaxDist", surfMaxDist);
   for(int i = 0; i < surfaces; i++) {
     // Bezier surface
-    ostringstream key;
+    std::ostringstream key;
     key << "Surface" << i;
     parms(section.data(), key.str().data(), surffile);
-    surface[i].Load(surffile);
+    //surface[i].Load(surffile);
 
     // Scaling constant
     key.str("");

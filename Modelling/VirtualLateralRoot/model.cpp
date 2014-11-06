@@ -651,13 +651,13 @@ public:
     {
       //T.drawBorders = false;
       if( surfaceType == 0 )
-        T.cellWallWidth = 0.001;
+        T.cellWallWidth = 0.01;
       else
         T.cellWallWidth = 0.2;
           
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
-      T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.2) );
+      T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.3) );
     }
   }
 
