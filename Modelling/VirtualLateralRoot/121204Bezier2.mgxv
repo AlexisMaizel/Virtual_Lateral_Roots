@@ -1,0 +1,568 @@
+// Parameters for MorphoGraphX
+[Main]
+TransformFile: 
+ClearColor: 0
+ZOffset: 0.0001
+Slices: 500
+ScreenSampling: 2
+TileCount: 20
+MaxTexSize: 1024 1024 1024
+
+DrawNormals: 0
+DrawOffset: 1
+DrawZeroLabels: 0
+DrawNhbds: 0
+DeleteBadVertex: false
+CudaMaxMem: 32
+
+MeshPointSize: 10
+MeshLineWidth: 1
+SeedStack: false
+PixelEditRadius: 25
+PixelEditMaxPix: 1024000
+
+[Labels]
+Color: 1 0 0 1
+Color: 0 1 0 1
+Color: 0 0 1 1
+Color: 1 1 0 1
+Color: 1 0 1 1
+Color: 0 1 1 1
+Color: 0.5 0 0 1
+Color: 0 0.5 0 1
+Color: 0 0 0.5 1
+Color: 0.5 0 0.5 1
+Color: 0.5 0.5 0 1
+Color: 1 0 0.5 1
+Color: 0.5 0.5 1 1
+Color: 0 0.5 1 1
+Color: 0.5 0 1 1
+Color: 1 0.5 0 1
+
+
+[Colors]
+GeneralBackground: 0 0 0 1
+GeneralClippingPlane1: 0.913725 0.913725 0.913725 1
+GeneralClippingPlane2: 0.913725 0.913725 0.913725 1
+GeneralClippingPlane3: 0.913725 0.913725 0.913725 1
+GeneralCuttingSurface: 0.913725 0.913725 0.913725 1
+GeneralLegend: 1 1 1 1
+GeneralScaleBar: 1 1 1 1
+GeneralEditedpixels: 1 1 1 1
+Stack1Mesh: 0.133333 1 0.0196078 1
+Stack1Border: 0 1 1 1
+Stack1Selection: 1 0 0 1
+Stack1Celllabels: 1 1 1 1
+Stack1StackBoundingBox: 0.501961 0.501961 0.501961 1
+Stack2Mesh: 1 1 0 1
+Stack2Border: 0 1 1 1
+Stack2Selection: 1 0 0 1
+Stack2Celllabels: 1 1 1 1
+Stack2StackBoundingBox: 0.501961 0.501961 0.501961 1
+
+[Main]
+DrawCellMap: false
+DrawClipBox: false
+Spinning: 10000
+FlySpeed: 0.005
+Brightness: 0
+Contrast: 1
+Shininess: 32
+Specular: 0.2
+UnsharpStrength: 1
+MaxNbPeels: 10
+
+
+[Clip1]
+Enable: false
+Grid: false
+Width: 355.117
+GridSize: 1
+GridSquares: 3
+GridColor: 11
+Normal: 1 0 0
+Frame: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+
+
+[Clip2]
+Enable: false
+Grid: false
+Width: 0.5
+GridSize: 1
+GridSquares: 3
+GridColor: 12
+Normal: 0 1 0
+Frame: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+
+
+[Clip3]
+Enable: false
+Grid: false
+Width: 0.5
+GridSize: 1
+GridSquares: 3
+GridColor: 13
+Normal: 0 0 1
+Frame: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+
+
+[Stack1]
+StackFile: 
+WorkStackFile: 
+MeshFile: 
+MainShow: false
+MainBright:1
+MainOpacity:0.8
+Main16Bit:false
+MainLabels:false
+WorkShow: false
+WorkBright:1
+WorkOpacity:0.8
+Work16Bit:false
+WorkLabels:false
+SurfShow:false
+SurfBright:1
+SurfOpacity:1
+SurfBlend:false
+SurfCull:true
+SurfView:1
+SurfColor:0
+MeshShow:false
+MeshViewMode:3
+MeshPoints:true
+MeshLines:true
+CellMap:false
+ShowTrans:false
+ShowBBox:false
+ShowScale:true
+Scale:1
+LoadMeshAdd: false
+LoadMeshScaleUm: true
+LoadMeshTransform: false
+MeshShift: 0
+MainColorMap: Interpolation:\srgb\nClamp:\strue\nExteriorColor:\s0,0,0,0\nColoredPos:\s0-0,0,0,0\nColoredPos:\s1-0,1,0,1\n
+WorkColorMap: Interpolation:\srgb\nClamp:\strue\nExteriorColor:\s0,0,0,0\nColoredPos:\s0-0,0,0,0\nColoredPos:\s1-0,1,1,1\n
+SurfColorMap: Interpolation:\srgb\nClamp:\strue\nExteriorColor:\s0,0,0,0\nColoredPos:\s0-0,0,0,0\nColoredPos:\s1-1,1,1,1\n
+HeatColorMap: Interpolation:\srgb\nClamp:\strue\nExteriorColor:\s0,0,0,0\nColoredPos:\s0-0,0,0.5,1\nColoredPos:\s0.125-0,0,1,1\nColoredPos:\s0.375-0,1,1,1\nColoredPos:\s0.625-1,1,0,1\nColoredPos:\s0.875-1,0,0,1\nColoredPos:\s1-0.5,0,0,1\n
+Frame: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+Trans: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+
+
+[Stack2]
+StackFile: 
+WorkStackFile: 
+MeshFile: 
+MainShow: false
+MainBright:1
+MainOpacity:0.8
+Main16Bit:false
+MainLabels:false
+WorkShow: false
+WorkBright:1
+WorkOpacity:0.8
+Work16Bit:false
+WorkLabels:false
+SurfShow:false
+SurfBright:1
+SurfOpacity:1
+SurfBlend:false
+SurfCull:true
+SurfView:1
+SurfColor:0
+MeshShow:false
+MeshViewMode:3
+MeshPoints:true
+MeshLines:true
+CellMap:false
+ShowTrans:false
+ShowBBox:false
+ShowScale:true
+Scale:1
+LoadMeshAdd: false
+LoadMeshScaleUm: true
+LoadMeshTransform: false
+MeshShift: 0
+MainColorMap: Interpolation:\srgb\nClamp:\strue\nExteriorColor:\s0,0,0,0\nColoredPos:\s0-0,0,0,0\nColoredPos:\s1-1,0,0,1\n
+WorkColorMap: Interpolation:\srgb\nClamp:\strue\nExteriorColor:\s0,0,0,0\nColoredPos:\s0-0,0,0,0\nColoredPos:\s1-1,1,0,1\n
+SurfColorMap: Interpolation:\srgb\nClamp:\strue\nExteriorColor:\s0,0,0,0\nColoredPos:\s0-0,0,0,0\nColoredPos:\s1-1,1,1,1\n
+HeatColorMap: Interpolation:\srgb\nClamp:\strue\nExteriorColor:\s0,0,0,0\nColoredPos:\s0-0,0,0.5,1\nColoredPos:\s0.125-0,0,1,1\nColoredPos:\s0.375-0,1,1,1\nColoredPos:\s0.625-1,1,0,1\nColoredPos:\s0.875-1,0,0,1\nColoredPos:\s1-0.5,0,0,1\n
+Frame: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+Trans: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+
+
+[Plane]
+DrawCutSurf: true
+Mode: 2
+CutSurfGrid: true
+Material: 0
+Size: 0 0 0
+SurfSize: 15 15
+LineWidth: 1
+BezPoints: 8
+Frame: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+BezPointList: -6.32296e+06 -204358 5.23545
+BezPointList: -6.32256e+06 6530.34 5.23516
+BezPointList: -6.33312e+06 249051 5.23498
+BezPointList: -6.34078e+06 482988 5.23512
+BezPointList: -6.33024e+06 672787 0.395508
+BezPointList: -6.33416e+06 883502 0.756396
+BezPointList: -6.32753e+06 1.0368e+06 1.11419
+BezPointList: -6.33498e+06 1.20587e+06 0.932653
+BezPointList: -4.35842e+06 -134572 5.52802
+BezPointList: -4.35804e+06 76315.8 5.52773
+BezPointList: -4.36858e+06 318836 5.52755
+BezPointList: -4.35629e+06 643633 5.23958
+BezPointList: -4.34574e+06 833432 0.399967
+BezPointList: -4.37004e+06 1.25445e+06 0.988967
+BezPointList: -4.32642e+06 1.09088e+06 0.990217
+BezPointList: -4.34603e+06 1.57856e+06 0.989655
+BezPointList: -2.58687e+06 153547 4.98654
+BezPointList: -2.58647e+06 364435 4.98625
+BezPointList: -2.59703e+06 606956 4.98607
+BezPointList: -2.60469e+06 840893 4.98621
+BezPointList: -2.11331e+06 1.83064e+06 0.021261
+BezPointList: -2.11723e+06 2.04136e+06 0.382149
+BezPointList: -2.1106e+06 2.19466e+06 0.739939
+BezPointList: -2.12459e+06 2.42021e+06 -0.118175
+BezPointList: -663816 -255507 6.26198
+BezPointList: -675825 272666 6.26164
+BezPointList: -699827 824846 6.26095
+BezPointList: -735842 2.31333e+06 6.25992
+BezPointList: -783854 3.72979e+06 1.09663
+BezPointList: -747163 5.38202e+06 1.09768
+BezPointList: -771850 6.57472e+06 2.12935
+BezPointList: -701577 9.29481e+06 0.525328
+BezPointList: 1.11506e+06 -265731 6.30808
+BezPointList: 1.10306e+06 262442 6.30774
+BezPointList: 1.07905e+06 814622 6.30705
+BezPointList: 1.04304e+06 2.30311e+06 6.30602
+BezPointList: 995024 3.71957e+06 1.14273
+BezPointList: 1.03172e+06 5.3718e+06 1.14378
+BezPointList: 1.00703e+06 6.5645e+06 2.17545
+BezPointList: 1.06979e+06 9.26082e+06 1.14487
+BezPointList: 2.90325e+06 -8465.52 5.3088
+BezPointList: 2.90365e+06 202422 5.30851
+BezPointList: 2.89309e+06 444944 5.30833
+BezPointList: 2.88543e+06 678880 5.30847
+BezPointList: 2.38816e+06 1.78263e+06 0.150271
+BezPointList: 2.38424e+06 1.99334e+06 0.511158
+BezPointList: 2.39087e+06 2.14664e+06 0.868946
+BezPointList: 2.38424e+06 2.34132e+06 0.510903
+BezPointList: 4.7134e+06 -194852 5.24625
+BezPointList: 4.71378e+06 16036 5.24596
+BezPointList: 4.70324e+06 258557 5.24578
+BezPointList: 4.69556e+06 492494 5.24592
+BezPointList: 4.70611e+06 682293 0.406297
+BezPointList: 4.70219e+06 893008 0.767185
+BezPointList: 4.70882e+06 1.04631e+06 1.12497
+BezPointList: 4.70219e+06 1.24098e+06 0.76693
+BezPointList: 6.42914e+06 -194852 5.2465
+BezPointList: 6.42954e+06 16036 5.24621
+BezPointList: 6.41898e+06 258557 5.24603
+BezPointList: 6.41132e+06 492494 5.24617
+BezPointList: 6.42186e+06 682293 0.406545
+BezPointList: 6.41794e+06 893008 0.767433
+BezPointList: 6.42457e+06 1.04631e+06 1.12522
+BezPointList: 6.41794e+06 1.24098e+06 0.767178
+
+[ScaleBar]
+AutoScale: true
+Unit:m
+MinSize: 50
+MaxSize: 200
+AutoUnit: true
+Position: BottomRight
+Direction: Horizontal
+TextPosition: Out
+Thickness: 5
+ShiftBorder: 20 20
+FontSize: 12
+
+[ColorBar]
+ScaleLength: 0.3
+Width: 20
+DistanceToBorder: 5
+TextToBar: 5
+TickSize: 2
+ExpSize: 0.7
+Epsilon: 1e-09
+LineWidth: 2
+Position: TopLeft
+FontSize: 10
+Orientation: Vertical
+
+[StackProcess]
+ProcessName: Export
+NbProcessStrings: 4
+NbProcessValues: 2
+NbProcessNamedStrings:4
+NbProcessNamedValues:2
+ProcessParameter: Filename
+ProcessString: 
+ProcessParameter: Store
+ProcessString: Main
+ProcessParameter: Format
+ProcessString: CImg Auto
+ProcessParameter: Generate Voxel Spacing
+ProcessString: No
+ProcessParameter: Stack number
+ProcessValue: 0
+ProcessParameter: NbDigits
+ProcessValue: 0
+ProcessName: ITK Curvature Anisotropic Diffusion Image Filter
+NbProcessStrings: 0
+NbProcessValues: 3
+NbProcessNamedStrings:0
+NbProcessNamedValues:3
+ProcessParameter: TimeStep
+ProcessValue: 0.125
+ProcessParameter: Iterations
+ProcessValue: 5
+ProcessParameter: Conductance
+ProcessValue: 9
+ProcessName: ITK Curvature Flow Image Filter
+NbProcessStrings: 0
+NbProcessValues: 2
+NbProcessNamedStrings:0
+NbProcessNamedValues:2
+ProcessParameter: TimeStep
+ProcessValue: 0.0625
+ProcessParameter: Steps
+ProcessValue: 10
+ProcessName: ITK Demons Registration
+NbProcessStrings: 2
+NbProcessValues: 4
+NbProcessNamedStrings:2
+NbProcessNamedValues:4
+ProcessParameter: Deformation File
+ProcessString: deformation.vtk
+ProcessParameter: Threshold at mean intensity
+ProcessString: Yes
+ProcessParameter: # Histogram levels
+ProcessValue: 1024
+ProcessParameter: # Match points
+ProcessValue: 7
+ProcessParameter: # Iterations
+ProcessValue: 150
+ProcessParameter: Sigma
+ProcessValue: 1
+ProcessName: ITK Gradient Magnitude Recursive Gaussian Image Filter
+NbProcessStrings: 0
+NbProcessValues: 1
+NbProcessNamedStrings:0
+NbProcessNamedValues:1
+ProcessParameter: Sigma (µm)
+ProcessValue: 0.5
+ProcessName: ITK Image Reader
+NbProcessStrings: 2
+NbProcessValues: 1
+NbProcessNamedStrings:2
+NbProcessNamedValues:1
+ProcessParameter: Filename
+ProcessString: 
+ProcessParameter: Store
+ProcessString: Main
+ProcessParameter: Stack number
+ProcessValue: 0
+ProcessName: ITK Sigmoid Image Filter
+NbProcessStrings: 0
+NbProcessValues: 2
+NbProcessNamedStrings:0
+NbProcessNamedValues:2
+ProcessParameter: Alpha
+ProcessValue: 1000
+ProcessParameter: Beta
+ProcessValue: 2000
+ProcessName: ITK Smoothing Recursive Gaussian Image Filter
+NbProcessStrings: 0
+NbProcessValues: 1
+NbProcessNamedStrings:0
+NbProcessNamedValues:1
+ProcessParameter: Radius (µm)
+ProcessValue: 1
+ProcessName: ITK VTK Writer
+NbProcessStrings: 1
+NbProcessValues: 0
+NbProcessNamedStrings:1
+NbProcessNamedValues:0
+ProcessParameter: Filename
+ProcessString: 
+ProcessName: ITK Watershed
+NbProcessStrings: 2
+NbProcessValues: 0
+NbProcessNamedStrings:2
+NbProcessNamedValues:0
+ProcessParameter: Fully connected
+ProcessString: No
+ProcessParameter: Mark Watershed Line
+ProcessString: No
+ProcessName: ITK Watershed Auto Seeded
+NbProcessStrings: 2
+NbProcessValues: 1
+NbProcessNamedStrings:2
+NbProcessNamedValues:1
+ProcessParameter: Fully connected
+ProcessString: No
+ProcessParameter: Mark Watershed Line
+ProcessString: No
+ProcessParameter: Level
+ProcessValue: 1500
+ProcessName: Import
+NbProcessStrings: 1
+NbProcessValues: 1
+NbProcessNamedStrings:1
+NbProcessNamedValues:1
+ProcessParameter: Store
+ProcessString: Main
+ProcessParameter: Stack number
+ProcessValue: 0
+ProcessName: Open
+NbProcessStrings: 2
+NbProcessValues: 1
+NbProcessNamedStrings:2
+NbProcessNamedValues:1
+ProcessParameter: Filename
+ProcessString: 
+ProcessParameter: Store
+ProcessString: Main
+ProcessParameter: Stack number
+ProcessValue: 0
+ProcessName: Save
+NbProcessStrings: 2
+NbProcessValues: 2
+NbProcessNamedStrings:2
+NbProcessNamedValues:2
+ProcessParameter: Filename
+ProcessString: 
+ProcessParameter: Store
+ProcessString: Main
+ProcessParameter: Stack number
+ProcessValue: 0
+ProcessParameter: Compression Level (0-9)
+ProcessValue: 5
+
+[MeshProcess]
+ProcessName: Export
+NbProcessStrings: 3
+NbProcessValues: 1
+NbProcessNamedStrings:3
+NbProcessNamedValues:1
+ProcessParameter: Filename
+ProcessString: 
+ProcessParameter: Kind
+ProcessString: Text
+ProcessParameter: Transform
+ProcessString: no
+ProcessParameter: Mesh number
+ProcessValue: 0
+ProcessName: Import
+NbProcessStrings: 5
+NbProcessValues: 1
+NbProcessNamedStrings:5
+NbProcessNamedValues:1
+ProcessParameter: Filename
+ProcessString: 
+ProcessParameter: Kind
+ProcessString: PLY
+ProcessParameter: Scale
+ProcessString: yes
+ProcessParameter: Transform
+ProcessString: no
+ProcessParameter: Add
+ProcessString: no
+ProcessParameter: Stack number
+ProcessValue: 0
+ProcessName: Load
+NbProcessStrings: 3
+NbProcessValues: 1
+NbProcessNamedStrings:3
+NbProcessNamedValues:1
+ProcessParameter: Filename
+ProcessString: 
+ProcessParameter: Transform
+ProcessString: no
+ProcessParameter: Add
+ProcessString: no
+ProcessParameter: Stack number
+ProcessValue: 0
+ProcessName: Reset
+NbProcessStrings: 0
+NbProcessValues: 1
+NbProcessNamedStrings:0
+NbProcessNamedValues:1
+ProcessParameter: Mesh
+ProcessValue: -1
+ProcessName: Save
+NbProcessStrings: 2
+NbProcessValues: 1
+NbProcessNamedStrings:2
+NbProcessNamedValues:1
+ProcessParameter: Filename
+ProcessString: 
+ProcessParameter: Transform
+ProcessString: No
+ProcessParameter: Mesh number
+ProcessValue: 0
+
+[GlobalProcess]
+ProcessName: Load All
+NbProcessStrings: 0
+NbProcessValues: 0
+NbProcessNamedStrings:0
+NbProcessNamedValues:0
+ProcessName: Load View
+NbProcessStrings: 1
+NbProcessValues: 0
+NbProcessNamedStrings:1
+NbProcessNamedValues:0
+ProcessParameter: Filename
+ProcessString: 
+ProcessName: Python Script
+NbProcessStrings: 1
+NbProcessValues: 0
+NbProcessNamedStrings:1
+NbProcessNamedValues:0
+ProcessParameter: Script
+ProcessString: 
+ProcessName: Reset All
+NbProcessStrings: 0
+NbProcessValues: 0
+NbProcessNamedStrings:0
+NbProcessNamedValues:0
+ProcessName: Save All
+NbProcessStrings: 2
+NbProcessValues: 1
+NbProcessNamedStrings:2
+NbProcessNamedValues:1
+ProcessParameter: Type
+ProcessString: All
+ProcessParameter: Filename
+ProcessString: 
+ProcessParameter: Compression Level (0-9)
+ProcessValue: 5
+ProcessName: Save View
+NbProcessStrings: 1
+NbProcessValues: 0
+NbProcessNamedStrings:1
+NbProcessNamedValues:0
+ProcessParameter: Filename
+ProcessString: /home/necrolyte/Uni/LateralRootGrowth/Status_061114/121204Bezier2.mgxv
+ProcessName: Snapshot
+NbProcessStrings: 2
+NbProcessValues: 4
+NbProcessNamedStrings:2
+NbProcessNamedValues:4
+ProcessParameter: Filename
+ProcessString: 
+ProcessParameter: Expand Frustum
+ProcessString: false
+ProcessParameter: Width
+ProcessValue: 0
+ProcessParameter: Height
+ProcessValue: 0
+ProcessParameter: Oversampling
+ProcessValue: 1
+ProcessParameter: Quality
+ProcessValue: 95
+
+[TasksProcess]

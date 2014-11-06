@@ -53,8 +53,10 @@ Surface::Surface(util::Parms &parms, string section)
   time = 0;
 
   // testing
-  surface[0].Load( "120830Bezier1.mgxv" );
-  surface[1].Load( "120830Bezier2.mgxv" );
+  //surface[0].Load( "120830Bezier1.mgxv" );
+  //surface[1].Load( "120830Bezier2.mgxv" );
+  surface[0].Load( "121204Bezier1.mgxv" );
+  surface[1].Load( "121204Bezier2.mgxv" );
   
   // Load surfaces 
   parms(section.data(), "Surfaces", surfaces);
