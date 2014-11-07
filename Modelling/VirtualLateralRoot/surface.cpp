@@ -46,7 +46,9 @@ Point3d SurfacePoint::Normal()
 
 //----------------------------------------------------------------
 
-Surface::Surface(util::Parms &parms, string section)
+Surface::Surface( util::Parms &parms,
+                  string section,
+                  const std::string &surfaceName )
 {
   string surffile;
 
@@ -55,8 +57,8 @@ Surface::Surface(util::Parms &parms, string section)
   // testing
   //surface[0].Load( "120830Bezier1.mgxv" );
   //surface[1].Load( "120830Bezier2.mgxv" );
-  surface[0].Load( "121204Bezier1.mgxv" );
-  surface[1].Load( "121204Bezier2.mgxv" );
+  //surface[0].Load( "121204Bezier1.mgxv" );
+  //surface[1].Load( "121204Bezier2.mgxv" );
   
   // Load surfaces 
   parms(section.data(), "Surfaces", surfaces);
@@ -68,6 +70,8 @@ Surface::Surface(util::Parms &parms, string section)
     key << "Surface" << i;
     parms(section.data(), key.str().data(), surffile);
     //surface[i].Load(surffile);
+    std::string name = surfaceName + std::to_string(i+1) + ".mgxv";
+    surface[i].Load( name );
 
     // Scaling constant
     key.str("");

@@ -111,7 +111,7 @@ public:
   //----------------------------------------------------------------
   
   MyModel(QObject *parent) : Model(parent), parms("view.v"),
-    _VLRBezierSurface( parms, "Surface" ),
+    _VLRBezierSurface( parms, "Surface", _initialCellsOfRealData ),
     _VLRDataPointSurface( parms, "Surface" ),
     palette("pal.map"), T(palette, this),
     _lineageFileName( "/tmp/model.csv" ),

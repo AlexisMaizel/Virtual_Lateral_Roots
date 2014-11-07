@@ -53,7 +53,10 @@ class SurfacePoint {
 
 class Surface {
   public: 
-    Surface(util::Parms &parms, string section);
+    Surface( util::Parms &parms,
+             string section,
+             const std::string &surfaceName );
+    
     ~Surface() {};
 
     // Create zero point
