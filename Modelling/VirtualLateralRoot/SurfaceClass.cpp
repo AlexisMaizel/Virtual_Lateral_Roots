@@ -249,17 +249,23 @@ void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
     for( std::size_t c = 0; c < 3; c++ )
     {
       double length,u,v;
-      if( c == 0 )
+      switch( c )
       {
-        length = 1./5.;
+        case 0:
+        length = 1./6.;
         u = 0.;
         v = 0.;
-      }
-      else
-      {
-        length = 2./5.;
-        u = 1./5. + (c-1)*2./5.;
+        break;
+        case 1:
+        length = 2./6.;
+        u = 1./6.;
         v = 0.;
+        break;
+        case 2:
+        length = 3./6.;
+        u = 3./6.;
+        v = 0.;
+        break;
       }
         
       this->generateCell( T, std::make_pair( u, v ),

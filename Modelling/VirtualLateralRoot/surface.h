@@ -19,7 +19,7 @@ const int CONTOUR = 1;
 const double PI = 3.14159265358979323846;
 const double PIx2 = PI + PI;   // 2 PI
 
-const double DX = .00000001;
+const double DX = .0001;//.00000001;
 const double MAXSEARCHSTEPS = 1000;
 const int MAXSURF = 10;
 
@@ -27,7 +27,7 @@ class SurfacePoint {
   public:
     SurfacePoint() : u(0.), v(0.){}
     ~SurfacePoint() {}
-
+    
     Point3d Pos();
     Point3d Pos() const;
     Point3d Normal();
@@ -53,9 +53,14 @@ class SurfacePoint {
 
 class Surface {
   public: 
+    Surface(){};
     Surface( util::Parms &parms,
              string section,
              const std::string &surfaceName );
+    
+    void init( util::Parms &parms,
+               string section,
+               const std::string &surfaceName );
     
     ~Surface() {};
 

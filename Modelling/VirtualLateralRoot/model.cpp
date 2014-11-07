@@ -111,7 +111,6 @@ public:
   //----------------------------------------------------------------
   
   MyModel(QObject *parent) : Model(parent), parms("view.v"),
-    _VLRBezierSurface( parms, "Surface", _initialCellsOfRealData ),
     _VLRDataPointSurface( parms, "Surface" ),
     palette("pal.map"), T(palette, this),
     _lineageFileName( "/tmp/model.csv" ),
@@ -125,6 +124,8 @@ public:
     registerFile("pal.map");
     registerFile("view.v");
 
+    _VLRBezierSurface.init( parms, "Surface", _initialCellsOfRealData );
+    
     // single layer assignment
     //for( std::size_t l = 9; l < 14; l++ )
     // multiple layer assignment for each new daughter cell

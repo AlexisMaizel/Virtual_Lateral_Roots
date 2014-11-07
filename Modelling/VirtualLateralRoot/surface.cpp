@@ -50,15 +50,18 @@ Surface::Surface( util::Parms &parms,
                   string section,
                   const std::string &surfaceName )
 {
+  this->init( parms, section, surfaceName );
+}
+
+//----------------------------------------------------------------
+
+void Surface::init( util::Parms &parms,
+                    string section,
+                    const std::string &surfaceName )
+{
   string surffile;
 
   time = 0;
-
-  // testing
-  //surface[0].Load( "120830Bezier1.mgxv" );
-  //surface[1].Load( "120830Bezier2.mgxv" );
-  //surface[0].Load( "121204Bezier1.mgxv" );
-  //surface[1].Load( "121204Bezier2.mgxv" );
   
   // Load surfaces 
   parms(section.data(), "Surfaces", surfaces);
@@ -82,7 +85,7 @@ Surface::Surface( util::Parms &parms,
     key.str("");
     key << "SurfaceTime" << i;
     parms(section.data(), key.str().data(), surfTime[i]);
-  }
+  }  
 }
 
 //----------------------------------------------------------------
@@ -113,6 +116,7 @@ void Surface::InitPoint(SurfacePoint &p, double u, double v)
 // the corresponding point for (u,v) is minimal to the desired point cp
 bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
 {
+  // TODO
   // Initial guess for p
   p.u = sp.u;
   p.v = sp.v;

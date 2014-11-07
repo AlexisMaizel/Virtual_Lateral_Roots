@@ -8,7 +8,7 @@ include $(shell vveinterpreter --makefile)
 # Uncomment the next line to compile with debug options
 #CXXFLAGS=$(CXXFLAGS_DEBUG)
 # Add extra compilation options here
-CXXFLAGS+=
+CXXFLAGS+= -w -std=c++11
 # Add extra libraries here
 LIBS+=
 # Add extra linking options here
