@@ -28,7 +28,7 @@ public:
   std::size_t _initialCellNumber;
   std::string _initialCellsOfRealData;
   bool _exportLineage;
-  bool exportDivisionProperties;
+  bool _exportDivisionProperties;
   double probabilityOfDecussationDivision;
   bool useDecussationDivision;
   double _angleThreshold;
@@ -47,6 +47,7 @@ public:
   std::pair<std::size_t, std::size_t> _divOccurrences;
   
   SurfaceClass _surfaceClass;
+  std::size_t _lod;
   
   bool _lastStep;
   
@@ -54,15 +55,13 @@ public:
   
   void readParms()
   {
-    std::size_t lod;
-    
     // read the parameters here
     parms("Main", "Dt", dt);
     parms("Main", "InitialCellNumber", _initialCellNumber);
     parms("Main", "InitialCellsOfRealData", _initialCellsOfRealData);
-    parms("Main", "SubDivisionLevelOfCells", lod);
+    parms("Main", "SubDivisionLevelOfCells", _lod);
     parms("Main", "ExportLineage", _exportLineage);
-    parms("Main", "ExportDivisionProperties", exportDivisionProperties);
+    parms("Main", "ExportDivisionProperties", _exportDivisionProperties);
     parms("Main", "SurfaceType", surfaceType);
     parms("Main", "SurfaceScale", _surfaceScale);
     parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
@@ -86,12 +85,6 @@ public:
     
     T.readParms(parms, "Tissue");
     T.readViewParms(parms, "TissueView");
-    
-    std::size_t t = 300;
-    if( _initialCellsOfRealData == "130508_raw" )
-      t = 350;
-    
-    _surfaceClass.init( lod, _lineageFileName, _exportLineage, t );
   }
 
   //----------------------------------------------------------------
@@ -113,9 +106,6 @@ public:
   MyModel(QObject *parent) : Model(parent), parms("view.v"),
     _VLRDataPointSurface( parms, "Surface" ),
     palette("pal.map"), T(palette, this),
-    _lineageFileName( "/tmp/model.csv" ),
-    _cellWallsFileName( "/tmp/modelCellWalls.csv" ),
-    _divisionFileName( "/tmp/divisionPropertiesModel.csv" ),
     _divOccurrences( std::make_pair( 0, 0 ) ),
     _lastStep( false )
   {
@@ -124,7 +114,20 @@ public:
     registerFile("pal.map");
     registerFile("view.v");
 
+    std::size_t t = 300;
+    if( _initialCellsOfRealData == "130508_raw" )
+      t = 350;
+    
+    std::cout << "LOD: " << _lod << std::endl;
+    
+    _surfaceClass.init( _lod, _lineageFileName, _exportLineage, t );
+    
     _VLRBezierSurface.init( parms, "Surface", _initialCellsOfRealData );
+    
+    // set name strings
+    _lineageFileName = "/tmp/model" + _initialCellsOfRealData + ".csv";
+    _cellWallsFileName = "/tmp/modelCellWalls" + _initialCellsOfRealData + ".csv";
+    _divisionFileName = "/tmp/divisionPropertiesModel" + _initialCellsOfRealData + ".csv";
     
     // single layer assignment
     //for( std::size_t l = 9; l < 14; l++ )
@@ -137,11 +140,13 @@ public:
     
     if( _exportLineage )
     {
-      ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, 0, true );
-      ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
+      ModelExporter::exportLineageInformation( _lineageFileName, dummy, T,
+                                               0, true, surfaceType );
+      ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T,
+                                      true, surfaceType );
     }
     
-    if( exportDivisionProperties )
+    if( _exportDivisionProperties )
     {
       std::pair<std::size_t, std::size_t> pair;
       ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
@@ -187,6 +192,20 @@ public:
                                                     _useAutomaticContourPoints );
     }
     
+    // export initial cell constellation
+    if( _exportLineage )
+    {
+      forall(const cell& c, T.C)
+      {
+        ModelExporter::exportLineageInformation( _lineageFileName, c, T,
+                                                 _surfaceClass.getTime(),
+                                                 false, surfaceType );
+        
+        ModelExporter::exportCellWalls( _cellWallsFileName, c,
+                                        T, false, surfaceType );
+      }
+    }
+    
     setStatus();
   }
   
@@ -194,7 +213,7 @@ public:
   
   bool setNextDecussationDivision()
   {
-    // here we radomly decide which kind of division the current cell
+    // here we randomly decide which kind of division the current cell
     // will do based on a probability value given as a parameter
     srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
     
@@ -256,8 +275,8 @@ public:
   {
     //double time = _VLRBezierSurface.GetTime();
     std::size_t time = _surfaceClass.getTime();
-    if( time > _surfaceClass.getMaxTime() )
-      time = _surfaceClass.getMaxTime();
+//     if( time > _surfaceClass.getMaxTime() )
+//       time = _surfaceClass.getMaxTime();
     
     QString status = QString( "Vertices: %1 \t "
                               "Cells: %2 \t").
@@ -268,7 +287,7 @@ public:
     {
       std::size_t timeStep = _VLRDataPointSurface.getCurTimeStep();
       status += QString( "TS: %1 \t" ).arg(timeStep);
-    }                       
+    }
     
     status += QString( "MS: %1 \t" ).arg(time);
     status += QString( "AD: %1 \t" ).arg(_divOccurrences.first);
@@ -329,7 +348,7 @@ public:
     }
     
     // export division properties
-    if( exportDivisionProperties )
+    if( _exportDivisionProperties )
     {
       ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
                                                        cl,
@@ -534,19 +553,12 @@ public:
   //----------------------------------------------------------------
   
   void step_cellWalls()
-  {
-    if( _surfaceClass.getTime() <= _surfaceClass.getMaxTime() + 1 )
+  {    
+    if( _exportLineage && !_lastStep )
     {
-      if( _exportLineage )
-      {
-        forall(const cell& c, T.C)
-        {
-          if( c->timeStep > _surfaceClass.getMaxTime() )
-            break;
-            
-          ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
-        }
-      }
+      forall(const cell& c, T.C)
+        ModelExporter::exportCellWalls( _cellWallsFileName, c,
+                                        T, false, surfaceType );
     }
   }
   
@@ -554,15 +566,12 @@ public:
   
   void step_tracking()
   {
-    if( _surfaceClass.getTime() <= _surfaceClass.getMaxTime() )
+    if( _exportLineage && !_lastStep )
     {
-      if( _exportLineage )
-      {
-        forall(const cell& c, T.C)
-          ModelExporter::exportLineageInformation( _lineageFileName, c, T,
-                                                   _surfaceClass.getTime(),
-                                                   false );
-      }
+      forall(const cell& c, T.C)
+        ModelExporter::exportLineageInformation( _lineageFileName, c, T,
+                                                  _surfaceClass.getTime(),
+                                                  false, surfaceType );
     }
   }
   
@@ -602,21 +611,33 @@ public:
     
     for(int i = 0 ; i < stepPerView ; ++i)
     {
-      this->step_cellWalls();
       this->step_divisions();
       this->step_tracking();
+      this->step_cellWalls();
       this->step_growth();
     }
     this->setStatus();
+              
+    std::size_t curTime, maxTime;
     
-    if( _VLRDataPointSurface.getCurTimeStep() == _surfaceClass.getMaxTime()-1 &&
-        !_lastStep )
+    if( surfaceType == 0 )
+    {
+      curTime = _surfaceClass.getTime();
+      maxTime = _surfaceClass.getMaxTime();
+    }
+    else
+    {
+      curTime = _VLRDataPointSurface.getCurTimeStep();
+      maxTime = _VLRDataPointSurface.getMaxTimeStep() - 1;
+    }
+    
+    if( curTime == maxTime && !_lastStep )
     {
       ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName,
                                              dt, T.C.size(), false );
       
       _lastStep = true;
-      std::cout << "dt: " << dt << std::endl;
+      //std::cout << "dt: " << dt << std::endl;
       dt += steps;
     }
   }
@@ -652,7 +673,7 @@ public:
     {
       //T.drawBorders = false;
       if( surfaceType == 0 )
-        T.cellWallWidth = 0.01;
+        T.cellWallWidth = 0.001;//0.01;
       else
         T.cellWallWidth = 0.2;
           

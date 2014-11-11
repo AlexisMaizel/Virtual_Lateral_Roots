@@ -36,7 +36,11 @@ public:
   
   void calcNormal( TrianglePoint &tp );
   
-  std::size_t getCurTimeStep() const;
+  std::size_t getCurTimeStep() const
+  { return _curSurface.getCurTimeStep(); }
+  
+  std::size_t getMaxTimeStep() const
+  { return _curSurface.getMaxTimeStep(); }
   
 private:
   double _time;

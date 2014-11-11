@@ -53,9 +53,8 @@ public:
   Point3d determinePos( const std::pair<double, double> &coord,
                         const std::vector<Point3d> &conPoints );
   
-  void incrementTime(){ if(_time <= _maxTime) _time++; }
+  void incrementTime(){ _time++; }
   void incrementCellID(){ _IDCounter++; }
-  void setTime( const std::size_t time) {_time = time;}
   
   std::size_t getTime() const { return _time; }
   std::size_t getMaxTime() const { return _maxTime; }

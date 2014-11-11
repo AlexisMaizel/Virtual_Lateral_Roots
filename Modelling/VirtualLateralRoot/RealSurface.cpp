@@ -73,13 +73,6 @@ void RealSurface::calcPos( TrianglePoint &tp )
 
 //----------------------------------------------------------------
 
-std::size_t RealSurface::getCurTimeStep() const
-{
-  return _curSurface.getCurTimeStep();
-}
-
-//----------------------------------------------------------------
-
 void RealSurface::calcNormal( TrianglePoint &tp )
 {
   _curSurface.determineNormal( tp );

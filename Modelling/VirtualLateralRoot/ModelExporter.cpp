@@ -15,7 +15,8 @@ void exportLineageInformation( const std::string &filename,
                                const cell& c,
                                const MyTissue& T,
                                const std::size_t timeStep,
-                               const bool init )
+                               const bool init,
+                               const std::size_t surfaceType )
 {
   if( init )
   {
@@ -35,13 +36,21 @@ void exportLineageInformation( const std::string &filename,
  
   std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
   
-  std::vector<Point3d> polygon;
-  Point3d center;
+  std::vector<Point2d> polygon;
+  Point3d center = Point3d( 0., 0., 0. );
   forall(const junction& j, T.S.neighbors(c))
   {
-    polygon.push_back(j->sp.Pos());
-    center += j->sp.Pos();
+    Point3d pos;
+    
+    if( surfaceType == 0 )
+      pos = j->sp.Pos();
+    else
+      pos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+    
+    polygon.push_back( Point2d( pos.i(), pos.j() ) );
+    center += pos;
   }
+  
   center /= polygon.size();
   c->center = center;
   c->area = geometry::polygonArea(polygon);
@@ -101,7 +110,8 @@ void exportTimeAgainstCells( const std::string &filename,
 void exportCellWalls( const std::string &filename,
                       const cell& c,
                       const MyTissue &T,
-                      const bool init )
+                      const bool init,
+                      const std::size_t surfaceType )
 {
   // header
   if( init )
@@ -121,10 +131,19 @@ void exportCellWalls( const std::string &filename,
       first = false;
     else
       out << ",";
-    
-    out << j->sp.Pos().i() << "," 
-        << j->sp.Pos().j() << "," 
-        << j->sp.Pos().k();
+  
+    if( surfaceType == 0 )
+    {
+      out << j->sp.Pos().i() << "," 
+          << j->sp.Pos().j() << "," 
+          << j->sp.Pos().k();
+    }
+    else
+    {
+      out << j->tp.Pos().i() << "," 
+          << j->tp.Pos().j() << "," 
+          << 0.;
+    }
   }
   
   out << "\n";

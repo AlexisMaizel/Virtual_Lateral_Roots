@@ -72,9 +72,9 @@ void Surface::init( util::Parms &parms,
     std::ostringstream key;
     key << "Surface" << i;
     parms(section.data(), key.str().data(), surffile);
-    //surface[i].Load(surffile);
-    std::string name = surfaceName + std::to_string(i+1) + ".mgxv";
-    surface[i].Load( name );
+    surface[i].Load(surffile);
+    //std::string name = surfaceName + std::to_string(i+1) + ".mgxv";
+    //surface[i].Load( name );
 
     // Scaling constant
     key.str("");

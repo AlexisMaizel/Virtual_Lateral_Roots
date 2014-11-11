@@ -16,7 +16,8 @@ namespace ModelExporter
                                  const cell& c,
                                  const MyTissue& T,
                                  const std::size_t timeStep,
-                                 const bool init );
+                                 const bool init,
+                                 const std::size_t surfaceType );
   
   void exportTimeAgainstCells( const std::string &filename,
                                const double dT,
@@ -40,7 +41,8 @@ namespace ModelExporter
   void exportCellWalls( const std::string &filename,
                         const cell& c,
                         const MyTissue &T,
-                        const bool init );
+                        const bool init,
+                        const std::size_t surfaceType );
 }
 
 #endif // ModelExporter_HH

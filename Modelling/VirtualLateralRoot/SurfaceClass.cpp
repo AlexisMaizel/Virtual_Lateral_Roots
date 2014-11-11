@@ -252,18 +252,18 @@ void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
       switch( c )
       {
         case 0:
-        length = 1./6.;
+        length = 1./12.;
         u = 0.;
         v = 0.;
         break;
         case 1:
-        length = 2./6.;
-        u = 1./6.;
+        length = 5./12.;
+        u = 1./12.;
         v = 0.;
         break;
         case 2:
-        length = 3./6.;
-        u = 3./6.;
+        length = 6./12.;
+        u = 6./12.;
         v = 0.;
         break;
       }
@@ -634,7 +634,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   lateralRoot.setPos(c->tp, center);
   
   if( _exportLineage )
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false );
+    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false, 1 );
   
   // afterwards increment the id counter
   _IDCounter++;  
@@ -774,7 +774,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   lateralRoot.SetPoint(c->sp, c->sp, center);
   
   if( _exportLineage )
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false );
+    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false, 0 );
   
   // afterwards increment the id counter
   _IDCounter++;

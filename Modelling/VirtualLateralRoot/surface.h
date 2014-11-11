@@ -6,8 +6,8 @@
 #include <cmath>
 #include <util/parms.h>
 
-//#include "bezier.h"
-#include "BezierSurface.h"
+#include "bezier.h"
+//#include "BezierSurface.h"
 
 using std::string;
 
@@ -19,7 +19,7 @@ const int CONTOUR = 1;
 const double PI = 3.14159265358979323846;
 const double PIx2 = PI + PI;   // 2 PI
 
-const double DX = .0001;//.00000001;
+const double DX = .0000001;//.00000001;
 const double MAXSEARCHSTEPS = 1000;
 const int MAXSURF = 10;
 
@@ -95,12 +95,12 @@ class Surface {
     int surfaces;                       // Surface for growth stages
     double surfMaxDist;                 // Max dist for closest point search
     double surfTimeScale;               // Surface time scale
-    //Bezier surface[MAXSURF];            // Bezier surfaces
-    BezierSurface surface[MAXSURF];            // Bezier surfaces
+    Bezier surface[MAXSURF];            // Bezier surfaces
+    //BezierSurface surface[MAXSURF];            // Bezier surfaces
     double surfScale[MAXSURF];          // Surface scaling constants
     double surfTime[MAXSURF];           // Surdace time scale
-    //Bezier surfCurr;                    // Current surfaces
-    BezierSurface surfCurr;                    // Current surfaces
+    Bezier surfCurr;                    // Current surfaces
+    //BezierSurface surfCurr;                    // Current surfaces
 
     double time;                        // Time
 };

@@ -102,6 +102,9 @@ public:
   std::size_t getCurTimeStep() const
   { return _curTimeStep; }
   
+  std::size_t getMaxTimeStep() const
+  { return _maxTimeStep; }
+  
 private:
   
   // these are the 2D points for each cell position in time step t

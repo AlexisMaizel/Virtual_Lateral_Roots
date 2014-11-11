@@ -11,7 +11,7 @@
 #include <iostream>
 #include <sstream>
 
-#define USEONESURFACE
+//#define USEONESURFACE
 
 //----------------------------------------------------------------
 
