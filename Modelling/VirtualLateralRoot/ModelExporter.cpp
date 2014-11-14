@@ -94,13 +94,19 @@ void exportTimeAgainstCells( const std::string &filename,
                              const std::size_t numCells,
                              const bool init )
 {
-  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  std::ofstream out;
   
   // header
   if( init )
+  {
+    out.open( filename.c_str(), std::ofstream::out );
     out << "dT Cells\n";
+  }
   else
+  {
+    out.open( filename.c_str(), std::ofstream::out | std::ofstream::app );
     out << dT << " " << numCells << "\n";
+  }
   
   out.close();
 }

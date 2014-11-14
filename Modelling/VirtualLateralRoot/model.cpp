@@ -3,9 +3,13 @@
 #include "ModelUtils.h"
 #include "SurfaceClass.h"
 
-const double start = 0.001;
+//#define TimeAgainstCellAnalysis
+
+const double start = 0.05;
 const double steps = 0.0005;
-//static double dt = start;
+#ifdef TimeAgainstCellAnalysis
+static double dt = start;
+#endif
 
 class MyModel : public Model 
 {
@@ -16,7 +20,9 @@ public:
   RealSurface _VLRDataPointSurface;
   util::Palette palette;
   MyTissue T;
+#ifndef TimeAgainstCellAnalysis
   double dt;
+#endif
   bool useAreaRatio;
   bool useCombinedAreaRatio;
   bool useWallRatio;
@@ -56,7 +62,9 @@ public:
   void readParms()
   {
     // read the parameters here
+#ifndef TimeAgainstCellAnalysis
     parms("Main", "Dt", dt);
+#endif
     parms("Main", "InitialCellNumber", _initialCellNumber);
     parms("Main", "InitialCellsOfRealData", _initialCellsOfRealData);
     parms("Main", "SubDivisionLevelOfCells", _lod);
@@ -159,7 +167,7 @@ public:
     _timeAgainstCellsFileName += _initialCellsOfRealData;
     _timeAgainstCellsFileName += ".csv";
     
-    if( dt < start+steps )
+    if( dt > start-steps )
       ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName, dt, 0, true );
     
     // bezier
@@ -634,11 +642,11 @@ public:
     if( curTime == maxTime && !_lastStep )
     {
       ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName,
-                                             dt, T.C.size(), false );
+                                              dt, T.C.size(), false );
       
       _lastStep = true;
-      //std::cout << "dt: " << dt << std::endl;
-      dt += steps;
+      std::cout << "dt: " << dt << std::endl;
+      dt -= steps;
     }
   }
 
