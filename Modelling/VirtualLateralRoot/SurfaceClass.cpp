@@ -554,28 +554,36 @@ void SurfaceClass::generateCell( MyTissue &T,
   
   if( !oneCell )
   {
-    for( std::size_t w = 0; w < 4; w++ )
+    for( std::size_t w = 0; w < 4*_lod; w++ )
     {
+      unsigned int uiw = (unsigned int)(w/_lod);
+      double cellLength;
+      double curLength = (double)w/(double)_lod - (double)uiw;
       std::pair<double, double> iPos;
       
-      switch(w)
+      switch(uiw)
       {
         case 0:
-        iPos.first = start.first;
-        iPos.second = start.second;
-        break;
+          cellLength = length.second;
+          iPos.first = start.first;
+          iPos.second = start.second + curLength*cellLength;
+          break;
         case 1:
-        iPos.first = start.first;
-        iPos.second = start.second + length.second;
-        break;
+          cellLength = length.first;
+          iPos.first = start.first + curLength*cellLength;
+          iPos.second = start.second + length.second;
+          break;
         case 2:
-        iPos.first = start.first + length.first;
-        iPos.second = start.second + length.second;
-        break;
+          cellLength = length.second;
+          iPos.first = start.first + length.first;
+          iPos.second = start.second + length.second - curLength*cellLength;
+          break;
         case 3:
-        iPos.first = start.first + length.first;
-        iPos.second = start.second;
-        break;
+          cellLength = length.first;
+          iPos.first = start.first + length.first - curLength*cellLength;
+          iPos.second = start.second;
+          break;
+        default: iPos.first = iPos.second = 0.; break;
       }
       
       Point3d curPos = this->determinePos( iPos, conPoints );
@@ -695,10 +703,8 @@ void SurfaceClass::generateCell( MyTissue &T,
   // TODO: use of mergeCells method instead of checking shared junctions
   // set of junctions for the cell
   std::vector<junction> vs;
-  std::vector< std::pair<double,double> > vertices;
-  vertices.resize( 4 * _lod );
   
-  for( std::size_t w = 0; w < vertices.size(); w++ )
+  for( std::size_t w = 0; w < 4 * _lod; w++ )
   {
     junction j;
     unsigned int uiw = (unsigned int)(w/_lod);
@@ -730,7 +736,6 @@ void SurfaceClass::generateCell( MyTissue &T,
       default: u = v = 0.; break;
     }
     
-    vertices.at( w ) = std::make_pair( u, v );
     j->id = _jIDCounter;
     lateralRoot.InitPoint( j->sp, u, v );
       
