@@ -165,10 +165,10 @@ void exportDivisionDaughterProperties( const std::string &filename,
   {
     std::ofstream out( filename.c_str(), std::ofstream::out );
     // header
-    out << "'ID' 'ParentID' 'Lineage' 'Time' 'CellCycle' 'XPos' 'YPos' 'ZPos' 'Area' 'LongestCellWall' "
+    out << "'Cell ID' 'Parent ID' 'Lineage ID' 'Timestep' 'Cell Cycle' " //'Area' 'LongestCellWall'
         << "'Dir of last Division X' 'Dir of last Division Y' 'Dir of last Division Z' "
         << "'Dir of this Division X' 'Dir of this Division Y' 'Dir of this Division Z' "
-        << "'Angle' 'Layer' 'DivisionType'\n";
+        << "'Angle' 'Cell File' 'Cell Layer' 'Division Type' 'XPos' 'YPos' 'ZPos'\n";
     out.close();
     return;
   }
@@ -180,11 +180,8 @@ void exportDivisionDaughterProperties( const std::string &filename,
       << cl->treeId << " " 
       << cl->timeStep << " "
       << cl->cellCycle << " "
-      << cl->center.i() << " "
-      << cl->center.j() << " "
-      << cl->center.k() << " "
-      << cl->area << " "
-      << cl->longestWallLength << " "
+      //<< cl->area << " "
+      //<< cl->longestWallLength << " "
       << cl->previousDivDir.i() << " "
       << cl->previousDivDir.j() << " "
       << cl->previousDivDir.k() << " "
@@ -205,20 +202,26 @@ void exportDivisionDaughterProperties( const std::string &filename,
   else
     out << "NA ";
   
-  out << cl->layerValue << " ";
+  // master cell file
+  out << "0 "
+      << cl->layerValue << " ";
   
   DivisionType::type divType = ModelUtils::determineDivisionType( ddata, angleThreshold );
   if( divType == DivisionType::ANTICLINAL )
   {
     divOccurrences.first++;
-    out << "0\n";
+    out << "0 ";
   }
   else
   {
     divOccurrences.second++;
-    out << "1\n";
+    out << "1 ";
   }
-      
+  
+  // at last position of nucleus
+  out << cl->center.i() << " "
+      << cl->center.j() << " "
+      << cl->center.k() << "\n";
   
   // right daughter cell
   out << cr->id << " "
@@ -226,11 +229,8 @@ void exportDivisionDaughterProperties( const std::string &filename,
       << cr->treeId << " " 
       << cr->timeStep << " "
       << cr->cellCycle << " "
-      << cr->center.i() << " "
-      << cr->center.j() << " "
-      << cr->center.k() << " "
-      << cr->area << " "
-      << cr->longestWallLength << " "
+      //<< cr->area << " "
+      //<< cr->longestWallLength << " "
       << cr->previousDivDir.i() << " "
       << cr->previousDivDir.j() << " "
       << cr->previousDivDir.k() << " "
@@ -251,12 +251,19 @@ void exportDivisionDaughterProperties( const std::string &filename,
   else
     out << "NA ";
   
-  out << cr->layerValue << " ";
+  // master cell file
+  out << "0 "
+      << cr->layerValue << " ";
   
   if( divType == DivisionType::ANTICLINAL )
-    out << "0\n";
+    out << "0 ";
   else
-    out << "1\n";
+    out << "1 ";
+  
+  // at last position of nucleus
+  out << cr->center.i() << " "
+      << cr->center.j() << " "
+      << cr->center.k() << "\n";
   
   out.close();
 }
