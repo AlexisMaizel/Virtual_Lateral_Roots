@@ -6,6 +6,8 @@
 geomPath = strcat( pwd, '/geom3d' );
 addpath( geomPath );
 
+setenv('LC_ALL','C')
+
 %%%%% setting of properties %%%%%%
 % color range for different data sets
 % { 'm' 'k' 'r' 'g' 'b' 'c' };
@@ -25,7 +27,7 @@ renderAllLines = 0;
 % take the average over the data set or over the time
 averageOverData = 1;
 % render division orientations
-renderDivisions = 1;
+renderDivisions = 0;
 % startIndex
 startI = 1;
 % endIndex
@@ -48,7 +50,7 @@ renderMasterFile = 1;
 % render principal components
 renderPrincipalComponents = 0;
 % render contributions of B and T terms
-renderContributions = 1;
+renderContributions = 0;
 % line width of ellipses and semi axes
 lineWidth = 1.2;
 % enable z overlapping

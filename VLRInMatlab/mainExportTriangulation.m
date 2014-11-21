@@ -12,15 +12,15 @@ setenv('LC_ALL','C')
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 3;
+dataId = 2;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
 % 3 -> radial
 cView = 2;
 % start with the current time step
-startT = 300;
-maxT = 300;
+startT = 1;
+maxT = 1;
 maxDataT = 300;
 % draw delaunay tri?
 drawDelaunay = 1;
