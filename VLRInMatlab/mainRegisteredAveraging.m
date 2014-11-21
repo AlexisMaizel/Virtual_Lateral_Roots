@@ -5,6 +5,7 @@ addpath( geomPath );
 % color range for different data sets
 % { 'm' 'k' 'r' 'g' 'b' 'c' };
 colors = [ [ 1 0 1 ]; [ 0 0 0 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ] ];
+averageColor = [ 0 1 1 ];
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -22,7 +23,9 @@ drawDelaunay = 0;
 % draw point set as ellipses
 drawNuclei = 0;
 % draw contour of cell nuclei
-drawContour = 1;
+drawContour = 0;
+% render average nuclei positions
+drawAverageNuclei = 1;
 % if set to one then only a single time step
 % is rendered given by startT
 exportType = 2;
@@ -70,7 +73,7 @@ numData = 5;
 % number of cell files
 numCellFiles = 6;%double( maxCF-minCF+1 );
 % resolution of grid
-resGrid = 30;
+resGrid = 50;
 
 % figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 1600 1200] );
@@ -99,6 +102,11 @@ if drawNuclei == 1
   % ellipse instance
   ELLIP = [];
   ELLIPPATCH = [];
+end
+
+if drawAverageNuclei == 1
+  AV = [];
+  AVPATCH = [];
 end
 
 if renderPrincipalComponents == 1
@@ -138,6 +146,10 @@ cpuT = cputime;
 % loop over all normalized steps
 for curI=startI:endI
   
+  % initialize tiles in the grid
+  tileGrid = cell( rows*columns, 1 );
+  tileGridAverage = cell( rows*columns, 1 );
+  
   if drawContour == 1
     if ishandle( CONTOUR )
       set( CONTOUR, 'Visible', 'off' );
@@ -150,6 +162,15 @@ for curI=startI:endI
     end
     if ishandle( ELLIPPATCH )
       set( ELLIPPATCH, 'Visible', 'off' );
+    end
+  end
+  
+  if drawAverageNuclei == 1
+    if ishandle( AV )
+      set( AV, 'Visible', 'off' );
+    end
+    if ishandle( AVPATCH )
+      set( AVPATCH, 'Visible', 'off' );
     end
   end
   
@@ -272,6 +293,11 @@ for curI=startI:endI
       p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
       centerEllipse(nc, :) = p;
       
+      % determine tileIndex of current nuclei position and add it to the
+      % tile grid in order to average all positions later
+      tileIndex = getTileIndex( p, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
+      tileGrid{ tileIndex } = [ tileGrid{ tileIndex }; [ p(1) p(2) p(3) ] ];
+      
       if drawNuclei == 1
         if overlapping == 1
           zOffset = 0.5;
@@ -336,6 +362,36 @@ for curI=startI:endI
             CONTOUR(dataIndex) = line( centerEllipse( K, 1 ), centerEllipse( K, 2 ), centerEllipse( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
           end
         end
+      end
+    end
+  end
+  
+  % compute the average of nuclei positions in each tile
+  for t=1:rows*columns
+    if size( tileGrid{ t }, 1 ) ~= 0
+      % compute the average of all positions in the tile
+      sum = 0;
+      for i=1:size( tileGrid{ t }, 1 )
+        sum = sum + [ tileGrid{ t }(i, 1) tileGrid{ t }(i, 2) tileGrid{ t }(i, 3)];
+      end
+      sum = sum/size( tileGrid{ t }, 1 );
+      tileGridAverage{ t } = sum;
+    end
+  end
+  
+  if drawAverageNuclei == 1
+    if overlapping == 1
+      zOffset = 0.5;
+    else
+      zOffset = 0.;
+    end
+    hold on;
+    for t=1:rows*columns
+      if size( tileGridAverage{ t }, 1 ) ~= 0
+        pos = [ tileGridAverage{ t }(i, 1) tileGridAverage{ t }(i, 2) tileGridAverage{ t }(i, 3)];
+        [ AV(t) AVPATCH(t) ] = drawEllipse3d( pos(1), pos(2), pos(3)+zOffset+0.2, radEllip, radEllip, 0, 0 );
+        set( AV(t), 'color', averageColor, 'LineWidth', lineWidth );
+        set( AVPATCH(t), 'FaceColor', averageColor, 'FaceLighting', 'none' );
       end
     end
   end
