@@ -34,6 +34,8 @@ void SurfacePoints::readTriangulation( const std::string &fileName,
     in >> pSize;
     _points.at( t ).resize( pSize );
     
+    std::cout << "time: " << t << " cells: " << pSize << std::endl;
+    
     // read points of time step t
     for( std::size_t p = 0; p < pSize; p++ )
     {
@@ -45,6 +47,8 @@ void SurfacePoints::readTriangulation( const std::string &fileName,
     // read triangle list info
     in >> tSize;
     _triangles.at( t ).resize( tSize );
+    
+    std::cout << "triangles: " << tSize << std::endl;
     
     for( std::size_t tr = 0; tr < tSize; tr++ )
     {

@@ -53,6 +53,10 @@ triangulation-130607_raw.txt
 conPoints-130607_raw.txt
 triangulation-130607_raw_auto.txt
 conPoints-130607_raw_auto.txt
+triangulation-Average.txt
+conPoints-Average.txt
+triangulation-Average_auto.txt
+conPoints-Average_auto.txt
 vlr1.s
 vlr2.s
 ignore:

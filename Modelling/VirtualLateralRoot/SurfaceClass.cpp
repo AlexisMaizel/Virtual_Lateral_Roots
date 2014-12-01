@@ -461,6 +461,13 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
       }
     }
   }
+  else if( dataset == "Average" )
+  {
+    this->generateCell( T, std::make_pair( 0., 0. ),
+                        std::make_pair( 1., 1. ),
+                        1, sharedJunctions, lateralRoot,
+                        conPoints, true );
+  }
   else
     std::cerr << "Selected data set is not supported!" << std::endl; 
   

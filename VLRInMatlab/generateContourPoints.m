@@ -183,6 +183,42 @@ elseif strcmp( dataName, '130607_raw' )
     points( 15, 1:2 ) = [ -175 175 ];
     points( 16, 1:2 ) = [ -175 175 ]; 
   end
+elseif strcmp( dataName, 'Average' )
+  if first == true
+    points( 1, 1:2 ) = [ -280 25 ];
+    points( 2, 1:2 ) = [ -130 25 ];
+    points( 3, 1:2 ) = [ -60 33 ];
+    points( 4, 1:2 ) = [ 10 34 ];
+    points( 5, 1:2 ) = [ 80 25 ];
+    points( 6, 1:2 ) = [ 150 15 ];
+    points( 7, 1:2 ) = [ 250 15 ];
+    points( 8, 1:2 ) = [ 250 8 ];
+    points( 9, 1:2 ) = [ 250 0 ];
+    points( 10, 1:2 ) = [ 150 0 ];
+    points( 11, 1:2 ) = [ 80 2 ];
+    points( 12, 1:2 ) = [ 10 3 ];
+    points( 13, 1:2 ) = [ -60 4 ];
+    points( 14, 1:2 ) = [ -130 -5 ];
+    points( 15, 1:2 ) = [ -280 0 ];
+    points( 16, 1:2 ) = [ -280 10 ];
+  else
+    points( 1, 1:2 ) = [ -330 -10 ];
+    points( 2, 1:2 ) = [ -220 20 ];
+    points( 3, 1:2 ) = [ -110 60 ];
+    points( 4, 1:2 ) = [ 0 80 ];
+    points( 5, 1:2 ) = [ 110 50 ];
+    points( 6, 1:2 ) = [ 220 0 ];
+    points( 7, 1:2 ) = [ 290 -20 ];
+    points( 8, 1:2 ) = [ 290 -30 ];
+    points( 9, 1:2 ) = [ 290 -35 ];
+    points( 10, 1:2 ) = [ 220 -40 ];
+    points( 11, 1:2 ) = [ 110 -40 ];
+    points( 12, 1:2 ) = [ 0 -30 ];
+    points( 13, 1:2 ) = [ -110 -30 ];
+    points( 14, 1:2 ) = [ -220 -25 ];
+    points( 15, 1:2 ) = [ -330 -40 ];
+    points( 16, 1:2 ) = [ -330 -15 ];
+  end
 end
 
 % export of initial contour positions used in the model before the
