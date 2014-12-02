@@ -15,7 +15,7 @@ cView = 2;
 % startIndex
 startI = 1;
 % endIndex
-endI = 2;
+endI = 10;
 % min and max index
 minI = 1;
 maxI = 150;
@@ -24,7 +24,7 @@ drawDelaunay = 0;
 % draw average delaunay tri?
 drawAverageDelaunay = 0;
 % draw point set as ellipses
-drawNuclei = 1;
+drawNuclei = 0;
 % draw contour of cell nuclei
 drawContour = 0;
 % draw average contour of cell nuclei
@@ -32,7 +32,7 @@ drawAverageContour = 1;
 % index for color of average stuff
 averageColorIndex = 6;
 % render average nuclei positions
-drawAverageNuclei = 0;
+drawAverageNuclei = 1;
 % if set to one then only a single time step
 % is rendered given by startT
 exportType = 2;
@@ -512,6 +512,7 @@ for curI=startI:endI
     end
   end
   
+  numAverageCells = 0;
   % compute the average of nuclei positions in each tile
   if drawAverageNuclei == 1
     if overlapping == 1
@@ -549,6 +550,8 @@ for curI=startI:endI
         end
       end
     end
+    
+    numAverageCells = size( averagePos, 1 );
     
     % draw contour of data and the single marks
     if autoContour == 0
@@ -647,7 +650,7 @@ for curI=startI:endI
       ' - T', num2str(allCurT(d, 1)),...
       ' - C', num2str(allCurCells(d, 1)), '/', num2str(allCells(d, 1)) ) ];
   end
-  stringData = [ stringData ; 'Average' ];
+  stringData = [ stringData ; strcat( 'Average - C', num2str( numAverageCells ) ) ];
   str = cellstr( stringData );
   %leg = legend( '120830', '121204', '121211', '130508', '130607', 'Average' );
   leg = legend( str );
