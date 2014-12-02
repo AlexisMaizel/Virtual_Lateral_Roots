@@ -15,7 +15,7 @@ cView = 2;
 % startIndex
 startI = 1;
 % endIndex
-endI = 2;
+endI = 1;
 % min and max index
 minI = 1;
 maxI = 150;
@@ -24,7 +24,7 @@ drawDelaunay = 0;
 % draw average delaunay tri?
 drawAverageDelaunay = 0;
 % draw point set as ellipses
-drawNuclei = 0;
+drawNuclei = 1;
 % draw contour of cell nuclei
 drawContour = 0;
 % draw average contour of cell nuclei
@@ -32,7 +32,7 @@ drawAverageContour = 1;
 % index for color of average stuff
 averageColorIndex = 6;
 % render average nuclei positions
-drawAverageNuclei = 1;
+drawAverageNuclei = 0;
 % if set to one then only a single time step
 % is rendered given by startT
 exportType = 2;
@@ -60,6 +60,7 @@ epsilon = 3;
 triangulationType = 1;
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
+pureDataStr = { '120830' '121204' '121211' '130508' '130607' 'Average' };
 % vector of view strings
 viewStr = { 'Top' 'Side' 'Radial' '3D' };
 % number of subdivisions for ellipsoids
@@ -219,6 +220,9 @@ for curI=startI:endI
   end
   
   % loop over all data sets
+  allCurT = zeros( numData, 1 );
+  allCells = zeros( numData, 1 );
+  allCurCells = zeros( numData, 1 );
   for dataIndex=startData:endData
     % get stored eigenvectors for the last time step to set the same
     % direction view for each time step
@@ -274,9 +278,13 @@ for curI=startI:endI
       end
     end
     
+    % store the chosen time step for each data set
+    allCurT( dataIndex, 1 ) = curT;
+    allCells( dataIndex, 1 ) = numCellsPerTimeStep{dataIndex}(curT,1);
+    
+    nextT = 1;
     if curI ~= endI
       numNextNormCells = getNormalizedCellNumber( curI+1, 18, 143, minI, maxI );
-      nextT = 1;
       for j=1:maxT(dataIndex)
         if numNextNormCells - epsilon < numCellsPerTimeStep{dataIndex}(j,1)...
             && numNextNormCells + epsilon > numCellsPerTimeStep{dataIndex}(j,1)
@@ -329,9 +337,13 @@ for curI=startI:endI
       end
     end
     
+    %numCellsPerTimeStep{dataIndex}
     numCells = size( matPos, 1 );
     matNextPos = zeros( numCells, 3 );
     daughterPos = [];
+    
+    % store the total number of cells
+    allCurCells( dataIndex, 1 ) = numCells;
     
     if curT ~= nextT
       if curI ~= endI
@@ -578,8 +590,6 @@ for curI=startI:endI
       averagePos = [ averagePos; cPoints( cc, : ) ];
     end
     
-    averagePos
-    
     % generate triangulation of average point set
     if triangulationType == 1
       % delaunay triangulation
@@ -649,7 +659,16 @@ for curI=startI:endI
   daspect( [ 1 1 1 ] );
   
   % legend
-  leg = legend( '120830', '121204', '121211', '130508', '130607', 'Average' );
+  stringData = [];
+  for d=1:numData
+    stringData = [ stringData ; strcat( pureDataStr( 1, d ),...
+      ' - T', num2str(allCurT(d, 1)),...
+      ' - C', num2str(allCurCells(d, 1)), '/', num2str(allCells(d, 1)) ) ];
+  end
+  stringData = [ stringData ; 'Average' ];
+  str = cellstr( stringData );
+  %leg = legend( '120830', '121204', '121211', '130508', '130607', 'Average' );
+  leg = legend( str );
   set(leg, 'Location', 'NorthWestOutside');
   linecolors = { [ 1 0 1 ], [ 1 1 0 ], [ 1 0 0 ], [ 0 1 0 ], [ 0 0 1 ], [ 0 1 1 ] };
   legendlinestyles( leg, {}, {}, linecolors );
