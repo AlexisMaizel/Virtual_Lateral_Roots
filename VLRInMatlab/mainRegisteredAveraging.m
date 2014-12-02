@@ -15,7 +15,7 @@ cView = 2;
 % startIndex
 startI = 1;
 % endIndex
-endI = 1;
+endI = 2;
 % min and max index
 minI = 1;
 maxI = 150;
@@ -52,8 +52,6 @@ renderCellRanges = 0;
 % only generate output images if the number of cells are within a desired
 % range
 cellRange = [ 20 40 60 80 100 120 140 ];
-% offset for cell ranges
-epsilon = 3;
 % use triangulation based on delaunay or alpha shape
 % 1 -> delaunay
 % 2 -> alpha shape
@@ -266,17 +264,9 @@ for curI=startI:endI
       alphaRadiiVector = getAlphaRadius( dataStr( 1, dataIndex ) );
     end
     
-    % only continue with this time step that is synchronized in
-    % number of cells for each data set
-    numNormCells = getNormalizedCellNumber( curI, 18, 143, minI, maxI );
-    curT = 1;
-    for j=1:maxT(dataIndex)
-      if numNormCells - epsilon < numCellsPerTimeStep{dataIndex}(j,1)...
-          && numNormCells + epsilon > numCellsPerTimeStep{dataIndex}(j,1)
-        curT = j;
-        break;
-      end
-    end
+    % get the corresponding time steps for the reg. step
+    [ curT, numNormCells ] = getCorrespondingTimeStep( curI, minI, maxI,...
+      maxT(dataIndex), numCellsPerTimeStep{dataIndex} );
     
     % store the chosen time step for each data set
     allCurT( dataIndex, 1 ) = curT;
@@ -284,14 +274,8 @@ for curI=startI:endI
     
     nextT = 1;
     if curI ~= endI
-      numNextNormCells = getNormalizedCellNumber( curI+1, 18, 143, minI, maxI );
-      for j=1:maxT(dataIndex)
-        if numNextNormCells - epsilon < numCellsPerTimeStep{dataIndex}(j,1)...
-            && numNextNormCells + epsilon > numCellsPerTimeStep{dataIndex}(j,1)
-          nextT = j;
-          break;
-        end
-      end
+      [ nextT, numNextNormCells ]  = getCorrespondingTimeStep( curI+1, minI, maxI,...
+      maxT(dataIndex), numCellsPerTimeStep{dataIndex} );
     end
     
     % matrix of positions for current time step
@@ -637,8 +621,6 @@ for curI=startI:endI
       if autoContour == 0
         fac = (curI+1)/maxI;
         nextInterPoints = (1-fac) * cPointsFirst + fac * cPointsLast;
-        nextInterPoints
-        nextAveragePos
         exportNewPosOfTriangulation( nextInterPoints, nextAveragePos, 'Average', autoContour );
       else
         newCPoints = generateAutomaticContourPoints( nextAveragePos, cellDist, conOffset,...
