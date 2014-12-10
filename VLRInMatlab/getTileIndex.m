@@ -22,7 +22,11 @@ for r=1:rows
         pos(2) >= tileLeftBottom(2) &&...
         pos(2) < tileRightTop(2)
       index = c + (r-1)*columns;
-      break;
+      return;
     end
   end
 end
+
+% default value whihch
+disp('Point was not found in grid!')
+index = 1;

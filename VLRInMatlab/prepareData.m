@@ -306,4 +306,5 @@ if manualMinMax == 1
   totalMaxAxes = [ 450.801610841287 123.611342722626 4.39648317751562e-14 ];
 end
 
-ElapsedTimeDataPreparation = cputime - cpuT
+ElapsedTimeDataPreparation = cputime - cpuT;
+disp( strcat( 'Elapsed time for data preparation: ', num2str(ElapsedTimeDataPreparation), ' sec.' ) );

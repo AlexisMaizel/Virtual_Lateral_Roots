@@ -11,7 +11,7 @@ fprintf( fileId, '%1d\n', timeStep );
 % then write points in their order of index
 % before we have to transpose the matrix
 if triangulationType == 1
-  mat = tri.Points';
+  mat = pos';
 else
   mat = pos';
 end
@@ -19,7 +19,7 @@ end
 % number of points
 fprintf( fileId, '%1d\n', size( mat, 2 ) );
 if triangulationType == 1
-  fprintf( fileId, '%4f %4f\n', mat );
+  fprintf( fileId, '%4f %4f\n', mat( 1:2, : ) );
 else
   fprintf( fileId, '%4f %4f\n', mat( 1:2, : ) );
 end

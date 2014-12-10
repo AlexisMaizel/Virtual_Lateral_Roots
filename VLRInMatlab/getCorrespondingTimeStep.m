@@ -1,4 +1,4 @@
-function [ curT numNormCells ] = getCorrespondingTimeStep( curI, minI, maxI, maxT, numCellsPerTimeStep )
+function [ curT, numNormCells ] = getCorrespondingTimeStep( curI, minI, maxI, maxT, numCellsPerTimeStep )
 
 % only continue with this time step that is synchronized in
 % number of cells for each data set
