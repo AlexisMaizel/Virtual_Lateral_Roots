@@ -1,7 +1,7 @@
 [Main]
 Dt: 0.001 // 0.002 // how fast the shape of the end stage is reached, default 0.1
 Growth: .1  // not considered in code
-InitialCellNumber: 8 // initial cell number designed for VLR: 1, 2 or 8
+InitialCellNumber: 1 // initial cell number designed for VLR: 1, 2 or 8
 InitialCellsOfRealData: Average // valid entries are:
 // none, 120830_raw, 121204_raw_2014, 121211_raw, 130508_raw, 130607_raw, Average
 SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
@@ -16,7 +16,7 @@ StepPerView: 1
 BackgroundColor: 255
 
 [Division]
-DivisionArea: 900 // 1100 ... 0.025 threshold size of cells before they divide
+DivisionArea: 800 // 1100 ... 0.025 threshold size of cells before they divide
 DivisionAreaRatio: 0.145 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step

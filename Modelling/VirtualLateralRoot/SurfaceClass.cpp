@@ -221,7 +221,7 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
     {
       this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
                           std::make_pair( 0.5, 1. ),
-                          lCounter, lateralRoot, conPoints );
+                          lCounter, lateralRoot, conPoints, 4 );
     }
   }
   // 2 cells
@@ -239,7 +239,7 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
         
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( length, 1. ),
-                          lCounter, lateralRoot, conPoints );
+                          lCounter, lateralRoot, conPoints, 4 );
     }
   }
   // 5 cells
@@ -247,7 +247,7 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
   {
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1./3., 1. ),
-                        lCounter, lateralRoot, conPoints );
+                        lCounter, lateralRoot, conPoints, 4 );
     
     lCounter++;
     
@@ -258,19 +258,19 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
       double v = 0.;
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( 1./9., 1. ),
-                          lCounter, lateralRoot, conPoints );
+                          lCounter, lateralRoot, conPoints, 4 );
     }
     
     this->generateCell( T, std::make_pair( 2./3., 0. ),
                         std::make_pair( 1./3., 1. ),
-                        lCounter, lateralRoot, conPoints );
+                        lCounter, lateralRoot, conPoints, 4 );
   }
   // 1 cell
   else if( dataset == "130508_raw" )
   {
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1., 1. ),
-                        lCounter, lateralRoot, conPoints, true );
+                        lCounter, lateralRoot, conPoints, 4, true );
   }
   // 3 cells
   else if( dataset == "130607_raw" )
@@ -293,7 +293,7 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
         
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( length, 1. ),
-                          lCounter, lateralRoot, conPoints );
+                          lCounter, lateralRoot, conPoints, 4 );
     }
   }
   else if( dataset == "Average" )
@@ -303,21 +303,56 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
                         std::make_pair( 1., 1. ),
                         lCounter, lateralRoot, conPoints, true );*/
     
-    // 4 cells -> TODO
+    // 4 cells
+    /*for( std::size_t c = 0; c < 4; c++, lCounter++ )
+    {
+      double u = 0. + c*1./4.;
+      double v = 0.;
+      double length = 1./4.;
+        
+      this->generateCell( T, std::make_pair( u, v ),
+                          std::make_pair( length, 1. ),
+                          lCounter, lateralRoot, conPoints );
+    }*/
     
-    // 8 cells
-    
-    //for( std::size_t r = 0; r < 4; r++ )
-      for( std::size_t c = 0; c < 4; c++, lCounter++ )
+    // 8 cells in total
+    for( std::size_t t = 0; t < 2; t++ )
+      for( std::size_t b = 0; b < 2; b++, lCounter++ )
       {
-        double u = 0. + c*1./4.;
-        double v = 0.;
+        double u = 1./4. + b*1./4.;
+        double v = 0. + t*1./2.;
         double length = 1./4.;
           
         this->generateCell( T, std::make_pair( u, v ),
-                            std::make_pair( length, 1. ),
-                            lCounter, lateralRoot, conPoints );
+                            std::make_pair( length, 1./2. ),
+                            lCounter, lateralRoot, conPoints, 4 );
       }
+      
+    for( std::size_t c = 0; c < 4; c++, lCounter++ )
+    {
+      double u = 0. + c*1./8.;
+      if( c > 1 )
+        u = 1./2. + c*1./8.;
+      double v = 0.;
+      double length = 1./8.;
+        
+      // set wall for which an additional junction has to be included
+      std::size_t addJunctionToWall = 4;
+      // right wall
+      if( c == 1 )
+        addJunctionToWall = 2;
+      // left wall
+      else if( c == 2 )
+        addJunctionToWall = 0;
+      // none
+      else
+        addJunctionToWall = 4;
+      
+      this->generateCell( T, std::make_pair( u, v ),
+                          std::make_pair( length, 1. ),
+                          lCounter, lateralRoot,
+                          conPoints, addJunctionToWall );
+    }
   }
   else
     std::cerr << "Selected data set is not supported!" << std::endl;
@@ -331,8 +366,16 @@ void SurfaceClass::generateCell( MyTissue &T,
                                  const std::size_t treeId,
                                  RealSurface &lateralRoot,
                                  const std::vector<Point3d> &conPoints,
+                                 const std::size_t addJunctionToWall,
                                  const bool oneCell )
 {
+  // addJunctionToWall can be a number in [0,4] for which each number
+  // represents a wall:
+  // 0 -> left, 1 -> top, 2-> right, 3 -> down, 4 -> none
+  // for one of these walls an additional junction is generated for which
+  // an existing one is searched (if it was already generated before) such
+  // that the old and new junctions are merged
+  
   // set of junctions for the cell
   std::vector<junction> vs;
   
@@ -351,24 +394,45 @@ void SurfaceClass::generateCell( MyTissue &T,
       double cellLength;
       double curLength = (double)w/(double)_lod - (double)uiw;
       std::pair<double, double> iPos;
+      std::pair<double, double> mPos;
       
       switch(uiw)
       {
         case 0:
           iPos.first = start.first;
           iPos.second = start.second + curLength*length.second;
+          if( addJunctionToWall == 0 )
+          {
+            mPos.first = start.first;
+            mPos.second = start.second + length.second/2. + curLength*length.second;
+          }
           break;
         case 1:
           iPos.first = start.first + curLength*length.first;
           iPos.second = start.second + length.second;
+          if( addJunctionToWall == 1 )
+          {
+            mPos.first = start.first + length.first/2. + curLength*length.first;
+            mPos.second = start.second + length.second;
+          }
           break;
         case 2:
           iPos.first = start.first + length.first;
           iPos.second = start.second + length.second - curLength*length.second;
+          if( addJunctionToWall == 2 )
+          {
+            mPos.first = start.first + length.first;
+            mPos.second = start.second + length.second/2. - curLength*length.second;
+          }
           break;
         case 3:
           iPos.first = start.first + length.first - curLength*length.first;
           iPos.second = start.second;
+          if( addJunctionToWall == 3 )
+          {
+            mPos.first = start.first + length.first/2. - curLength*length.first;
+            mPos.second = start.second;
+          }
           break;
         default: iPos.first = iPos.second = 0.; break;
       }
@@ -380,6 +444,17 @@ void SurfaceClass::generateCell( MyTissue &T,
       this->findNearestPointToMerge( T, j );
       vs.push_back(j);
       _jIDCounter++;
+      
+      if( uiw == addJunctionToWall )
+      {
+        Point3d cPos = this->determinePos( mPos, conPoints );
+        junction j;
+        j->id = _jIDCounter;
+        lateralRoot.setPos( j->tp, cPos );
+        this->findNearestPointToMerge( T, j );
+        vs.push_back(j);
+        _jIDCounter++;
+      }
     }
   }
   else
@@ -487,31 +562,29 @@ Point3d SurfaceClass::determinePos( const std::pair<double, double> &coord,
   // u = 1, v = 1 -> conPoints.at(6)
   
   Point3d pos;
-  
-  // v will always be 0 or 1
-  std::size_t v = (std::size_t)coord.second;
-  
+  double h = coord.second;
   double xPos = 6. * coord.first;
   std::size_t xI = (std::size_t)xPos;
   double factor = xPos - (double)xI;
-  
-  // left to right: between conPoints at 0 and 6
-  if( v == 1 )
+
+  Point3d pos1;
+  Point3d pos2;
+  if( xI < 6 )
   {
-    if( xI < 6 )
-      pos = (1.-factor) * conPoints.at(xI) + factor * conPoints.at(xI+1);
-    else
-      pos = conPoints.at(xI);
+    // left to right: between conPoints at 0 and 6
+    pos1 = (1.-factor) * conPoints.at(xI) + factor * conPoints.at(xI+1);
+    // right to left: between conPoints at 14 and 8
+    pos2 = (1.-factor) * conPoints.at(14-xI) + factor * conPoints.at(14-xI-1);
   }
-  // v == 0 -> right to left: between conPoints at 14 and 8
   else
   {
-    if( xI < 6 )
-      pos = (1.-factor) * conPoints.at(14-xI) + factor * conPoints.at(14-xI-1);
-    else
-      pos = conPoints.at(14-xI);
+    // left to right: between conPoints at 0 and 6
+    pos1 = conPoints.at(xI);
+    // right to left: between conPoints at 14 and 8
+    pos2 = conPoints.at(14-xI);
   }
   
+  pos = h * pos1 + (1.-h) * pos2;
   return pos;
 }
 

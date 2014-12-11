@@ -13,7 +13,7 @@ colors = [ [ 1 0 1 ]; [ 1 1 0 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ]; [ 0 1 1 ]; [ 0
 % 3 -> radial
 cView = 2;
 % startIndex
-startI = 1;
+startI = 149;
 % endIndex
 endI = 150;
 % min and max index
@@ -24,7 +24,7 @@ drawDelaunay = 0;
 % draw average delaunay tri?
 drawAverageDelaunay = 0;
 % draw point set as ellipses
-drawNuclei = 1;
+drawNuclei = 0;
 % draw contour of cell nuclei
 drawContour = 0;
 % draw average contour of cell nuclei
@@ -249,8 +249,8 @@ for curI=startI:endI
   allCurT = zeros( numData, 1 );
   allCells = zeros( numData, 1 );
   allCurCells = zeros( numData, 1 );
-  averagePos = [];
-  nextAveragePos = [];
+  %averagePos = [];
+  %nextAveragePos = [];
   for dataIndex=startData:endData
     % get stored eigenvectors for the last time step to set the same
     % direction view for each time step
@@ -307,6 +307,8 @@ for curI=startI:endI
     
     % matrix of positions for current and next time step
     centerEllipse = [];
+    averagePos = [];
+    nextAveragePos = [];
     
     % determine cell position and cell file information
     for j=1:dimData( dataIndex )
@@ -346,8 +348,8 @@ for curI=startI:endI
         centerEllipse = [ centerEllipse ; p ];
         % determine tileIndex of current nuclei position and add it to the
         % tile grid in order to average all positions later
-        %tileIndex = getTileIndex( p, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
-        %tileGrid{ tileIndex } = [ tileGrid{ tileIndex }; [ p(1) p(2) p(3) dataIndex ] ];
+        tileIndex = getTileIndex( p, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
+        tileGrid{ tileIndex } = [ tileGrid{ tileIndex }; [ p(1) p(2) p(3) dataIndex ] ];
         averagePos = [ averagePos ; p(1), p(2) 0 ];
         
         if drawNuclei == 1
@@ -372,8 +374,8 @@ for curI=startI:endI
         p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI+1 );
         % determine tileIndex of next nuclei position and add it to the
         % tile grid in order to average all positions later
-        %nextTileIndex = getTileIndex( p, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
-        %nextTileGrid{ nextTileIndex } = [ nextTileGrid{ nextTileIndex }; [ p(1) p(2) p(3) dataIndex ] ];
+        nextTileIndex = getTileIndex( p, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
+        nextTileGrid{ nextTileIndex } = [ nextTileGrid{ nextTileIndex }; [ p(1) p(2) p(3) dataIndex ] ];
         nextAveragePos = [ nextAveragePos ; p(1), p(2) 0 ];
       end
     end
@@ -433,66 +435,75 @@ for curI=startI:endI
   end
   
   % compute the average of nuclei positions in each tile
-%   if overlapping == 1
-%     zOffset = 0.5;
-%   else
-%     zOffset = 0.;
-%   end
-%   averagePos = [];
-%   nextAveragePos = [];
-%   for t=1:rows*columns
-%     hold on
-%     if size( tileGrid{ t }, 1 ) ~= 0
-%       % compute the average of all positions in the tile
-%       sum = zeros( numData, 3 );
-%       sizes = zeros( numData, 1 );
-%       for i=1:size( tileGrid{ t }, 1 )
-%         dIndex = tileGrid{ t }(i, 4);
-%         sum( dIndex, : ) = sum(dIndex, : ) + [ tileGrid{ t }(i, 1) tileGrid{ t }(i, 2) tileGrid{ t }(i, 3)];
-%         sizes( dIndex, 1 ) = sizes( dIndex, 1 ) + 1;
-%       end
-%       for d=1:numData
-%         if sizes( d, 1 ) ~= 0
-%           pos = sum( d, : )/sizes( d, 1 );
-%           averagePos = [ averagePos ; pos(1), pos(2) 0 ];
-%           if drawAverageNuclei == 1
-%             [ AV(numTotalCells), AVPATCH(numTotalCells) ] = drawEllipse3d( pos(1), pos(2), pos(3)+zOffset+0.2, radEllip, radEllip, 0, 0 );
-%             set( AV(numTotalCells), 'color', colors( averageColorIndex, : ), 'LineWidth', lineWidth );
-%             set( AVPATCH(numTotalCells), 'FaceColor', colors( averageColorIndex, : ), 'FaceLighting', 'none' );
-%             numTotalCells = numTotalCells+1;
-%           end
-%         end
-%       end
-%     end
-%     
-%     % next step
-%     if curI ~= maxI
-%       if size( nextTileGrid{ t }, 1 ) ~= 0
-%         % compute the average of all positions in the tile
-%         sum = zeros( numData, 3 );
-%         sizes = zeros( numData, 1 );
-%         for i=1:size( nextTileGrid{ t }, 1 )
-%           dIndex = nextTileGrid{ t }(i, 4);
-%           sum( dIndex, : ) = sum(dIndex, : ) + [ nextTileGrid{ t }(i, 1) nextTileGrid{ t }(i, 2) nextTileGrid{ t }(i, 3)];
-%           sizes( dIndex, 1 ) = sizes( dIndex, 1 ) + 1;
-%         end
-%         for d=1:numData
-%           if sizes( d, 1 ) ~= 0
-%             pos = sum( d, : )/sizes( d, 1 );
-%             nextAveragePos = [ nextAveragePos ; pos(1), pos(2) 0 ];
-%           end
-%         end
-%         if drawNextAverageNuclei == 1
-%           [ AVN(t), AVNPATCH(t) ] = drawEllipse3d( sum(1), sum(2), sum(3)+zOffset+0.2, radEllip, radEllip, 0, 0 );
-%           set( AVN(t), 'color', colors( averageColorIndex+1, : ), 'LineWidth', lineWidth );
-%           set( AVNPATCH(t), 'FaceColor', colors( averageColorIndex+1, : ), 'FaceLighting', 'none' );
-%         end
-%       end
-%     end
-%   end
+  if overlapping == 1
+    zOffset = 0.5;
+  else
+    zOffset = 0.;
+  end
+  averagePos = [];
+  nextAveragePos = [];
+  for t=1:rows*columns
+    hold on
+    % next step
+    if curI ~= maxI
+      if size( nextTileGrid{ t }, 1 ) ~= 0
+        % compute the average of all positions in the tile
+        sum = zeros( numData, 3 );
+        sizes = zeros( numData, 1 );
+        for i=1:size( nextTileGrid{ t }, 1 )
+          dIndex = nextTileGrid{ t }(i, 4);
+          sum( dIndex, : ) = sum(dIndex, : ) + [ nextTileGrid{ t }(i, 1) nextTileGrid{ t }(i, 2) nextTileGrid{ t }(i, 3)];
+          sizes( dIndex, 1 ) = sizes( dIndex, 1 ) + 1;
+        end
+        for d=1:numData
+          if sizes( d, 1 ) ~= 0
+            pos = sum( d, : )/sizes( d, 1 );
+            nextAveragePos = [ nextAveragePos ; pos(1), pos(2) 0 ];
+            if drawNextAverageNuclei == 1
+              [ AVN(numTotalCells), AVNPATCH(numTotalCells) ] = drawEllipse3d( pos(1), pos(2), pos(3)+zOffset+0.2, radEllip, radEllip, 0, 0 );
+              set( AVN(numTotalCells), 'color', colors( averageColorIndex+1, : ), 'LineWidth', lineWidth );
+              set( AVNPATCH(numTotalCells), 'FaceColor', colors( averageColorIndex+1, : ), 'FaceLighting', 'none' );
+            end
+          end
+        end        
+      end
+    end
+  end
+  
+  numNextAverageCells = size( nextAveragePos, 1 );
+  for t=1:rows*columns
+    hold on
+    if size( tileGrid{ t }, 1 ) ~= 0
+      % compute the average of all positions in the tile
+      sum = zeros( numData, 3 );
+      sizes = zeros( numData, 1 );
+      for i=1:size( tileGrid{ t }, 1 )
+        dIndex = tileGrid{ t }(i, 4);
+        sum( dIndex, : ) = sum(dIndex, : ) + [ tileGrid{ t }(i, 1) tileGrid{ t }(i, 2) tileGrid{ t }(i, 3)];
+        sizes( dIndex, 1 ) = sizes( dIndex, 1 ) + 1;
+      end
+      for d=1:numData
+        if sizes( d, 1 ) ~= 0
+          pos = sum( d, : )/sizes( d, 1 );
+          averagePos = [ averagePos ; pos(1), pos(2) 0 ];
+          if size( averagePos, 1 ) == numNextAverageCells
+            break;
+          end
+          if drawAverageNuclei == 1
+            [ AV(numTotalCells), AVPATCH(numTotalCells) ] = drawEllipse3d( pos(1), pos(2), pos(3)+zOffset+0.2, radEllip, radEllip, 0, 0 );
+            set( AV(numTotalCells), 'color', colors( averageColorIndex, : ), 'LineWidth', lineWidth );
+            set( AVPATCH(numTotalCells), 'FaceColor', colors( averageColorIndex, : ), 'FaceLighting', 'none' );
+            numTotalCells = numTotalCells+1;
+          end
+        end
+      end
+      if size( averagePos, 1 ) == numNextAverageCells
+        break;
+      end
+    end
+  end
   
   numAverageCells = size( averagePos, 1 );
-  numNextAverageCells = size( nextAveragePos, 1 );
   
   % else apply a new tracking approach to map cells from time step curT
   % to cells at time step nextT such that the number of cells at both
@@ -549,37 +560,41 @@ for curI=startI:endI
   % average nearest neighbor at time step curT until the number of cells 
   % are identical
   else
-    disp('There are fewer cells in the next time step!');
-    linkedPos = averagePos;%zeros( numNextAverageCells, 3 );
-    nextLinkedPos = nextAveragePos;
-%     newNum = numAverageCells;
-%     while numNextAverageCells ~= newNum
-%       IDX = knnsearch( averagePos, nextAveragePos, 'K', 2 );
-%       allDist = zeros( size( IDX, 1 ), 1 );
-%       for l=1:size( IDX, 1 )
-%         allDist( l, : ) = distancePoints3d( averagePos( IDX( l, 1 ), : ), averagePos( IDX( l, 2 ), : ) );
-%       end
-%       [ dist, I ] = sort( allDist );
-%       indexOfSmallestEntry = I(1,1);
-%       k1 = IDX( indexOfSmallestEntry, 1 );
-%       k2 = IDX( indexOfSmallestEntry, 2 );
-%       compute the average of the points with the smallest distance
-%       newMeanPos = (averagePos( k1, : ) + averagePos( k2, : ))/2.;
-%       set the new averaged position and delete the second entry
-%       averagePos( k1, : ) = newMeanPos;
-%       averagePos( k2, : ) = [];
-%       newNum = size( averagePos, 1 );
-%     end
-%     finally find the nearest neighbor to apply the linking
-%     IDX = knnsearch( averagePos, nextAveragePos );
-%     for l=1:size( IDX, 1 )
-%       linkedPos( l, : ) = averagePos( IDX( l, 1 ), : );
-%       if drawLinking == 1
-%         linePos = [ nextAveragePos( l, 1 ) nextAveragePos( l, 2 ) ; averagePos( IDX( l, 1 ), 1 ) averagePos( IDX( l, 1 ), 2 ) ];
-%         LINKING(links) = line( linePos( :, 1 ), linePos( :, 2 ), 'Color', colors( averageColorIndex+1, : ), 'LineWidth', lineWidth );
-%         links = links+1;
-%       end
-%     end
+    if numNextAverageCells ~= 0
+      disp( strcat( 'There are fewer cells in the next time step from ', num2str(numAverageCells), ' > ', num2str(numNextAverageCells) ) );
+      %linkedPos = averagePos;
+      %nextLinkedPos = nextAveragePos;
+      linkedPos = zeros( numNextAverageCells, 3 );
+      nextLinkedPos = nextAveragePos;
+      newNum = numAverageCells;
+      while numNextAverageCells ~= newNum
+        IDX = knnsearch( averagePos, nextAveragePos, 'K', 2 );
+        allDist = zeros( size( IDX, 1 ), 1 );
+        for l=1:size( IDX, 1 )
+          allDist( l, : ) = distancePoints3d( averagePos( IDX( l, 1 ), : ), averagePos( IDX( l, 2 ), : ) );
+        end
+        [ dist, I ] = sort( allDist );
+        indexOfSmallestEntry = I(1,1);
+        k1 = IDX( indexOfSmallestEntry, 1 );
+        k2 = IDX( indexOfSmallestEntry, 2 );
+        % compute the average of the points with the smallest distance
+        newMeanPos = (averagePos( k1, : ) + averagePos( k2, : ))/2.;
+        % set the new averaged position and delete the second entry
+        averagePos( k1, : ) = newMeanPos;
+        averagePos( k2, : ) = [];
+        newNum = size( averagePos, 1 );
+      end
+      % finally find the nearest neighbor to apply the linking
+      IDX = knnsearch( averagePos, nextAveragePos );
+      for l=1:size( IDX, 1 )
+        linkedPos( l, : ) = averagePos( IDX( l, 1 ), : );
+        if drawLinking == 1
+          linePos = [ nextAveragePos( l, 1 ) nextAveragePos( l, 2 ) ; averagePos( IDX( l, 1 ), 1 ) averagePos( IDX( l, 1 ), 2 ) ];
+          LINKING(links) = line( linePos( :, 1 ), linePos( :, 2 ), 'Color', colors( averageColorIndex+1, : ), 'LineWidth', lineWidth );
+          links = links+1;
+        end
+      end
+    end
   end
   
   % draw contour of data and the single marks

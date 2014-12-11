@@ -49,6 +49,7 @@ public:
                      const std::size_t treeId,
                      RealSurface &lateralRoot,
                      const std::vector<Point3d> &conPoints,
+                     const std::size_t addJunctionToWall,
                      const bool oneCell = false );
   
   Point3d determinePos( const std::pair<double, double> &coord,
