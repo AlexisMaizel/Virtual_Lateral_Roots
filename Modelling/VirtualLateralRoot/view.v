@@ -1,7 +1,7 @@
 [Main]
-Dt: 0.0002 // 0.002 // how fast the shape of the end stage is reached, default 0.1
+Dt: 0.001 // 0.002 // how fast the shape of the end stage is reached, default 0.1
 Growth: .1  // not considered in code
-InitialCellNumber: 1 // initial cell number designed for VLR: 1, 2 or 8
+InitialCellNumber: 8 // initial cell number designed for VLR: 1, 2 or 8
 InitialCellsOfRealData: Average // valid entries are:
 // none, 120830_raw, 121204_raw_2014, 121211_raw, 130508_raw, 130607_raw, Average
 SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell

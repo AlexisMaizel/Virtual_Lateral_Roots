@@ -10,6 +10,8 @@
   @author Jens Fangerau <jens.fangerau@iwr.uni-heidelberg.de>
 */
 
+const double EPS = 0.0001;
+
 class SurfaceClass
 {
 public:
@@ -18,7 +20,8 @@ public:
   void init( const std::size_t lod,
              const std::string &lineageFileName,
              const bool exportLineage,
-             const std::size_t timeSteps = 300 );
+             const std::size_t timeSteps,
+             const SurfaceType::type sType );
   
   void initModelBasedOnBezier( MyTissue &T,
                                const std::size_t cellNumber,
@@ -38,14 +41,12 @@ public:
                      const std::pair<double, double> &start,
                      const std::pair<double, double> &length,
                      const std::size_t treeId,
-                     const idPairSet &sharedJunctions,
                      Surface &lateralRoot );
   
   void generateCell( MyTissue &T,
                      const std::pair<double, double> &start,
                      const std::pair<double, double> &length,
                      const std::size_t treeId,
-                     const idPairSet &sharedJunctions,
                      RealSurface &lateralRoot,
                      const std::vector<Point3d> &conPoints,
                      const bool oneCell = false );
@@ -61,10 +62,7 @@ public:
   std::size_t getCellID() const { return _IDCounter; }
 private:
   
-  void junctionAlreadyShared( MyTissue &T,
-                              const std::size_t jId,
-                              junction &js,
-                              const idPairSet &sharedJunctions );
+  void findNearestPointToMerge( MyTissue &T, junction &js );
   
   // sub division level for number of junctions of initial cells
   std::size_t _lod;
@@ -80,6 +78,8 @@ private:
   std::string _lineageFileName;
   
   bool _exportLineage;
+  
+  SurfaceType::type _sType;
 };
 
 #endif // SurfaceClass_H

@@ -13,7 +13,8 @@
 void SurfaceClass::init( const std::size_t lod,
                          const std::string &lineageFileName,
                          const bool exportLineage,
-                         const std::size_t timeSteps )
+                         const std::size_t timeSteps,
+                         const SurfaceType::type sType )
 {
   if( _lod == 0 )
     _lod = 1;
@@ -26,6 +27,7 @@ void SurfaceClass::init( const std::size_t lod,
   _maxTime = timeSteps;
   _lineageFileName = lineageFileName;
   _exportLineage = exportLineage;
+  _sType = sType;
 }
 
 // ---------------------------------------------------------------------
@@ -37,88 +39,51 @@ void SurfaceClass::initModelBasedOnBezier( MyTissue &T,
   // render eight cells at the beginning for which each pair shares an
   // area ratio of 2:1. The bigger cell will always be located at the left
   // and right boundary
-  idPairSet sharedJunctions;
-  std::size_t lineageCounter = 1;
-  
+  std::size_t lCounter = 1;
   switch( cellNumber )
   {
     case 8:
-    // insert ids of shared junctions
-    for( std::size_t c = 1; c < 7; c++ )
-    {
-      sharedJunctions.insert( std::make_pair( 4*(c+1), 4*(c+1)-5 ) );
-      sharedJunctions.insert( std::make_pair( 4*(c+1)+1, 4*(c+1)-6 ) );
-      if( c < 5 )
-      {
-        sharedJunctions.insert( std::make_pair( 8*c-4, 8*c-7 ) );
-        sharedJunctions.insert( std::make_pair( 8*c-1, 8*c-6 ) );
-      }
-      
-      // vertices shared by 4 points
-      if( c < 4 )
-      {
-        sharedJunctions.insert( std::make_pair( 8*c+1, 8*c-1 ) );
-        sharedJunctions.insert( std::make_pair( 8*(c+1)-4, 8*(c-1)+2 ) );
-      }
-    }
-    
-    for( std::size_t h = 0; h < 2; h++ )
+    for( std::size_t h = 0; h < 2; h++, lCounter++ )
     {
       double u = 0.;
       double v = h*1./2.;
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( 1./3., 1./2. ),
-                          lineageCounter, sharedJunctions,
-                          lateralRoot );
-      
-      lineageCounter++;
+                          lCounter, lateralRoot );
     }
     
     // init the inner smaller cells
     for( std::size_t w = 0; w < 2; w++ )
-    {
-      for( std::size_t h = 0; h < 2; h++ )
+      for( std::size_t h = 0; h < 2; h++, lCounter++ )
       {
         double u = 1./3. + w*1./6.;
         double v = 0. + h*1./2.;
         this->generateCell( T, std::make_pair( u, v ),
                             std::make_pair( 1./6., 1./2. ),
-                            lineageCounter, sharedJunctions,
-                            lateralRoot );
-        
-        lineageCounter++;
+                            lCounter, lateralRoot );
       }
-    }
     
-    for( std::size_t h = 0; h < 2; h++ )
+    for( std::size_t h = 0; h < 2; h++, lCounter++ )
     {
       double u = 2./3.;
       double v = h*1./2.;
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( 1./3., 1./2. ),
-                          lineageCounter, sharedJunctions,
-                          lateralRoot );
-      
-      lineageCounter++;
+                          lCounter, lateralRoot );
     }
     break;
     case 1:
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1., 1. ),
-                        2, sharedJunctions, lateralRoot ); 
+                        lCounter, lateralRoot ); 
     break;
     case 2:
-    this->generateCell( T, std::make_pair( 0., 0. ),
-                        std::make_pair( 0.5, 1. ),
-                        1, sharedJunctions, lateralRoot );
-      
-    // insert ids of shared junctions
-    sharedJunctions.insert( std::make_pair( 5, 2 ) );
-    sharedJunctions.insert( std::make_pair( 4, 3 ) );
-    
-    this->generateCell( T, std::make_pair( 0.5, 0. ),
-                        std::make_pair( 0.5, 1. ),
-                        2, sharedJunctions, lateralRoot );
+    for( std::size_t c=0; c < 2; c++, lCounter++ )
+    {
+      this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
+                          std::make_pair( 0.5, 1. ),
+                          lCounter, lateralRoot );
+    }
     break;
     default:
     std::cerr << "Selected number of cells at the beginning is not implemented yet!" << std::endl;
@@ -133,34 +98,24 @@ void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
                                                  Surface &lateralRoot )
 {
   std::cout << "Lateral root constellation of data: " << dataset << std::endl;
-  idPairSet sharedJunctions;
-  
+  std::size_t lCounter = 1;
+  // 2 cells
   if( dataset == "120830_raw" )
   {
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 0.55, 1. ),
-                        1, sharedJunctions, lateralRoot );
+                        lCounter, lateralRoot );
     
-    // insert ids of shared junctions
-    sharedJunctions.insert( std::make_pair( 5*_lod, 2*_lod ) );
-    sharedJunctions.insert( std::make_pair( 4*_lod, 3*_lod ) );
-    
-    for( std::size_t l=1; l<_lod;l++ )
-    {
-      std::size_t u = 4*_lod + l;
-      std::size_t v = 3*_lod - l;
-      sharedJunctions.insert( std::make_pair( u, v ) );
-    }
+    lCounter++;
     
     this->generateCell( T, std::make_pair( 0.55, 0. ),
                         std::make_pair( 0.45, 1. ),
-                        2, sharedJunctions, lateralRoot );
+                        lCounter, lateralRoot );
   }
+  // 2 cells
   else if( dataset == "121204_raw_2014" )
   {
-    std::size_t lineageCounter = 1;
-  
-    for( std::size_t c = 0; c < 2; c++ )
+    for( std::size_t c = 0; c < 2; c++, lCounter++ )
     {
       double u = 0. + c*2./5.;
       double v = 0.;
@@ -172,81 +127,43 @@ void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
         
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( length, 1. ),
-                          lineageCounter, sharedJunctions, lateralRoot );
-      
-      lineageCounter++;
-      
-      // insert ids of shared junctions
-      sharedJunctions.insert( std::make_pair( 5*_lod, 2*_lod ) );
-      sharedJunctions.insert( std::make_pair( 4*_lod, 3*_lod ) );
-    
-      for( std::size_t l=1; l<_lod;l++ )
-      {
-        std::size_t u = 4*_lod + l;
-        std::size_t v = 3*_lod - l;
-        sharedJunctions.insert( std::make_pair( u, v ) );
-      }
+                          lCounter, lateralRoot );
     }
   }
+  // 5 cells
   else if( dataset == "121211_raw" )
   {
-    std::size_t lineageCounter = 1;
-  
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1./3., 1. ),
-                        lineageCounter, sharedJunctions, lateralRoot );
+                        lCounter, lateralRoot );
     
-    // insert ids of shared junctions
-    sharedJunctions.insert( std::make_pair( 5*_lod, 2*_lod ) );
-    sharedJunctions.insert( std::make_pair( 4*_lod, 3*_lod ) );
-  
-    for( std::size_t l=1; l<_lod;l++ )
-    {
-      std::size_t u = 4*_lod + l;
-      std::size_t v = 3*_lod - l;
-      sharedJunctions.insert( std::make_pair( u, v ) );
-    }
-    
-    lineageCounter++;
+    lCounter++;
     
     // inner smaller cells
-    for( std::size_t c = 0; c < 3; c++ )
+    for( std::size_t c = 0; c < 3; c++, lCounter++ )
     {
       double u = 1./3. + c*1./9.;
       double v = 0.;
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( 1./9., 1. ),
-                          lineageCounter, sharedJunctions, lateralRoot );
-      
-      lineageCounter++;
-      
-      // insert ids of shared junctions
-      sharedJunctions.insert( std::make_pair( (4*(c+2)+1)*_lod, (4*(c+2)-2)*_lod ) );
-      sharedJunctions.insert( std::make_pair( 4*(c+2)*_lod, (4*(c+2)-1)*_lod ) );
-    
-      for( std::size_t l=1; l<_lod;l++ )
-      {
-        std::size_t u = 4*(c+2)*_lod + l;
-        std::size_t v = (4*(c+2)-1)*_lod - l;
-        sharedJunctions.insert( std::make_pair( u, v ) );
-      }
+                          lCounter, lateralRoot );
     }
     
     this->generateCell( T, std::make_pair( 2./3., 0. ),
                         std::make_pair( 1./3., 1. ),
-                        lineageCounter, sharedJunctions, lateralRoot );
+                        lCounter, lateralRoot );
   }
+  // 1 cell
   else if( dataset == "130508_raw" )
   {
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1., 1. ),
-                        1, sharedJunctions, lateralRoot );
+                        lCounter, lateralRoot );
   }
+  // 3 cells
   else if( dataset == "130607_raw" )
   {
-    std::size_t lineageCounter = 1;
-  
-    for( std::size_t c = 0; c < 3; c++ )
+    for( std::size_t c = 0; c < 3; c++, lCounter++ )
     {
       double length,u,v;
       switch( c )
@@ -270,20 +187,7 @@ void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
         
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( length, 1. ),
-                          lineageCounter, sharedJunctions, lateralRoot );
-      
-      lineageCounter++;
-      
-      // insert ids of shared junctions
-      sharedJunctions.insert( std::make_pair( (4*(c+1)+1)*_lod, (4*(c+1)-2)*_lod ) );
-      sharedJunctions.insert( std::make_pair( 4*(c+1)*_lod, (4*(c+1)-1)*_lod ) );
-    
-      for( std::size_t l=1; l<_lod;l++ )
-      {
-        std::size_t u = 4*(c+1)*_lod + l;
-        std::size_t v = (4*(c+1)-1)*_lod - l;
-        sharedJunctions.insert( std::make_pair( u, v ) );
-      }
+                          lCounter, lateralRoot );
     }
   }
   else
@@ -299,7 +203,6 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
                                                    const bool useAutomaticContourPoints )
 {
   std::cout << "Lateral root constellation of data: " << dataset << std::endl;
-  idPairSet sharedJunctions;
   
   std::string name = "conPoints-";
   name += dataset;
@@ -307,35 +210,24 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
     name += "_auto.txt";
   else
     name += ".txt";
-  std::vector<Point3d> conPoints =
-    ModelUtils::loadContourPoints( name, surfaceScale );
   
-   if( dataset == "120830_raw" )
+  std::vector<Point3d> conPoints = ModelUtils::loadContourPoints( name, surfaceScale );
+  std::size_t lCounter = 1;
+    
+  // 2 cells
+  if( dataset == "120830_raw" )
   {
-    this->generateCell( T, std::make_pair( 0., 0. ),
-                        std::make_pair( 0.5, 1. ),
-                        1, sharedJunctions, lateralRoot, conPoints );
-    
-    // insert ids of shared junctions
-    sharedJunctions.insert( std::make_pair( 5*_lod, 2*_lod ) );
-    sharedJunctions.insert( std::make_pair( 4*_lod, 3*_lod ) );
-    
-    for( std::size_t l=1; l<_lod;l++ )
+    for( std::size_t c=0; c < 2; c++, lCounter++ )
     {
-      std::size_t u = 4*_lod + l;
-      std::size_t v = 3*_lod - l;
-      sharedJunctions.insert( std::make_pair( u, v ) );
+      this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
+                          std::make_pair( 0.5, 1. ),
+                          lCounter, lateralRoot, conPoints );
     }
-    
-    this->generateCell( T, std::make_pair( 0.5, 0. ),
-                        std::make_pair( 0.5, 1. ),
-                        2, sharedJunctions, lateralRoot, conPoints );
   }
+  // 2 cells
   else if( dataset == "121204_raw_2014" )
   {
-    std::size_t lineageCounter = 1;
-  
-    for( std::size_t c = 0; c < 2; c++ )
+    for( std::size_t c = 0; c < 2; c++, lCounter++ )
     {
       double u = 0. + c*2./5.;
       double v = 0.;
@@ -347,86 +239,43 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
         
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( length, 1. ),
-                          lineageCounter, sharedJunctions,
-                          lateralRoot, conPoints );
-      
-      lineageCounter++;
-      
-      // insert ids of shared junctions
-      sharedJunctions.insert( std::make_pair( 5*_lod, 2*_lod ) );
-      sharedJunctions.insert( std::make_pair( 4*_lod, 3*_lod ) );
-    
-      for( std::size_t l=1; l<_lod;l++ )
-      {
-        std::size_t u = 4*_lod + l;
-        std::size_t v = 3*_lod - l;
-        sharedJunctions.insert( std::make_pair( u, v ) );
-      }
+                          lCounter, lateralRoot, conPoints );
     }
   }
+  // 5 cells
   else if( dataset == "121211_raw" )
   {
-    std::size_t lineageCounter = 1;
-  
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1./3., 1. ),
-                        lineageCounter, sharedJunctions,
-                        lateralRoot, conPoints );
+                        lCounter, lateralRoot, conPoints );
     
-    // insert ids of shared junctions
-    sharedJunctions.insert( std::make_pair( 5*_lod, 2*_lod ) );
-    sharedJunctions.insert( std::make_pair( 4*_lod, 3*_lod ) );
-  
-    for( std::size_t l=1; l<_lod;l++ )
-    {
-      std::size_t u = 4*_lod + l;
-      std::size_t v = 3*_lod - l;
-      sharedJunctions.insert( std::make_pair( u, v ) );
-    }
-    
-    lineageCounter++;
+    lCounter++;
     
     // inner smaller cells
-    for( std::size_t c = 0; c < 3; c++ )
+    for( std::size_t c = 0; c < 3; c++, lCounter++ )
     {
       double u = 1./3. + c*1./9.;
       double v = 0.;
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( 1./9., 1. ),
-                          lineageCounter, sharedJunctions,
-                          lateralRoot, conPoints );
-      
-      lineageCounter++;
-      
-      // insert ids of shared junctions
-      sharedJunctions.insert( std::make_pair( (4*(c+2)+1)*_lod, (4*(c+2)-2)*_lod ) );
-      sharedJunctions.insert( std::make_pair( 4*(c+2)*_lod, (4*(c+2)-1)*_lod ) );
-    
-      for( std::size_t l=1; l<_lod;l++ )
-      {
-        std::size_t u = 4*(c+2)*_lod + l;
-        std::size_t v = (4*(c+2)-1)*_lod - l;
-        sharedJunctions.insert( std::make_pair( u, v ) );
-      }
+                          lCounter, lateralRoot, conPoints );
     }
     
     this->generateCell( T, std::make_pair( 2./3., 0. ),
                         std::make_pair( 1./3., 1. ),
-                        lineageCounter, sharedJunctions,
-                        lateralRoot, conPoints );
+                        lCounter, lateralRoot, conPoints );
   }
+  // 1 cell
   else if( dataset == "130508_raw" )
   {
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1., 1. ),
-                        1, sharedJunctions, lateralRoot,
-                        conPoints, true );
+                        lCounter, lateralRoot, conPoints, true );
   }
+  // 3 cells
   else if( dataset == "130607_raw" )
   {
-    std::size_t lineageCounter = 1;
-  
-    for( std::size_t c = 0; c < 3; c++ )
+    for( std::size_t c = 0; c < 3; c++, lCounter++ )
     {
       double length,u,v;
       if( c == 0 )
@@ -444,105 +293,34 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
         
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( length, 1. ),
-                          lineageCounter, sharedJunctions,
-                          lateralRoot, conPoints );
-      
-      lineageCounter++;
-      
-      // insert ids of shared junctions
-      sharedJunctions.insert( std::make_pair( (4*(c+1)+1)*_lod, (4*(c+1)-2)*_lod ) );
-      sharedJunctions.insert( std::make_pair( 4*(c+1)*_lod, (4*(c+1)-1)*_lod ) );
-    
-      for( std::size_t l=1; l<_lod;l++ )
-      {
-        std::size_t u = 4*(c+1)*_lod + l;
-        std::size_t v = (4*(c+1)-1)*_lod - l;
-        sharedJunctions.insert( std::make_pair( u, v ) );
-      }
+                          lCounter, lateralRoot, conPoints );
     }
   }
   else if( dataset == "Average" )
   {
-    this->generateCell( T, std::make_pair( 0., 0. ),
+    // 1 cell
+    /*this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1., 1. ),
-                        1, sharedJunctions, lateralRoot,
-                        conPoints, true );
+                        lCounter, lateralRoot, conPoints, true );*/
+    
+    // 4 cells -> TODO
+    
+    // 8 cells
+    
+    //for( std::size_t r = 0; r < 4; r++ )
+      for( std::size_t c = 0; c < 4; c++, lCounter++ )
+      {
+        double u = 0. + c*1./4.;
+        double v = 0.;
+        double length = 1./4.;
+          
+        this->generateCell( T, std::make_pair( u, v ),
+                            std::make_pair( length, 1. ),
+                            lCounter, lateralRoot, conPoints );
+      }
   }
   else
-    std::cerr << "Selected data set is not supported!" << std::endl; 
-  
-  /*
-  // set of junctions for the cell
-  std::vector<junction> vs;
-  
-  //Point3d dataMean( 289.023540405678, -25.7548027981398, 0. );
-      
-  //std::vector<Point3d> conPoints;
-  //conPoints.push_back( cPoints.at(0) );
-  //conPoints.push_back( cPoints.at(6) );
-  //conPoints.push_back( cPoints.at(8) );
-  //conPoints.push_back( cPoints.at(14) );
-  
-  for( std::size_t w = 0; w < conPoints.size(); w++ )
-  {
-    //conPoints.at(w) -= dataMean;
-    Point3d curPos = conPoints.at(w);
-    Point3d nextPos;
-    if( w != conPoints.size()-1 )
-      nextPos = conPoints.at(w+1);
-    else
-      nextPos = conPoints.at(0);
-    
-    for( std::size_t d = 0; d < _lod; ++d )
-    {
-      double factor = (double)d/(double)_lod;
-      Point3d pos = curPos + factor*(nextPos-curPos);
-      junction j;
-      j->id = _jIDCounter;
-      lateralRoot.setPos( j->tp, pos );
-      vs.push_back(j);
-      _jIDCounter++;
-    }
-  }
-  
-  cell c;
-  c->treeId = 2;
-  c->id = _IDCounter;
-  c->parentId = _IDCounter;
-  c->timeStep = _time;
-  c->previousAngle = 0.;
-  c->angle = 0.;
-  c->previousDivDir = Point3d( 0., 0., 0. );
-  c->divDir = Point3d( 0., 0., 0. );
-  c->divType = DivisionType::NONE;
-  c->layerValue = 1;
-  c->cellCycle = 0;
-  T.addCell( c, vs );
-  
-  std::vector<Point2d> polygon;
-  Point3d center;
-  forall(const junction& j, T.S.neighbors(c))
-  {
-    polygon.push_back( j->tp.Pos() );
-    center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-  }
-  center /= polygon.size();
-
-  // store initial area for current cell
-  c->center = center;
-  c->initialArea = geometry::polygonArea(polygon);
-  c->area = c->initialArea;
-  c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
-  c->longestWallLength = c->initialLongestWallLength;
-    
-  lateralRoot.setPos(c->tp, center);
-  
-  if( _exportLineage )
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false );
-  
-  // afterwards increment the id counter
-  _IDCounter++;
-  */
+    std::cerr << "Selected data set is not supported!" << std::endl;
 }
 
 // ---------------------------------------------------------------------
@@ -551,13 +329,19 @@ void SurfaceClass::generateCell( MyTissue &T,
                                  const std::pair<double, double> &start,
                                  const std::pair<double, double> &length,
                                  const std::size_t treeId,
-                                 const idPairSet &sharedJunctions,
                                  RealSurface &lateralRoot,
                                  const std::vector<Point3d> &conPoints,
                                  const bool oneCell )
 {
   // set of junctions for the cell
   std::vector<junction> vs;
+  
+  // if _lod = 1 -> curLength = 0
+  // order of generated points:
+  // 1 --------- 2
+  // |           |
+  // |           |
+  // 0 --------- 3
   
   if( !oneCell )
   {
@@ -571,23 +355,19 @@ void SurfaceClass::generateCell( MyTissue &T,
       switch(uiw)
       {
         case 0:
-          cellLength = length.second;
           iPos.first = start.first;
-          iPos.second = start.second + curLength*cellLength;
+          iPos.second = start.second + curLength*length.second;
           break;
         case 1:
-          cellLength = length.first;
-          iPos.first = start.first + curLength*cellLength;
+          iPos.first = start.first + curLength*length.first;
           iPos.second = start.second + length.second;
           break;
         case 2:
-          cellLength = length.second;
           iPos.first = start.first + length.first;
-          iPos.second = start.second + length.second - curLength*cellLength;
+          iPos.second = start.second + length.second - curLength*length.second;
           break;
         case 3:
-          cellLength = length.first;
-          iPos.first = start.first + length.first - curLength*cellLength;
+          iPos.first = start.first + length.first - curLength*length.first;
           iPos.second = start.second;
           break;
         default: iPos.first = iPos.second = 0.; break;
@@ -597,7 +377,7 @@ void SurfaceClass::generateCell( MyTissue &T,
       junction j;
       j->id = _jIDCounter;
       lateralRoot.setPos( j->tp, curPos );
-      this->junctionAlreadyShared( T, j->id, j, sharedJunctions );
+      this->findNearestPointToMerge( T, j );
       vs.push_back(j);
       _jIDCounter++;
     }
@@ -610,7 +390,7 @@ void SurfaceClass::generateCell( MyTissue &T,
       junction j;
       j->id = _jIDCounter;
       lateralRoot.setPos( j->tp, curPos );
-      this->junctionAlreadyShared( T, j->id, j, sharedJunctions );
+      this->findNearestPointToMerge( T, j );
       vs.push_back(j);
       _jIDCounter++;
     }
@@ -653,6 +433,45 @@ void SurfaceClass::generateCell( MyTissue &T,
   
   // afterwards increment the id counter
   _IDCounter++;  
+}
+
+// ---------------------------------------------------------------------
+
+void SurfaceClass::findNearestPointToMerge( MyTissue &T, junction &js )
+{
+  // find nearest cell vertex in the tissue T to be merged with and return
+  // reference to junction
+  Point3d curPos;
+  if( _sType == SurfaceType::REALDATA )
+  {
+    Point2d p = js->tp.Pos();
+    curPos = Point3d( p.i(), p.j(), 0. );
+  }
+  else
+    curPos = js->sp.Pos();
+  
+  forall( const cell& c, T.C )
+  {
+    forall(const junction& j, T.S.neighbors(c))
+    {
+      Point3d pos;
+      if( _sType == SurfaceType::REALDATA )
+      {
+        Point2d p = j->tp.Pos();
+        pos = Point3d( p.i(), p.j(), 0. );
+      }
+      else
+        pos = j->sp.Pos();
+      
+      if( fabs( pos.i() - curPos.i() ) <= EPS &&
+          fabs( pos.j() - curPos.j() ) <= EPS &&
+          fabs( pos.k() - curPos.k() ) <= EPS )
+      {
+        js = j;
+        return;
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -704,12 +523,18 @@ void SurfaceClass::generateCell( MyTissue &T,
                                  const std::pair<double, double> &start,
                                  const std::pair<double, double> &length,
                                  const std::size_t treeId,
-                                 const idPairSet &sharedJunctions,
                                  Surface &lateralRoot )
 {
   // TODO: use of mergeCells method instead of checking shared junctions
   // set of junctions for the cell
   std::vector<junction> vs;
+  
+  // if _lod = 1 -> curLength = 0
+  // order of generated points:
+  // 1 --------- 2
+  // |           |
+  // |           |
+  // 0 --------- 3
   
   for( std::size_t w = 0; w < 4 * _lod; w++ )
   {
@@ -721,23 +546,19 @@ void SurfaceClass::generateCell( MyTissue &T,
     switch(uiw)
     {
       case 0:
-        cellLength = length.second;
         u = start.first;
-        v = start.second + curLength*cellLength;
+        v = start.second + curLength*length.second;
         break;
       case 1:
-        cellLength = length.first;
-        u = start.first + curLength*cellLength;
+        u = start.first + curLength*length.first;
         v = start.second + length.second;
         break;
       case 2:
-        cellLength = length.second;
         u = start.first + length.first;
-        v = start.second + length.second - curLength*cellLength;
+        v = start.second + length.second - curLength*length.second;
         break;
       case 3:
-        cellLength = length.first;
-        u = start.first + length.first - curLength*cellLength;
+        u = start.first + length.first - curLength*length.first;
         v = start.second;
         break;
       default: u = v = 0.; break;
@@ -745,11 +566,8 @@ void SurfaceClass::generateCell( MyTissue &T,
     
     j->id = _jIDCounter;
     lateralRoot.InitPoint( j->sp, u, v );
-      
-    this->junctionAlreadyShared( T, j->id, j, sharedJunctions );
-    
+    this->findNearestPointToMerge( T, j );
     vs.push_back(j);
-    
     _jIDCounter++;
   }
   
@@ -790,28 +608,6 @@ void SurfaceClass::generateCell( MyTissue &T,
   
   // afterwards increment the id counter
   _IDCounter++;
-}
-
-//----------------------------------------------------------------
-
-void SurfaceClass::junctionAlreadyShared( MyTissue &T,
-                                          const std::size_t jId,
-                                          junction &js,
-                                          const idPairSet &sharedJunctions )
-{
-  forall( const cell& c, T.C )
-  {
-    forall(const junction& j, T.S.neighbors(c))
-    {
-      idPairSet::const_iterator iter =
-      sharedJunctions.find( std::make_pair( jId, j->id ) );
-      if( iter != sharedJunctions.end() )
-      {
-        js = j;
-        return;
-      }
-    }
-  }
 }
 
 // ---------------------------------------------------------------------

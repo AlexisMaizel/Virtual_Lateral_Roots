@@ -57,6 +57,8 @@ public:
   
   bool _lastStep;
   
+  SurfaceType::type _sType;
+  
   //----------------------------------------------------------------
   
   void readParms()
@@ -122,15 +124,20 @@ public:
     registerFile("pal.map");
     registerFile("view.v");
 
+    if( surfaceType == 0 )
+      _sType = SurfaceType::BEZIER;
+    else
+      _sType = SurfaceType::REALDATA;
+    
     std::size_t t = 300;
     if( _initialCellsOfRealData == "130508_raw" )
       t = 350;
     else if( _initialCellsOfRealData == "Average" )
       t = 150;
     
-    std::cout << "LOD: " << _lod << std::endl;
+    //std::cout << "LOD: " << _lod << std::endl;
     
-    _surfaceClass.init( _lod, _lineageFileName, _exportLineage, t );
+    _surfaceClass.init( _lod, _lineageFileName, _exportLineage, t, _sType );
     
     _VLRBezierSurface.init( parms, "Surface", _initialCellsOfRealData );
     

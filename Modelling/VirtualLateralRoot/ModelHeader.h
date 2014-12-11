@@ -32,6 +32,11 @@ static QTextStream out(stdout);
 
 using util::norm;
 
+namespace SurfaceType
+{
+  enum type { BEZIER, REALDATA };
+};
+
 namespace DivisionType
 {
   // the numbers are chosen depending on the index of colors in the color palette
