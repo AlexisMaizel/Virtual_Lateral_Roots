@@ -1,6 +1,6 @@
 function [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep,...
   totalMinAxes, totalMaxAxes, cellFileMap ] =...
-  prepareData( dataStr, startData, endData, numData, visualizationType, renderMasterFile, cView )
+  prepareData( dataStr, startData, endData, numData, visualizationType, renderMasterFile, cView, storeOnlyLastPrecursorInfo )
 cpuT = cputime;
 % cellData is the main array with all relevant information
 % for the further analysis:
@@ -152,7 +152,11 @@ for dataIndex=startData:endData
     lastPrecur = getLastPrecursorID( PCol(l) );
     
     % insert first line
-    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) lastPrecur};
+    if storeOnlyLastPrecursorInfo == 1
+      cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) lastPrecur};
+    else
+      cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) PCol(l)};
+    end
     nl = nl+1;
     
     if lastPrecur ~= -1
@@ -173,12 +177,20 @@ for dataIndex=startData:endData
         y = double(1-k) * YCol(l) + double(k) * YCol(l+1);
         z = double(1-k) * ZCol(l) + double(k) * ZCol(l+1);
         % insert all relevant data into main data structure
-        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) -1};
+        if storeOnlyLastPrecursorInfo == 1
+          cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) -1};
+        else
+          cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) PCol(l)};
+        end
         nl = nl+1;
       end
       
       % insert last line
-      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) -1};
+      if storeOnlyLastPrecursorInfo == 1
+        cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) -1};
+      else
+        cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) PCol(l+1)};
+      end
       nl = nl+1;
       % update cell file map
       cellFileMap{ dataIndex }( firstCellId ) = CFCol(l);

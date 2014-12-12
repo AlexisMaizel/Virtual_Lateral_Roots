@@ -6,6 +6,8 @@
 geomPath = strcat( pwd, '/geom3d' );
 addpath( geomPath );
 
+setenv('LC_ALL','C')
+
 %%%%% setting of properties %%%%%%
 % color range for different data sets
 % { 'm' 'k' 'r' 'g' 'b' 'c' };
@@ -40,7 +42,7 @@ overlapping = 1;
 % only render specific ranges of cell numbers
 % render contour (=convexHull) instead of ellipses
 visualizationType = { 'Ellipsoids' 'Ellipses' 'Contour' };
-visType = 3;
+visType = 2;
 renderCellRanges = 0;
 % only generate output images if the number of cells are within a desired
 % range

@@ -116,7 +116,7 @@ camproj( 'orthographic' );
 
 % apply preprocessing step of data
 [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
-  prepareData( dataStr, startData, endData, numData, 'Ellipses', renderMasterFile, cView );
+  prepareData( dataStr, startData, endData, numData, 'Ellipses', renderMasterFile, cView, 1 );
 
 if drawContour == 1 || drawAverageContour == 1
   CONTOUR = [];

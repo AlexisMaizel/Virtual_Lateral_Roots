@@ -29,7 +29,7 @@ averageOverData = 1;
 % render division orientations
 renderDivisions = 0;
 % startIndex
-startI = 1;
+startI = 19;
 % endIndex
 endI = 20;
 % min and max index
@@ -61,7 +61,7 @@ visualizationType = { 'Ellipsoids' 'Ellipses' };
 visType = 2;
 % offset for cell ranges
 epsilon = 3;
-lineRenderType = 3;
+lineRenderType = 4;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2: render all three major lines of elongation of the ellipsoids in 3D
@@ -117,7 +117,7 @@ camproj( 'orthographic' );
 
 % apply preprocessing step of data
 [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
-  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView );
+  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView, 0 );
 
 if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
   % surface instance

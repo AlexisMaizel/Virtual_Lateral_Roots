@@ -6,6 +6,8 @@
 geomPath = strcat( pwd, '/geom3d' );
 addpath( geomPath );
 
+setenv('LC_ALL','C')
+
 %%%%% setting of properties %%%%%%
 % data Index:
 % 1 -> 120830
