@@ -133,7 +133,7 @@ public:
     if( _initialCellsOfRealData == "130508_raw" )
       t = 350;
     else if( _initialCellsOfRealData == "Average" )
-      t = 150;
+      t = 100;
     
     //std::cout << "LOD: " << _lod << std::endl;
     
