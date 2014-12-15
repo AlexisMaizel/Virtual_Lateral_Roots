@@ -1,7 +1,7 @@
 function [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep,...
   totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType, renderMasterFile, cView, storeOnlyLastPrecursorInfo )
-cpuT = cputime;
+tic
 % cellData is the main array with all relevant information
 % for the further analysis:
 % ObjectID X Y Z Timepoint LineageID TrackGroup
@@ -317,6 +317,4 @@ if manualMinMax == 1
   totalMinAxes = [ -407.171475765079 -92.7388088827015 -5.01820807130571e-14 ];
   totalMaxAxes = [ 450.801610841287 123.611342722626 4.39648317751562e-14 ];
 end
-
-ElapsedTimeDataPreparation = cputime - cpuT;
-disp( strcat( 'Elapsed time for data preparation: ', num2str(ElapsedTimeDataPreparation), ' sec.' ) );
+toc

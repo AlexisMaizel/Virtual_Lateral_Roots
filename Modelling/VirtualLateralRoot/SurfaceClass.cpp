@@ -297,14 +297,14 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
     }
   }
   else if( dataset == "Average" )
-  {
+  {/*
     // 1 cell
-    /*this->generateCell( T, std::make_pair( 0., 0. ),
+    this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1., 1. ),
-                        lCounter, lateralRoot, conPoints, true );*/
+                        lCounter, lateralRoot, conPoints, 4, true );
     
     // 4 cells
-    /*for( std::size_t c = 0; c < 4; c++, lCounter++ )
+    for( std::size_t c = 0; c < 4; c++, lCounter++ )
     {
       double u = 0. + c*1./4.;
       double v = 0.;
@@ -312,9 +312,9 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
         
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( length, 1. ),
-                          lCounter, lateralRoot, conPoints );
-    }*/
-    
+                          lCounter, lateralRoot, conPoints, 4 );
+    }
+    */
     // 8 cells in total
     for( std::size_t t = 0; t < 2; t++ )
       for( std::size_t b = 0; b < 2; b++, lCounter++ )
