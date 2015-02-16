@@ -28,8 +28,10 @@ renderAllLines = 0;
 averageOverData = 1;
 % render division orientations
 renderDivisions = 0;
+% render contour of cells
+renderContour = 0;
 % startIndex
-startI = 19;
+startI = 1;
 % endIndex
 endI = 20;
 % min and max index
@@ -39,7 +41,7 @@ maxI = 20;
 % have to be a divider of the max index
 deltaI = 1;
 % draw delaunay tri?
-drawDelaunay = 0;
+drawDelaunay = 1;
 % if set to one then only a single time step
 % is rendered given by startT
 exportType = 2;
@@ -546,6 +548,17 @@ while curI < endI-deltaI+1
         numTotalAveragedLinks(dataIndex) = ( numTotalLinksC(dataIndex) + numTotalLinksN(dataIndex) )/2.;
       end
       
+      % render contour lines of triangulation at next time step
+%       if size( matPosN{dataIndex}, 1 ) > 2 && renderContour == 1
+%         poi = zeros( size(matPosN{dataIndex}, 1), 3 );
+%         for m=1:size(matPosN{dataIndex}, 1)
+%           poi(m,:) = matPosN{dataIndex}(m,:) - centerPosPerTimeStep{dataIndex}(curTN(dataIndex),:);
+%           poi(m,:) = applyTransformations( poi(m,:), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
+%         end
+%         K = convhull( poi(:,1), poi(:,2) );
+%         CONTOUR(curTC(dataIndex)) = line( poi( K, 1 ), poi( K, 2 ), 'Color', colors( dataIndex, : ), 'LineWidth', 1.2 );
+%       end
+      
       % determine deltaT
       deltaT = curTN(dataIndex) - curTC(dataIndex);
       
@@ -673,20 +686,20 @@ while curI < endI-deltaI+1
           end
         end
         % render contour
-%         if dimL > 2
-%           if triangulationType == 1
-%             K = convhull( timePositions( :, 4 ), timePositions( :, 5 ) );
-%             CONTOUR(dataIndex) = line( timePositions( K, 4 ), timePositions( K, 5 ), timePositions( K, 6 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
-%           else
-%             [VolC,ShapeC] = alphavol( [ timePositions( :, 4 ), timePositions( :, 5 ) ], sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
-%             K = ShapeC.bnd(:,1);
-%             dimK = size( K, 1 );
-%             if dimK > 1
-%               K(dimK+1,:) = K(1,:);
-%               CONTOUR(dataIndex) = line( timePositions( K, 4 ), timePositions( K, 5 ), timePositions( K, 6 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
-%             end
-%           end
-%         end
+        if dimL > 2 && renderContour == 1
+          if triangulationType == 1
+            K = convhull( timePositions( :, 4 ), timePositions( :, 5 ) );
+            CONTOUR(dataIndex) = line( timePositions( K, 4 ), timePositions( K, 5 ), timePositions( K, 6 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+          else
+            [VolC,ShapeC] = alphavol( [ timePositions( :, 4 ), timePositions( :, 5 ) ], sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
+            K = ShapeC.bnd(:,1);
+            dimK = size( K, 1 );
+            if dimK > 1
+              K(dimK+1,:) = K(1,:);
+              CONTOUR(dataIndex) = line( timePositions( K, 4 ), timePositions( K, 5 ), timePositions( K, 6 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+            end
+          end
+        end
       else
         for l=1:dimL
           minSemiPoint = [minMaxSemiAxisVector( l, 1 )...

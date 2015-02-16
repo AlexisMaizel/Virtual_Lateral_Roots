@@ -25,7 +25,7 @@ dataId = 1;
 % 4 -> 3D
 cView = 2;
 % start with the current time step
-startT = 1;
+startT = 150;
 % deltaT value based on the paper mentioned above
 % have to be a divider of the max time step value!
 deltaT = 10;
@@ -69,11 +69,6 @@ dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw
 % vector of view strings
 viewStr = { 'Top' 'Side' 'Radial' '3D' };
 
-% master cell file information taken by the picture made of Daniel located in dropbox
-% and the trackGroup information of the raw data sets
-%masterCellFile = [ 4 3 4 2 3 ];
-masterCellFile = [ 4 4 4 3 3 0 ];
-
 % either loop over all data sets creating five figures or only
 % show one specific one
 startD = 1;
@@ -85,10 +80,6 @@ end
 
 % loop over all data sets
 for dataIndex=startD:endD
-  
-  % render the corresponding master cell file
-  singleCellFile = masterCellFile( 1, dataIndex );
-  
   % path to movie output
   movieDir = strcat( 'videos/', dataStr( 1, dataIndex ), '_',...
     viewStr( 1, cView ), '_test_movie.avi');
@@ -540,7 +531,7 @@ for dataIndex=startD:endD
         = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, cellIdsN,...
         numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN, triangulationType,...
         termTypeStr( 1, renderTermType ), dataStr( 1, dataIndex ), planePos, u, v, TF, deltaT,...
-        renderSingleCellFile, singleCellFile, cellFileMap );
+        curT, curT + deltaT, renderSingleCellFile, cellFileMap );
       
       % draw principal components
       if renderPrincipalComponents == 1

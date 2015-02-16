@@ -1,3 +1,5 @@
+
+setenv('LC_ALL','C')
 % output format of values
 format longG
 % read distance matrix given as vector
@@ -35,5 +37,3 @@ for l=lnTypeS:lnTypeE
   % cophenetic correlation coefficient
   v(l,1) = cophenet( Z, X );
 end
-
-v

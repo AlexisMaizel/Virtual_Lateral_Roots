@@ -106,7 +106,7 @@ camproj( 'orthographic' );
 
 % apply preprocessing step of data
 [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
-  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView );
+  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView, 1 );
 
 if strcmp( visualizationType( 1, visType ), 'Contour' )
   % contour instance
