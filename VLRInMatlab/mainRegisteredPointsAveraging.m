@@ -179,8 +179,8 @@ if drawAverageNuclei == 1 || drawAverageContour == 1 || drawAverageDelaunay == 1
   else
     fileName = strcat( '/tmp/triangulation-', 'Average', '.txt' );
     % contour points for the first and last time step
-    cPointsFirst = generateContourPoints( 'Average', true, conOffset );
-    cPointsLast = generateContourPoints( 'Average', false, conOffset );
+    cPointsFirst = generateContourPoints( 'Average', true, conOffset, 1 );
+    cPointsLast = generateContourPoints( 'Average', false, conOffset, 1 );
   end
   fileId = fopen( char(fileName), 'w' );
   % first write the maximum number of time steps
@@ -344,7 +344,7 @@ for curI=startI:endI
         p = [ cellDatas{ dataIndex }{ j, 2 }...
           cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
         p = p - centerPosPerTimeStep{dataIndex}(curT,:);
-        p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+        p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         centerEllipse = [ centerEllipse ; p ];
         % determine tileIndex of current nuclei position and add it to the
         % tile grid in order to average all positions later
@@ -371,7 +371,7 @@ for curI=startI:endI
         p = [ cellDatas{ dataIndex }{ j, 2 }...
           cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
         p = p - centerPosPerTimeStep{dataIndex}(nextT,:);
-        p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI+1 );
+        p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         % determine tileIndex of next nuclei position and add it to the
         % tile grid in order to average all positions later
         nextTileIndex = getTileIndex( p, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
@@ -403,10 +403,10 @@ for curI=startI:endI
     if renderPrincipalComponents == 1
       start = mean( centerEllipse );
       %coeffMat = pca( centerEllipse )
-      start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+      start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
       arrowLength = 150;
       for a=1:3
-        %endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+        %endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         endP = coeff( :, a );
         P(a) = quiver3( start(1), start(2), start(3),...
           endP(1), endP(2), endP(3),...

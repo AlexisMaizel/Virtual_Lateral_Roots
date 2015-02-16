@@ -83,11 +83,13 @@ numData = 5;
 numCellFiles = 6;%double( maxCF-minCF+1 );
 % resolution of grid
 resGrid = 50;
+% register data sets based on base instead of dome tip
+registerBase = 0;
 
 % define offset for boundary points which is the distance between the
 % acutal location of the contour points and their initial position within
 % the model
-conOffset = 5;
+conOffset = 3;
 % distance from contour point to nearest nuclei position
 cellDist = 25;
 % generate contour points automatically or use the points set manually
@@ -171,8 +173,8 @@ if includeContourPoints == 1
   else
     fileName = strcat( '/tmp/triangulation-', 'Average', '.txt' );
     % contour points for the first and last time step
-    cPointsFirst = generateContourPoints( 'Average', true, conOffset );
-    cPointsLast = generateContourPoints( 'Average', false, conOffset );
+    cPointsFirst = generateContourPoints( 'Average', true, conOffset, registerBase );
+    cPointsLast = generateContourPoints( 'Average', false, conOffset, registerBase );
   end
   fileId = fopen( char(fileName), 'w' );
   % first write the maximum number of time steps
@@ -281,9 +283,16 @@ for curI=startI:endI
       v(1) v(2) v(3) ];
     TF = createBasisTransform3d( 'g', plane );
     
-    if strcmp( dataStr( 1, dataIndex ), '130607_raw' )
-      TF = createRotationOz( -pi/36. ) * TF;
+    if strcmp( dataStr( 1, dataIndex ), '121204_raw_2014' )
+      TF = createRotationOz( degtorad( 1. ) ) * TF;
+    elseif strcmp( dataStr( 1, dataIndex ), '121211_raw' )
+      TF = createRotationOz( degtorad( 1. ) ) * TF;
+    elseif strcmp( dataStr( 1, dataIndex ), '130607_raw' )
+      TF = createRotationOz( degtorad( -3.5 ) ) * TF;
     end
+    
+    % apply manual translation of data sets for registration
+    TF = getDataSetTranslationMatrix( dataStr( 1, dataIndex ), registerBase ) * TF;
     
     % get the alpha shape radii for all time steps
     if triangulationType == 2
@@ -338,7 +347,7 @@ for curI=startI:endI
         p = [ cellDatas{ dataIndex }{ j, 2 }...
           cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
         p = p - centerPosPerTimeStep{dataIndex}(curT,:);
-        p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+        p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         curPos = [ curPos ; p ];
         numTotalOfCurCells = numTotalOfCurCells +1;
         
@@ -398,7 +407,7 @@ for curI=startI:endI
           p = [ cellDatas{ dataIndex }{ j, 2 }...
             cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
           p = p - centerPosPerTimeStep{dataIndex}(nextT,:);
-          p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI+1 );
+          p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
           
           % ID of precursor
           cellID = cellDatas{ dataIndex }{ j, 1 };
@@ -485,10 +494,10 @@ for curI=startI:endI
     if renderPrincipalComponents == 1
       start = mean( curPos );
       %coeffMat = pca( centerEllipse )
-      %start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+      %start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
       arrowLength = 150;
       for a=1:3
-        %endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+        %endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         endP = coeff( :, a );
         P(a) = quiver3( start(1), start(2), start(3),...
           endP(1), endP(2), endP(3),...
@@ -705,7 +714,7 @@ for curI=startI:endI
     set( f,'nextplot','replacechildren' );
     viewOffset = 100;
     axis( [ totalMinAxes(1) totalMaxAxes(1)...
-      totalMinAxes(2)*yScale totalMaxAxes(2)*yScale + 150 ...
+      totalMinAxes(2)*yScale totalMaxAxes(2)*yScale...
       totalMinAxes(3)-viewOffset totalMaxAxes(3)+viewOffset ...
       totalMinAxes(3) totalMaxAxes(3) ] );
     axis on

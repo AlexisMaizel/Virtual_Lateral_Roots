@@ -1,4 +1,4 @@
-function points = generateContourPoints( dataName, first, eps )
+function points = generateContourPoints( dataName, first, eps, registerBase )
 % I always choose 16 contour points for which 7 are used
 % at the top and bottom while 1 is used for left and right
 numContourMarks = 16;
@@ -184,40 +184,79 @@ elseif strcmp( dataName, '130607_raw' )
     points( 16, 1:2 ) = [ -175 175 ]; 
   end
 elseif strcmp( dataName, 'Average' )
-  if first == true
-    points( 1, 1:2 ) = [ -280 25 ];
-    points( 2, 1:2 ) = [ -130 30 ];
-    points( 3, 1:2 ) = [ -60 33 ];
-    points( 4, 1:2 ) = [ 10 34 ];
-    points( 5, 1:2 ) = [ 80 25 ];
-    points( 6, 1:2 ) = [ 150 15 ];
-    points( 7, 1:2 ) = [ 250 15 ];
-    points( 8, 1:2 ) = [ 250 8 ];
-    points( 9, 1:2 ) = [ 250 0 ];
-    points( 10, 1:2 ) = [ 150 0 ];
-    points( 11, 1:2 ) = [ 80 -2 ];
-    points( 12, 1:2 ) = [ 10 3 ];
-    points( 13, 1:2 ) = [ -60 4 ];
-    points( 14, 1:2 ) = [ -130 5 ];
-    points( 15, 1:2 ) = [ -280 10 ];
-    points( 16, 1:2 ) = [ -280 17 ];
+  if registerBase == 0
+    if first == true
+      points( 1, 1:2 ) = [ -280 30 ];
+      points( 2, 1:2 ) = [ -180 30 ];
+      points( 3, 1:2 ) = [ -80 30 ];
+      points( 4, 1:2 ) = [ 20 30 ];
+      points( 5, 1:2 ) = [ 120 30 ];
+      points( 6, 1:2 ) = [ 220 30 ];
+      points( 7, 1:2 ) = [ 320 30 ];
+      points( 8, 1:2 ) = [ 320 10 ];
+      points( 9, 1:2 ) = [ 320 -10 ];
+      points( 10, 1:2 ) = [ 220 -10 ];
+      points( 11, 1:2 ) = [ 120 -10 ];
+      points( 12, 1:2 ) = [ 20 -10 ];
+      points( 13, 1:2 ) = [ -80 -10 ];
+      points( 14, 1:2 ) = [ -180 -10 ];
+      points( 15, 1:2 ) = [ -280 -10 ];
+      points( 16, 1:2 ) = [ -280 10 ];
+    else
+      points( 1, 1:2 ) = [ -310 0 ];
+      points( 2, 1:2 ) = [ -200 20 ];
+      points( 3, 1:2 ) = [ -90 50 ];%[ -110 200 ];
+      points( 4, 1:2 ) = [ 20 90 ];%[ 0 250 ];
+      points( 5, 1:2 ) = [ 130 50 ];%[ 110 200 ];
+      points( 6, 1:2 ) = [ 240 20 ];
+      points( 7, 1:2 ) = [ 350 0 ];
+      points( 8, 1:2 ) = [ 350 -25 ];
+      points( 9, 1:2 ) = [ 350 -55 ];
+      points( 10, 1:2 ) = [ 240 -55 ];
+      points( 11, 1:2 ) = [ 130 -55 ];
+      points( 12, 1:2 ) = [ 20 -55 ];
+      points( 13, 1:2 ) = [ -90 -55 ];
+      points( 14, 1:2 ) = [ -200 -55 ];
+      points( 15, 1:2 ) = [ -310 -55 ];
+      points( 16, 1:2 ) = [ -310 -25 ];
+    end
+  % else register by base of the VLR
   else
-    points( 1, 1:2 ) = [ -330 0 ];
-    points( 2, 1:2 ) = [ -220 20 ];
-    points( 3, 1:2 ) = [ -110 205 ];%[ -110 55 ];
-    points( 4, 1:2 ) = [ 0 250 ];%[ 0 100 ];
-    points( 5, 1:2 ) = [ 110 200 ];%[ 110 50 ];
-    points( 6, 1:2 ) = [ 220 0 ];
-    points( 7, 1:2 ) = [ 290 -20 ];
-    points( 8, 1:2 ) = [ 290 -25 ];
-    points( 9, 1:2 ) = [ 290 -30 ];
-    points( 10, 1:2 ) = [ 220 -50 ];
-    points( 11, 1:2 ) = [ 110 -45 ];
-    points( 12, 1:2 ) = [ 0 -45 ];
-    points( 13, 1:2 ) = [ -110 -45 ];
-    points( 14, 1:2 ) = [ -220 -45 ];
-    points( 15, 1:2 ) = [ -330 -40 ];
-    points( 16, 1:2 ) = [ -330 -20 ];
+    if first == true
+      points( 1, 1:2 ) = [ -280 40 ];
+      points( 2, 1:2 ) = [ -180 40 ];
+      points( 3, 1:2 ) = [ -80 40 ];
+      points( 4, 1:2 ) = [ 20 40 ];
+      points( 5, 1:2 ) = [ 120 40 ];
+      points( 6, 1:2 ) = [ 220 40 ];
+      points( 7, 1:2 ) = [ 320 40 ];
+      points( 8, 1:2 ) = [ 320 20 ];
+      points( 9, 1:2 ) = [ 320 0 ];
+      points( 10, 1:2 ) = [ 220 0 ];
+      points( 11, 1:2 ) = [ 120 0 ];
+      points( 12, 1:2 ) = [ 20 0 ];
+      points( 13, 1:2 ) = [ -80 0 ];
+      points( 14, 1:2 ) = [ -180 0 ];
+      points( 15, 1:2 ) = [ -280 0 ];
+      points( 16, 1:2 ) = [ -280 20 ];
+    else
+      points( 1, 1:2 ) = [ -310 2 ];
+      points( 2, 1:2 ) = [ -200 40 ];
+      points( 3, 1:2 ) = [ -90 70 ];%[ -110 200 ];
+      points( 4, 1:2 ) = [ 20 120 ];%[ 0 250 ];
+      points( 5, 1:2 ) = [ 130 70 ];%[ 110 200 ];
+      points( 6, 1:2 ) = [ 240 40 ];
+      points( 7, 1:2 ) = [ 350 2 ];
+      points( 8, 1:2 ) = [ 350 -18 ];
+      points( 9, 1:2 ) = [ 350 -35 ];
+      points( 10, 1:2 ) = [ 240 -35 ];
+      points( 11, 1:2 ) = [ 130 -35 ];
+      points( 12, 1:2 ) = [ 20 -35 ];
+      points( 13, 1:2 ) = [ -90 -35 ];
+      points( 14, 1:2 ) = [ -200 -35 ];
+      points( 15, 1:2 ) = [ -310 -35 ];
+      points( 16, 1:2 ) = [ -310 -18 ];
+    end
   end
 end
 

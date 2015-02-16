@@ -365,8 +365,8 @@ for dataIndex=startD:endD
   TF = createBasisTransform3d( 'g', plane );
   
   % set axes properties
-  minAxes = applyTransformations( [ minX minY minZ ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
-  maxAxes = applyTransformations( [ maxX maxY maxZ ], planePos, u, v, TF, dataStr( 1, dataIndex ) );
+  minAxes = applyTransformations( [ minX minY minZ ], planePos, u, v, TF, dataStr( 1, dataIndex ), 0 );
+  maxAxes = applyTransformations( [ maxX maxY maxZ ], planePos, u, v, TF, dataStr( 1, dataIndex ), 0 );
   
   % after transformation the individual coords of min and max
   % may be switched

@@ -405,8 +405,8 @@ for curI=startI:endI
           lineY = p1(2) + sX*xEigVec(2) + sY*yEigVec(2) + sZ*zEigVec(2);
           lineZ = p1(3) + sX*xEigVec(3) + sY*yEigVec(3) + sZ*zEigVec(3);
           
-          projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
-          projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+          projLine1 = applyTransformations( [ lineX(1) lineY(1) lineZ(1) ], planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
+          projLine2 = applyTransformations( [ lineX(2) lineY(2) lineZ(2) ], planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
           
           % and store the start/end points of the lines in linePos
           index = 6*(l-1) + 1;
@@ -421,7 +421,7 @@ for curI=startI:endI
         dimP = size( X, 1 );
         for q=1:dimP
           for p=1:dimP
-            curPos = applyTransformations( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+            curPos = applyTransformations( [ X(p,q) Y(p,q) Z(p,q) ], planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
             X(p,q) = curPos(1);
             Y(p,q) = curPos(2);
             Z(p,q) = curPos(3);
@@ -432,7 +432,7 @@ for curI=startI:endI
 %           'EdgeColor', 'none', 'EdgeAlpha', 0,...
 %           'FaceLighting', 'none' );
         
-        p1 = applyTransformations( p1, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+        p1 = applyTransformations( p1, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         centerEllipse(nc, :) = p1;
         % the direction is now the normal of the x-y plane
         minMaxS = determineAxes( X, Y, Z, p1, [ 0 0 1 ] );
@@ -446,13 +446,13 @@ for curI=startI:endI
         %coeffMat = pca( cellFileMat )
         if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
             strcmp( visualizationType( 1, visType ), 'Contour' )
-          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         end
         arrowLength = 150;
         for a=1:3
           if strcmp( visualizationType( 1, visType ), 'Ellipses' ) ||...
               strcmp( visualizationType( 1, visType ), 'Contour' )
-            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
           elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
             endP = coeff(:, a);
           end

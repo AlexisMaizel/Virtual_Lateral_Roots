@@ -580,7 +580,7 @@ while curI < endI-deltaI+1
         start = mean( cellFileMat );
         %coeff = pca( cellFileMat )
         if strcmp( visualizationType( 1, visType ), 'Ellipses' )
-          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+          start = applyTransformations( start, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         end
         arrowLength = 150;
         % set colormap
@@ -588,7 +588,7 @@ while curI < endI-deltaI+1
         %colormap( cm );
         for a=1:3
           if strcmp( visualizationType( 1, visType ), 'Ellipses' )
-            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+            endP = applyTransformations( coeff(:, a), planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
           elseif strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
             endP = coeff(:, a);
           end
@@ -658,11 +658,11 @@ while curI < endI-deltaI+1
           for d=1:numDivs
             time = divs( d, 2 ) + 1;
             divCenter = divs( d, 3:5 ) - centerPosPerTimeStep{dataIndex}(time, :);
-            divCenter = applyTransformations( divCenter, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+            divCenter = applyTransformations( divCenter, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
             div1 = divs( d, 6:8 ) - centerPosPerTimeStep{dataIndex}(time, :);
             div2 = divs( d, 9:11 ) - centerPosPerTimeStep{dataIndex}(time, :);
-            div1 = applyTransformations( div1, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
-            div2 = applyTransformations( div2, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile, curI );
+            div1 = applyTransformations( div1, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
+            div2 = applyTransformations( div2, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
             tileIndex = getTileIndex( divCenter, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
             if div1(1) <= div2(1)
               divDir = [ div1(1) div1(2) div2(1) div2(2) ];
