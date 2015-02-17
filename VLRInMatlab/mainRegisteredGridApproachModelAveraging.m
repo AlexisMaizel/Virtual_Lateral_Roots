@@ -616,6 +616,11 @@ for curI=startI:endI
   numAverageCells = size( averagePos, 1 );
   numNextAverageCells = size( nextAveragePos, 1 );
   
+  % new approach of regression of averaged positions of data sets
+  for a=1:numNextAverageCells
+    nextAveragePos( a, : ) = (nextAveragePos( a, : ) + averagePos( a, : ))/2.;
+  end
+  
   %   if drawAverageLines == 1
   %     for l=1:numAverageCells
   %       linePos = [ averagePos(l, 1) averagePos(l, 2) ; nextAveragePos(l, 1) nextAveragePos(l, 2) ];
