@@ -314,7 +314,9 @@ for dataIndex=startData:endData
 end
 
 if manualMinMax == 1
-  totalMinAxes = [ -407.171475765079 -92.7388088827015 -5.01820807130571e-14 ];
-  totalMaxAxes = [ 450.801610841287 123.611342722626 4.39648317751562e-14 ];
+  %totalMinAxes = [ -407.171475765079 -92.7388088827015 -5.01820807130571e-14 ];
+  %totalMaxAxes = [ 450.801610841287 123.611342722626 4.39648317751562e-14 ];
+  totalMinAxes = [ -350 -100 0 ];
+  totalMaxAxes = [ 400 160 0 ];
 end
 toc

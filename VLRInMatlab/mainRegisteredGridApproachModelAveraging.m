@@ -13,7 +13,7 @@ colors = [ [ 1 0 1 ]; [ 1 1 0 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ]; [ 0 1 1 ]; [ 0
 % 3 -> radial
 cView = 2;
 % startIndex
-startI = 150;
+startI = 1;
 % endIndex
 endI = 150;
 % min and max index
@@ -26,7 +26,7 @@ drawAverageDelaunay = 0;
 % draw point set as ellipses
 drawNuclei = 0;
 % draw contour of cell nuclei
-drawContour = 0;
+drawContour = 1;
 % draw average contour of cell nuclei
 drawAverageContour = 1;
 % include contour points
@@ -86,6 +86,10 @@ resGrid = 50;
 % register data sets based on base instead of dome tip
 registerBase = 0;
 
+% apply the registration to all existing cell ranges and not only the one
+% that all data sets share (cells in [18,143])
+considerAllCells = 1;
+
 % define offset for boundary points which is the distance between the
 % acutal location of the contour points and their initial position within
 % the model
@@ -117,8 +121,11 @@ camproj( 'orthographic' );
 [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, 'Ellipses', renderMasterFile, cView, 0 );
 
-if drawContour == 1 || drawAverageContour == 1
+if drawContour == 1
   CONTOUR = [];
+end
+if drawAverageContour == 1
+  AVERAGECONTOUR = [];
 end
 if drawNuclei == 1
   % ellipse instance
@@ -173,8 +180,8 @@ if includeContourPoints == 1
   else
     fileName = strcat( '/tmp/triangulation-', 'Average', '.txt' );
     % contour points for the first and last time step
-    cPointsFirst = generateContourPoints( 'Average', true, conOffset, registerBase );
-    cPointsLast = generateContourPoints( 'Average', false, conOffset, registerBase );
+    cPointsFirst = generateContourPoints( 'Average', true, conOffset, registerBase, considerAllCells );
+    cPointsLast = generateContourPoints( 'Average', false, conOffset, registerBase, considerAllCells );
   end
   fileId = fopen( char(fileName), 'w' );
   % first write the maximum number of time steps
@@ -198,9 +205,15 @@ for curI=startI:endI
   tileGrid = cell( rows*columns, 1 );
   nextTileGrid = cell( rows*columns, 1 );
   
-  if drawContour == 1 || drawAverageContour == 1
+  if drawContour == 1
     if ishandle( CONTOUR )
       set( CONTOUR, 'Visible', 'off' );
+    end
+  end
+  
+  if drawAverageContour == 1
+    if ishandle( AVERAGECONTOUR )
+      set( AVERAGECONTOUR, 'Visible', 'off' );
     end
   end
   
@@ -300,15 +313,23 @@ for curI=startI:endI
     end
     
     % get the corresponding time steps for the reg. step
-    [ curT, numNormCells ] = getCorrespondingTimeStep( curI, minI, maxI,...
-      maxT(dataIndex), numCellsPerTimeStep{dataIndex} );
+    [ curT, numNormCells, numCellExists ] = getCorrespondingTimeStep( curI, minI, maxI,...
+      maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
+      numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
     
     % store the chosen time step for each data set
     allCurT( dataIndex, 1 ) = curT;
     allCells( dataIndex, 1 ) = numCellsPerTimeStep{dataIndex}(curT,1);
     
-    [ nextT, numNextNormCells ]  = getCorrespondingTimeStep( curI+1, minI, maxI,...
-      maxT(dataIndex), numCellsPerTimeStep{dataIndex} );
+    [ nextT, numNextNormCells, numCellExists ]  = getCorrespondingTimeStep( curI+1, minI, maxI,...
+      maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
+      numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
+    
+    % only continue with this data set if the current number of cells does
+    % not exceed the real number of cells in the current data set
+    if numCellExists == 0
+      continue;
+    end
     
     % required vectors
     curPos = [];
@@ -511,14 +532,14 @@ for curI=startI:endI
       if dimL > 2
         if triangulationType == 1
           K = convhull( curPos( :, 1 ), curPos( :, 2 ) );
-          CONTOUR(curI) = line( curPos( K, 1 ), curPos( K, 2 ), curPos( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+          CONTOUR(curI + maxI * dataIndex) = line( curPos( K, 1 ), curPos( K, 2 ), curPos( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
         else
           [VolC,ShapeC] = alphavol( [ curPos( :, 1 ), curPos( :, 2 ) ], sqrt( alphaRadiiVector( curT, 1 )) );
           K = ShapeC.bnd(:,1);
           dimK = size( K, 1 );
           if dimK > 1
             K(dimK+1,:) = K(1,:);
-            CONTOUR(curI) = line( curPos( K, 1 ), curPos( K, 2 ), curPos( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+            CONTOUR(curI + maxI * dataIndex) = line( curPos( K, 1 ), curPos( K, 2 ), curPos( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
           end
         end
       end
@@ -670,14 +691,14 @@ for curI=startI:endI
     if dimL > 2
       if triangulationType == 1
         K = convhull( averagePos( :, 1 ), averagePos( :, 2 ) );
-        CONTOUR(curI) = line( averagePos( K, 1 ), averagePos( K, 2 ), 'Color', colors( averageColorIndex, : ), 'LineWidth', lineWidth );
+        AVERAGECONTOUR(curI) = line( averagePos( K, 1 ), averagePos( K, 2 ), 'Color', colors( averageColorIndex, : ), 'LineWidth', lineWidth );
       else
         [VolC,ShapeC] = alphavol( [ averagePos( :, 1 ), averagePos( :, 2 ) ], 85 );
         K = ShapeC.bnd(:,1);
         dimK = size( K, 1 );
         if dimK > 1
           K(dimK+1,:) = K(1,:);
-          CONTOUR(curI) = line( averagePos( K, 1 ), averagePos( K, 2 ), 'Color', colors( averageColorIndex, : ), 'LineWidth', lineWidth );
+          AVERAGECONTOUR(curI) = line( averagePos( K, 1 ), averagePos( K, 2 ), 'Color', colors( averageColorIndex, : ), 'LineWidth', lineWidth );
         end
       end
     end
@@ -713,10 +734,10 @@ for curI=startI:endI
     hold off;
     set( f,'nextplot','replacechildren' );
     viewOffset = 100;
+    % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
     axis( [ totalMinAxes(1) totalMaxAxes(1)...
       totalMinAxes(2)*yScale totalMaxAxes(2)*yScale...
-      totalMinAxes(3)-viewOffset totalMaxAxes(3)+viewOffset ...
-      totalMinAxes(3) totalMaxAxes(3) ] );
+      totalMinAxes(3)-viewOffset totalMaxAxes(3)+viewOffset 0 1 ] );
     axis on
     daspect( [ 1 1 1 ] );
     
