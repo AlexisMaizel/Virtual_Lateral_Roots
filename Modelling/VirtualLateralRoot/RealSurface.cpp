@@ -20,8 +20,12 @@ void RealSurface::init( const double surfaceScale,
                         const std::string &fileName,
                         const bool useAutomaticContourPoints )
 {
+  std::string dataset = fileName;
+  if( dataset.compare( 0, 7, "Average") == 0 )
+    dataset = "Average";
+  
   std::string name = "triangulation-";
-  name += fileName;
+  name += dataset;
   if( useAutomaticContourPoints )
     name += "_auto.txt";
   else

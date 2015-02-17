@@ -42,6 +42,49 @@ void SurfaceClass::initModelBasedOnBezier( MyTissue &T,
   std::size_t lCounter = 1;
   switch( cellNumber )
   {
+    case 1:
+    this->generateCell( T, std::make_pair( 0., 0. ),
+                        std::make_pair( 1., 1. ),
+                        lCounter, lateralRoot ); 
+    break;
+    case 2:
+    for( std::size_t c=0; c < 2; c++, lCounter++ )
+    {
+      this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
+                          std::make_pair( 0.5, 1. ),
+                          lCounter, lateralRoot );
+    }
+    break;
+    case 6:
+    for( std::size_t h = 0; h < 1; h++, lCounter++ )
+    {
+      double u = 0.;
+      double v = h*1./2.;
+      this->generateCell( T, std::make_pair( u, v ),
+                          std::make_pair( 1./4., 1. ),
+                          lCounter, lateralRoot );
+    }
+    
+    // init the inner smaller cells
+    for( std::size_t w = 0; w < 2; w++ )
+      for( std::size_t h = 0; h < 2; h++, lCounter++ )
+      {
+        double u = 1./4. + w*1./4.;
+        double v = 0. + h*1./2.;
+        this->generateCell( T, std::make_pair( u, v ),
+                            std::make_pair( 1./4., 1./2. ),
+                            lCounter, lateralRoot );
+      }
+    
+    for( std::size_t h = 0; h < 1; h++, lCounter++ )
+    {
+      double u = 3./4.;
+      double v = h*1./2.;
+      this->generateCell( T, std::make_pair( u, v ),
+                          std::make_pair( 1./4., 1. ),
+                          lCounter, lateralRoot );
+    }
+    break;
     case 8:
     for( std::size_t h = 0; h < 2; h++, lCounter++ )
     {
@@ -69,19 +112,6 @@ void SurfaceClass::initModelBasedOnBezier( MyTissue &T,
       double v = h*1./2.;
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( 1./3., 1./2. ),
-                          lCounter, lateralRoot );
-    }
-    break;
-    case 1:
-    this->generateCell( T, std::make_pair( 0., 0. ),
-                        std::make_pair( 1., 1. ),
-                        lCounter, lateralRoot ); 
-    break;
-    case 2:
-    for( std::size_t c=0; c < 2; c++, lCounter++ )
-    {
-      this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
-                          std::make_pair( 0.5, 1. ),
                           lCounter, lateralRoot );
     }
     break;
@@ -204,8 +234,12 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
 {
   std::cout << "Lateral root constellation of data: " << dataset << std::endl;
   
+  std::string fileName = dataset;
+  if( dataset.compare( 0, 7, "Average") == 0 )
+    fileName = "Average";
+  
   std::string name = "conPoints-";
-  name += dataset;
+  name += fileName;
   if( useAutomaticContourPoints )
     name += "_auto.txt";
   else
@@ -244,7 +278,7 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
   }
   // 5 cells
   else if( dataset == "121211_raw" )
-  {
+  {    
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1./3., 1. ),
                         lCounter, lateralRoot, conPoints, 4 );
@@ -296,13 +330,19 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
                           lCounter, lateralRoot, conPoints, 4 );
     }
   }
-  else if( dataset == "Average" )
-  {/*
-    // 1 cell
-    this->generateCell( T, std::make_pair( 0., 0. ),
-                        std::make_pair( 1., 1. ),
-                        lCounter, lateralRoot, conPoints, 4, true );
-    
+  else if( dataset == "Average2" )
+  {
+    // 2 cells
+    for( std::size_t c = 0; c < 2; c++, lCounter++ )
+    {
+      double length = 1./2.;
+      this->generateCell( T, std::make_pair( c*1./2., 0. ),
+                             std::make_pair( length, 1. ),
+                             lCounter, lateralRoot, conPoints, 4 );
+    }
+  }
+  else if( dataset == "Average4" )
+  {
     // 4 cells
     for( std::size_t c = 0; c < 4; c++, lCounter++ )
     {
@@ -314,7 +354,50 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
                           std::make_pair( length, 1. ),
                           lCounter, lateralRoot, conPoints, 4 );
     }
-    */
+  }
+  else if( dataset == "Average6" )
+  {
+    // 6 cells in total
+    for( std::size_t t = 0; t < 2; t++ )
+      for( std::size_t b = 0; b < 2; b++, lCounter++ )
+      {
+        double u = 1./4. + b*1./4.;
+        double v = 0. + t*1./2.;
+        double length = 1./4.;
+          
+        this->generateCell( T, std::make_pair( u, v ),
+                            std::make_pair( length, 1./2. ),
+                            lCounter, lateralRoot, conPoints, 4 );
+      }
+      
+    for( std::size_t c = 0; c < 2; c++, lCounter++ )
+    {
+      double u = 0.;
+      if( c == 1 )
+        u = 3./4.;
+      double v = 0.;
+      double length = 1./4.;
+        
+      // set wall for which an additional junction has to be included
+      std::size_t addJunctionToWall;
+      // right wall
+      if( c == 0 )
+        addJunctionToWall = 2;
+      // left wall
+      else if( c == 1 )
+        addJunctionToWall = 0;
+      // none
+      else
+        addJunctionToWall = 4;
+      
+      this->generateCell( T, std::make_pair( u, v ),
+                          std::make_pair( length, 1. ),
+                          lCounter, lateralRoot,
+                          conPoints, addJunctionToWall );
+    }
+  }
+  else if( dataset == "Average8" )
+  {
     // 8 cells in total
     for( std::size_t t = 0; t < 2; t++ )
       for( std::size_t b = 0; b < 2; b++, lCounter++ )

@@ -132,7 +132,7 @@ public:
     std::size_t t = 300;
     if( _initialCellsOfRealData == "130508_raw" )
       t = 350;
-    else if( _initialCellsOfRealData == "Average" )
+    else if( _initialCellsOfRealData.compare( 0, 7, "Average") == 0 )
       t = 150;
     
     //std::cout << "LOD: " << _lod << std::endl;
@@ -202,7 +202,7 @@ public:
       
       std::vector<TrianglePoint> tps;
       _VLRDataPointSurface.growStep( 0, tps );
-      
+        
       _surfaceClass.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
                                                     _initialCellsOfRealData,
                                                     _surfaceScale,
