@@ -29,9 +29,9 @@ averageOverData = 1;
 % render division orientations
 renderDivisions = 0;
 % render contour of cells
-renderContour = 0;
+renderContour = 1;
 % startIndex
-startI = 1;
+startI = 19;
 % endIndex
 endI = 20;
 % min and max index

@@ -28,11 +28,10 @@ while found == 0
   % numNormCells is really smaller than the total number of cells in the
   % data set
   if found == 0
-    if numNormCells < numTotalCells
-      epsilon = epsilon + 1;
-    else
-      numCellExists = 0;
-      break;
-    end
+    epsilon = epsilon + 1;
   end
+end
+
+if numTotalCells < numNormCells && epsilon > 5
+  numCellExists = 0;
 end

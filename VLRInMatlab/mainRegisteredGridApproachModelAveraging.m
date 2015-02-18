@@ -49,10 +49,6 @@ renderPrincipalComponents = 0;
 lineWidth = 1.2;
 % enable z overlapping
 overlapping = 1;
-renderCellRanges = 0;
-% only generate output images if the number of cells are within a desired
-% range
-cellRange = [ 20 40 60 80 100 120 140 ];
 % use triangulation based on delaunay or alpha shape
 % 1 -> delaunay
 % 2 -> alpha shape
@@ -121,35 +117,16 @@ camproj( 'orthographic' );
 [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, 'Ellipses', renderMasterFile, cView, 0 );
 
-if drawContour == 1
-  CONTOUR = [];
-end
-if drawAverageContour == 1
-  AVERAGECONTOUR = [];
-end
-if drawNuclei == 1
-  % ellipse instance
-  ELLIP = [];
-  ELLIPPATCH = [];
-end
-
-if includeContourPoints == 1
-  AV = [];
-  AVPATCH = [];
-end
-
-if drawAverageDelaunay == 1
-  TRI = [];
-end
-
-if drawAverageLines == 1
-  LINKING = [];
-end
-
-if renderPrincipalComponents == 1
-  % PC instance
-  P = [];
-end
+% drawing handles
+CONTOUR = [];
+AVERAGECONTOUR = [];
+ELLIP = [];
+ELLIPPATCH = [];
+AV = [];
+AVPATCH = [];
+TRI = [];
+LINKING = [];
+P = [];
 
 % path to image output
 imageDir = strcat( 'images/AllData/' );
@@ -205,55 +182,17 @@ for curI=startI:endI
   tileGrid = cell( rows*columns, 1 );
   nextTileGrid = cell( rows*columns, 1 );
   
-  if drawContour == 1
-    if ishandle( CONTOUR )
-      set( CONTOUR, 'Visible', 'off' );
-    end
-  end
+  % check handles and if they exist hide them for redrawing
+  hideHandle( CONTOUR );
+  hideHandle( AVERAGECONTOUR );
+  hideHandle( ELLIP );
+  hideHandle( ELLIPPATCH );
+  hideHandle( AV );
+  hideHandle( AVPATCH );
+  hideHandle( TRI );
+  hideHandle( LINKING );
+  hideHandle( P );
   
-  if drawAverageContour == 1
-    if ishandle( AVERAGECONTOUR )
-      set( AVERAGECONTOUR, 'Visible', 'off' );
-    end
-  end
-  
-  if drawNuclei == 1
-    if ishandle( ELLIP )
-      set( ELLIP, 'Visible', 'off' );
-    end
-    if ishandle( ELLIPPATCH )
-      set( ELLIPPATCH, 'Visible', 'off' );
-    end
-  end
-  
-  if includeContourPoints == 1
-    if ishandle( AV )
-      set( AV, 'Visible', 'off' );
-    end
-    if ishandle( AVPATCH )
-      set( AVPATCH, 'Visible', 'off' );
-    end
-  end
-  
-  if drawAverageDelaunay == 1
-    if ishandle( TRI )
-      set( TRI, 'Visible', 'off' );
-    end
-  end
-  
-  if drawAverageLines == 1
-    if ishandle( LINKING )
-      set( LINKING, 'Visible', 'off' );
-    end
-  end
-  
-  if renderPrincipalComponents == 1
-    if ishandle( P )
-      set( P, 'Visible', 'off' );
-    end
-  end
-  
-  % loop over all data sets
   allCurT = zeros( numData, 1 );
   allCells = zeros( numData, 1 );
   allCurCells = zeros( numData, 1 );
@@ -262,6 +201,7 @@ for curI=startI:endI
   % store the number of total cells at reg step
   numTotalOfCurCells = 0;
   
+  % loop over all data sets
   for dataIndex=startData:endData
     % get stored eigenvectors for the last time step to set the same
     % direction view for each time step
