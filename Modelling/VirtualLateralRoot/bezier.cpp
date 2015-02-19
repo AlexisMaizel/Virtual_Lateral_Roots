@@ -76,12 +76,44 @@ void Bezier::Load( const std::string bezFile )
     bIn >> buff; // next patch name
     transform (buff.begin(), buff.end(), buff.begin(), ::tolower);
   }
-  count = (unsigned int)pow((double)patchcount, 0.5); 
+  count = (unsigned int)pow((double)patchcount, 0.5);
   if(count*count != patchcount)
     cerr << "Bezier::Load:Error " << patchcount << 
                                  " patches loaded s/b power of 2" << endl; 
   else
     cerr << "Bezier::Load:Info " << patchcount << " patches loaded" << endl;
+}
+
+//----------------------------------------------------------------
+
+void Bezier::LoadGrowthBezier( const std::string bezFile,
+                               const std::size_t numPatches )
+{
+  ifstream bIn(bezFile.c_str());
+  if(!bIn) {
+    cerr << "Bezier::Bezier:Error opening " << bezFile << endl;
+    exit(1);
+  }
+  
+  unsigned int patchcount = 0;
+  while(bIn && patchcount < MAXPATCHES * MAXPATCHES)
+  {
+    float *pts = ptsV + PATCHMAP[patchcount] * PATCHSIZE;
+    for(unsigned int i = 0; i < PATCHPOINTS; i++)
+      for(unsigned int j = 0; j < PATCHPOINTS; j++)
+        for(int k = 0; k < 3; k++)
+          bIn >> *pts++;
+        
+    if( patchcount == numPatches )
+      break;
+    else
+      patchcount++;
+  }
+  
+  count = (unsigned int)pow((double)(patchcount), 0.5);
+  if(count*count != patchcount)
+    cerr << "Bezier::Load:Error " << patchcount << 
+                                 " patches loaded s/b power of 2" << endl;
 }
 
 //----------------------------------------------------------------
@@ -124,7 +156,7 @@ void Bezier::Interpolate( Bezier &src1, Bezier &src2,
 
 // Print out points (debugging)
 void Bezier::Print()
-{ 
+{
   cout << "Patch count " << count << endl;
   
   for(unsigned int k = 0; k < count * count; k++)
@@ -137,6 +169,14 @@ void Bezier::Print()
     }
     cout << endl;
   }
+  
+  /*
+  for( std::size_t i = 0; i < MAXPATCHES * MAXPATCHES * PATCHSIZE; i++ )
+  {
+    std::cout << ptsV[i] << " ";
+    if( (i+1)%(PATCHPOINTS*3) == 0 )
+      std::cout << std::endl;
+  }*/
 }
 
 //----------------------------------------------------------------
@@ -285,6 +325,69 @@ void Bezier::Load( const std::string bezFile )
     getline( bIn, line );
     getline( bIn, line );
 
+    // read first line of patch
+    getline( bIn, line );
+    std::stringstream ss( line );
+    
+    // read points: TODO: at the moment this is applied for having only
+    // one or 4 bezier patches
+    for(std::size_t i = 0; i < PATCHPOINTS; i++)
+    { 
+      for(std::size_t j = 0; j < PATCHPOINTS; j++)
+      {
+        std::size_t xIndex, yIndex;
+        
+        switch( patchcount )
+        {
+          case 0: default: xIndex = j; yIndex = i; break;
+          case 1: xIndex = PATCHPOINTS - 1 + j; yIndex = i; break;
+          case 2: xIndex = j; yIndex = PATCHPOINTS - 1 + i; break;
+          case 3: xIndex = PATCHPOINTS - 1 + j; yIndex = PATCHPOINTS - 1 + i; break;
+        }
+        
+        double x,y,z;
+        ss >> x >> y >> z;
+        Point3d pos( x, y, z );
+        _cpMatrix.at(yIndex).at(xIndex) = pos;
+      }
+      
+      getline( bIn, line );
+      ss.str( line );
+    }
+    
+    patchcount++;
+  }
+
+  count = (unsigned int)pow((double)patchcount, 0.5); 
+  //this->Print();
+  
+  bIn.close();
+}
+
+//----------------------------------------------------------------
+
+void Bezier::LoadGrowthBezier( const std::string bezFile,
+                               const std::size_t numPatches )
+{
+  std::ifstream bIn( bezFile.c_str() );
+  if(!bIn)
+  {
+    cerr << "Bezier::Bezier:Error opening " << bezFile << endl;
+    exit(1);
+  }
+
+  std::string line;
+  
+  const std::size_t elements = 3*sqrt(numPatches) + 1;
+  
+  // initialize control points matrix
+  _cpMatrix.resize( elements );
+  for( std::size_t r=0;r<elements;r++ )
+    _cpMatrix.at(r).resize( elements );
+  
+  unsigned int patchcount = 0;
+  while( bIn && patchcount < numPatches )
+  {
     // read first line of patch
     getline( bIn, line );
     std::stringstream ss( line );

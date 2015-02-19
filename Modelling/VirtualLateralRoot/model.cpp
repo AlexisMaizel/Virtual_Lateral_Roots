@@ -39,6 +39,7 @@ public:
   bool useDecussationDivision;
   double _angleThreshold;
   std::size_t surfaceType;
+  bool _bezierGrowthSurface;
   double _surfaceScale;
   bool _useAutomaticContourPoints;
   
@@ -73,6 +74,7 @@ public:
     parms("Main", "ExportLineage", _exportLineage);
     parms("Main", "ExportDivisionProperties", _exportDivisionProperties);
     parms("Main", "SurfaceType", surfaceType);
+    parms("Main", "BezierGrowthSurface", _bezierGrowthSurface);
     parms("Main", "SurfaceScale", _surfaceScale);
     parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
 
@@ -139,7 +141,8 @@ public:
     
     _surfaceClass.init( _lod, _lineageFileName, _exportLineage, t, _sType );
     
-    _VLRBezierSurface.init( parms, "Surface", _initialCellsOfRealData );
+    _VLRBezierSurface.init( parms, "Surface",
+                            _bezierGrowthSurface, _initialCellsOfRealData );
     
     // set name strings
     _lineageFileName = "/tmp/model" + _initialCellsOfRealData + ".csv";
@@ -690,7 +693,12 @@ public:
     {
       //T.drawBorders = false;
       if( surfaceType == 0 )
-        T.cellWallWidth = 0.001;//0.01;
+      {
+        if( !_bezierGrowthSurface )
+          T.cellWallWidth = 0.001;
+        else
+          T.cellWallWidth = 0.1;
+      }
       else
         T.cellWallWidth = 0.2;
           

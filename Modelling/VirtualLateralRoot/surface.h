@@ -21,7 +21,7 @@ const double PIx2 = PI + PI;   // 2 PI
 
 const double DX = .0000001;//.00000001;
 const double MAXSEARCHSTEPS = 1000;
-const int MAXSURF = 10;
+const int MAXSURF = 1000;
 
 class SurfacePoint {
   public:
@@ -56,14 +56,18 @@ class Surface {
     Surface(){};
     Surface( util::Parms &parms,
              string section,
+             const bool bezierGrowthSurface,
              const std::string &surfaceName );
     
     void init( util::Parms &parms,
                string section,
+               const bool bezierGrowthSurface,
                const std::string &surfaceName );
     
     ~Surface() {};
 
+    void determineSurfaceHeaderProperties( const std::string bezFile );
+    
     // Create zero point
     void Zero(SurfacePoint &p);
 
@@ -103,6 +107,10 @@ class Surface {
     //BezierSurface surfCurr;                    // Current surfaces
 
     double time;                        // Time
+    
+    bool _bezierGrowthSurface;
+    std::size_t _numSurfaces;
+    std::size_t _numPatches;
 };
 
 #endif

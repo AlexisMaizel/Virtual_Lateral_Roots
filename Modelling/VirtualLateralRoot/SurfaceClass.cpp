@@ -36,9 +36,6 @@ void SurfaceClass::initModelBasedOnBezier( MyTissue &T,
                                            const std::size_t cellNumber,
                                            Surface &lateralRoot )
 {
-  // render eight cells at the beginning for which each pair shares an
-  // area ratio of 2:1. The bigger cell will always be located at the left
-  // and right boundary
   std::size_t lCounter = 1;
   switch( cellNumber )
   {
@@ -747,9 +744,10 @@ void SurfaceClass::generateCell( MyTissue &T,
   {
     polygon.push_back( j->sp.Pos() );
     center += j->sp.Pos();
+    j->sp.printPos();
   }
   center /= polygon.size();
-
+  
   // store initial area for current cell
   c->center = center;
   c->initialArea = geometry::polygonArea(polygon);

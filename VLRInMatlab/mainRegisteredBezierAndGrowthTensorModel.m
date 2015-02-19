@@ -15,20 +15,20 @@ colors = [ [ 1 0 1 ]; [ 1 1 0 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ]; [ 0 1 1 ]; [ 0
 % 3 -> radial
 cView = 2;
 % startIndex
-startI = 10;
+startI = 1;
 % endIndex
-endI = 10;
+endI = 100;
 % step size
 deltaI = 1;
 % min and max index
 minI = 1;
-maxI = 10;
+maxI = 100;
 % draw point set as ellipses at curI
 drawNuclei = 0;
 % draw contour of cell nuclei at curI
 drawContour = 1;
 % export as image file
-exportImages = 1;
+exportImages = 0;
 % exclude nuclei outliers
 excludeOutliers = 1;
 % render only master file?
@@ -152,6 +152,19 @@ lastMaxPos = [ 300 65 0];
 % at start initialS = curS
 initialS = curS;
 
+% path to image output
+surfaceDir = strcat( 'bezierGrowthSurfaces/' );
+mkdir( char(surfaceDir) );
+
+% export initial bezier surface with header file
+fileName = strcat( surfaceDir, 'header.txt' );
+fileId = fopen( char(fileName), 'w' );
+% number of surfaces +1 because the intial surface is also included
+fprintf( fileId, '%1d\n', endI-startI+2 );
+% number of patches for each surface
+fprintf( fileId, '%1d\n', numPatches );
+exportBezierSurface( 0, curS, surfaceDir );
+
 if considerAllCells == 0
   regLastTimeStep = [ 269 277 230 344 213 ];
 else
@@ -192,7 +205,7 @@ for curI=startI:deltaI:endI
       initTransformations( dataStr( 1, dataIndex ), cView, registerBase );
     
     % get the corresponding time steps for the registered step
-    [ curT, numNormCells, numCellExists ] = getCorrespondingTimeStep( curI, minI, maxI,...
+    [ curT, numNormCells ] = getCorrespondingTimeStep( curI, minI, maxI,...
       maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
       numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
     
@@ -200,15 +213,15 @@ for curI=startI:deltaI:endI
     allCurT( dataIndex, 1 ) = curT;
     allCells( dataIndex, 1 ) = numCellsPerTimeStep{dataIndex}(curT,1);
     
-    [ nextT, numNextNormCells, numCellExists ]  = getCorrespondingTimeStep( curI+1, minI, maxI,...
-      maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
-      numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
-    
-    % only continue with this data set if the current number of cells does
-    % not exceed the real number of cells in the current data set
-    if numCellExists == 0
+    % check if numNormCells is greater or equal to the maximal number of
+    % total cells
+    if numNormCells > numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1)
       continue;
     end
+    
+    [ nextT, numNextNormCells ]  = getCorrespondingTimeStep( curI+1, minI, maxI,...
+      maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
+      numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
     
     % required vectors to store current positions and cell IDs
     curPos = [];
@@ -368,11 +381,13 @@ for curI=startI:deltaI:endI
         end
       end
     end
-    
   end
  
   % update boundary control points of bezier surface
   [Q, curS] = updateBezierSurfaceBoundary( curI/maxI, initialS, finalS, curS, numPatches );
+  
+  % export bezier surface
+  exportBezierSurface( curI, curS, surfaceDir );
   
   if renderBezier == 1
     hold on;

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 
 #include <cstdio>
 #include <cmath>
@@ -48,44 +49,90 @@ Point3d SurfacePoint::Normal()
 
 Surface::Surface( util::Parms &parms,
                   string section,
+                  const bool bezierGrowthSurface,
                   const std::string &surfaceName )
 {
-  this->init( parms, section, surfaceName );
+  this->init( parms, section, bezierGrowthSurface, surfaceName );
 }
 
 //----------------------------------------------------------------
 
 void Surface::init( util::Parms &parms,
                     string section,
+                    const bool bezierGrowthSurface,
                     const std::string &surfaceName )
 {
   string surffile;
 
   time = 0;
   
+  _bezierGrowthSurface = bezierGrowthSurface;
+  
   // Load surfaces 
   parms(section.data(), "Surfaces", surfaces);
   parms(section.data(), "SurfTimeScale", surfTimeScale);
   parms(section.data(), "SurfMaxDist", surfMaxDist);
-  for(int i = 0; i < surfaces; i++) {
-    // Bezier surface
-    std::ostringstream key;
-    key << "Surface" << i;
-    parms(section.data(), key.str().data(), surffile);
-    surface[i].Load(surffile);
-    //std::string name = surfaceName + std::to_string(i+1) + ".mgxv";
-    //surface[i].Load( name );
+  if( !_bezierGrowthSurface )
+  {
+    for(int i = 0; i < surfaces; i++) {
+      // Bezier surface
+      std::ostringstream key;
+      key << "Surface" << i;
+      parms(section.data(), key.str().data(), surffile);
+      surface[i].Load(surffile);
+      // code to load bezier surface generated in MorphoGraphX
+      //std::string name = surfaceName + std::to_string(i+1) + ".mgxv";
+      //surface[i].Load( name );
 
-    // Scaling constant
-    key.str("");
-    key << "SurfaceScale" << i;
-    parms(section.data(), key.str().data(), surfScale[i]);
+      // Scaling constant
+      key.str("");
+      key << "SurfaceScale" << i;
+      parms(section.data(), key.str().data(), surfScale[i]);
 
-    // Time constant
-    key.str("");
-    key << "SurfaceTime" << i;
-    parms(section.data(), key.str().data(), surfTime[i]);
-  }  
+      // Time constant
+      key.str("");
+      key << "SurfaceTime" << i;
+      parms(section.data(), key.str().data(), surfTime[i]);
+    }
+  }
+  else
+  {
+    std::string source = "/home/necrolyte/Data/VLR/Virtual_Lateral_Roots/Modelling/VirtualLateralRoot/bezierGrowthSurfaces/";
+    this->determineSurfaceHeaderProperties( source + "header.txt" );
+    
+    for( std::size_t i = 0; i < _numSurfaces; i++ )
+    {
+      std::string digit;
+      if( i < 10 )
+        digit = "_00";
+      else if( i < 100 )
+        digit = digit = "_0";
+      else
+        digit = digit = "_";
+      
+      digit += std::to_string( i );
+      std::string fileName = source + "bezierTensorSurface";
+      fileName += digit;
+      fileName += ".txt";
+      
+      // load bezier growth surface
+      surface[i].LoadGrowthBezier( fileName, _numPatches );
+    }
+  }
+}
+
+//----------------------------------------------------------------
+
+// only for bezier surfaces based on growth tensor
+void Surface::determineSurfaceHeaderProperties( const std::string bezFile )
+{
+  std::ifstream bIn( bezFile.c_str() );
+  if(!bIn) {
+    cerr << "Bezier::Bezier:Error opening " << bezFile << endl;
+    exit(1);
+  }
+  bIn >> _numSurfaces;
+  bIn >> _numPatches;
 }
 
 //----------------------------------------------------------------
@@ -178,36 +225,66 @@ bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
 // Advance time
 void Surface::GrowStep(double dt)
 {
-  time += dt * surfTimeScale;
-  int surf = 1;
-  double surftime = 0;
-  //while(time > surftime + surfTime[surf] && surf < surfaces - 1)
-  //  surftime += surfTime[surf++ - 1];
-
-  // setting for considering three bezier surfaces
-  /*
-  double halfTime = surfTime[surfaces-1]/2.;
-  double maxTime = surfTime[surfaces-1];
-	
-  if( time < halfTime )
+  if( !_bezierGrowthSurface )
   {
-    surf = 1;
+    time += dt * surfTimeScale;
+    int surf = 1;
+    double surftime = 0;
+    //while(time > surftime + surfTime[surf] && surf < surfaces - 1)
+    //  surftime += surfTime[surf++ - 1];
+
+    // setting for considering three bezier surfaces
+    /*
+    double halfTime = surfTime[surfaces-1]/2.;
+    double maxTime = surfTime[surfaces-1];
+    
+    if( time < halfTime )
+    {
+      surf = 1;
+      surfCurr.Interpolate( surface[surf-1], surface[surf], 
+                            surfScale[surf-1], surfScale[surf],
+                            (time - surftime)/halfTime );
+    }
+    else
+    {
+      surf = 2;
+      surfCurr.Interpolate( surface[surf-1], surface[surf], 
+                            surfScale[surf-1], surfScale[surf],
+                            (time - surftime - halfTime)/halfTime );
+    }
+    */
+    
     surfCurr.Interpolate( surface[surf-1], surface[surf], 
                           surfScale[surf-1], surfScale[surf],
-                          (time - surftime)/halfTime );
+                          (time - surftime)/surfTime[surf]);
   }
   else
   {
-    surf = 2;
-    surfCurr.Interpolate( surface[surf-1], surface[surf], 
-                          surfScale[surf-1], surfScale[surf],
-                          (time - surftime - halfTime)/halfTime );
+    time += dt;
+    if( time > 1. )
+      time = 1.;
+    // determine the pair of considered surfaces depending on
+    // the current time
+    std::size_t min = 0;
+    std::size_t max = _numSurfaces-1;
+    double temp = (1.-time)*min + time*max;
+    std::size_t curSurface = (std::size_t)temp;
+    double tFactor = temp - (double)curSurface;
+   
+    std::cout << "time: " << time << std::endl;
+    /*
+    std::cout << "curSurface: " << curSurface << std::endl;
+    std::cout << "tFactor: " << tFactor << std::endl;
+    */
+    
+    if( curSurface != _numSurfaces-1 )
+    {
+      surfCurr.Interpolate( surface[curSurface], surface[curSurface+1], 
+                            1., 1., tFactor);
+    }
+    else
+      surfCurr = surface[curSurface];
   }
-  */
-  
-  surfCurr.Interpolate( surface[surf-1], surface[surf], 
-                        surfScale[surf-1], surfScale[surf],
-                        (time - surftime)/surfTime[surf]);
 }
 
 //----------------------------------------------------------------

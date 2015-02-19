@@ -1,13 +1,14 @@
 [Main]
 Dt: 0.002 // 0.002 // how fast the shape of the end stage is reached, default 0.1
 Growth: .1  // not considered in code
-InitialCellNumber: 6 // initial cell number designed for VLR: 1, 2, 6 or 8
-InitialCellsOfRealData: Average6 // valid entries are:
+InitialCellNumber: 1 // initial cell number designed for VLR: 1, 2, 6 or 8
+InitialCellsOfRealData: none // valid entries are:
 // none, 120830_raw, 121204_raw_2014, 121211_raw, 130508_raw, 130607_raw, Average2, Average4, Average6, Average8
 SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
 ExportLineage: true // export lineage information of cells
 ExportDivisionProperties: true // export division information of cells
-SurfaceType: 1 // type of surface: 0 -> bezier surface, 1 -> surface based on triangulation of real data
+SurfaceType: 0 // type of surface: 0 -> bezier surface, 1 -> surface based on triangulation of real data
+BezierGrowthSurface: true // if the surface type is bezier then it can be chosen to choose the generated bezier surface that includes the growth tensor information
 SurfaceScale: 1 // scale factor for surface based on real data points
 UseAutomaticContourPoints: false // use contour points that are generated automatically
 

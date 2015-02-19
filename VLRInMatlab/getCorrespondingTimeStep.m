@@ -1,4 +1,4 @@
-function [ curT, numNormCells, numCellExists ] = ...
+function [ curT, numNormCells ] = ...
   getCorrespondingTimeStep( curI, minI, maxI, maxT, numCellsPerTimeStep, numTotalCells, considerAllCells )
 
 % only continue with this time step that is synchronized in
@@ -9,7 +9,8 @@ if considerAllCells == 1
 else
   numRegisteredCellsEnd = 143;
 end
-numNormCells = getNormalizedCellNumber( curI, numRegisteredCellsStart, numRegisteredCellsEnd, minI, maxI );
+numNormCells = getNormalizedCellNumber( curI, numRegisteredCellsStart,...
+  numRegisteredCellsEnd, minI, maxI );
 curT = 1;
 epsilon = 1;
 found = 0;
@@ -19,7 +20,6 @@ while found == 0
         && numNormCells + epsilon > numCellsPerTimeStep(j,1)
       curT = j;
       found = 1;
-      numCellExists = 1;
       break;
     end
   end
@@ -30,8 +30,4 @@ while found == 0
   if found == 0
     epsilon = epsilon + 1;
   end
-end
-
-if numTotalCells < numNormCells && epsilon > 5
-  numCellExists = 0;
 end

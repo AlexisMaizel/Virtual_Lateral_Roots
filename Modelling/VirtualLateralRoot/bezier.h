@@ -22,7 +22,7 @@ typedef util::Vector<3, double> Point3d;
 const unsigned int PATCHPOINTS = 4;
 const unsigned int PATCHSIZE = PATCHPOINTS * PATCHPOINTS * 3;
 
-// MaxPatche is square of this 
+// MaxPatches is square of this 
 const unsigned int MAXPATCHES = 4;
 // Patch editor writes them this way.
 const unsigned int PATCHMAP[MAXPATCHES * MAXPATCHES] = 
@@ -37,6 +37,10 @@ class Bezier {
 
     // Load from file written by interactice editor.
     void Load( const std::string bezFile );
+    
+    // Load bezier surface with included growth tensor information from file
+    void LoadGrowthBezier( const std::string bezFile,
+                           const std::size_t numPatches );
     
     // Copy and/or scale
     void Scale( Bezier &b, double Scale );
