@@ -1,6 +1,7 @@
 function [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep,...
   totalMinAxes, totalMaxAxes, cellFileMap ] =...
-  prepareData( dataStr, startData, endData, numData, visualizationType, renderMasterFile, cView, storeOnlyLastPrecursorInfo )
+  prepareData( dataStr, startData, endData, numData, visualizationType,...
+  renderMasterFile, cView, excludeOutliers, storeOnlyLastPrecursorInfo )
 tic
 % cellData is the main array with all relevant information
 % for the further analysis:
@@ -255,9 +256,30 @@ for dataIndex=startData:endData
   % as well as determine center of each position set at a time step
   for j=1:dimData( dataIndex )
     timeStep = cellDatas{dataIndex}{j, 5};
-    numCellsPerTimeStep{dataIndex}(timeStep, 1) = numCellsPerTimeStep{dataIndex}(timeStep, 1) + 1;
     pos = [ cellDatas{dataIndex}{j, 2} cellDatas{dataIndex}{j, 3} cellDatas{dataIndex}{j, 4} ];
     centerPosPerTimeStep{dataIndex}(timeStep, :) = centerPosPerTimeStep{dataIndex}(timeStep, :) + pos;
+    % this is a special case for the data set 130508 for which we
+    % ignore the two cells that arise in the master cell file with
+    % lineage ID 5
+    if excludeOutliers == 1
+      if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) &&...
+          cellDatas{dataIndex}{j, 6} == 5
+        continue;
+      end
+%       if strcmp( dataStr( 1, dataIndex ), '130607_raw' ) &&...
+%           cellDatas{ dataIndex }{ j, 6 } == 6 &&...
+%           ( cellDatas{ dataIndex }{ j, 1 } == 179 ||...
+%           cellDatas{ dataIndex }{ j, 1 } == 118 )
+%         continue;
+%       end
+%       
+%       if strcmp( dataStr( 1, dataIndex ), '121211_raw' ) &&...
+%           cellDatas{ dataIndex }{ j, 6 } == 13 &&...
+%           cellDatas{ dataIndex }{ j, 1 } == 413
+%         continue;
+%       end
+    end
+    numCellsPerTimeStep{dataIndex}(timeStep, 1) = numCellsPerTimeStep{dataIndex}(timeStep, 1) + 1;
   end
   
   for t=1:maxT( dataIndex )

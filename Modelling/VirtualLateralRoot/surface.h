@@ -19,7 +19,7 @@ const int CONTOUR = 1;
 const double PI = 3.14159265358979323846;
 const double PIx2 = PI + PI;   // 2 PI
 
-const double DX = .0000001;//.00000001;
+const double DX = .0000001;//.0000001;
 const double MAXSEARCHSTEPS = 1000;
 const int MAXSURF = 1000;
 
@@ -33,8 +33,8 @@ class SurfacePoint {
     Point3d Normal();
     double getU() const { return u; }
     double getV() const { return v; }
-    void printPos() const
-    { std::cout << "Point: [" << pos.i() << ", "
+    void printPos( const std::string name = "Point" ) const
+    { std::cout << name << ": [" << pos.i() << ", "
       << pos.j() << ", " << pos.k() << "]" << std::endl; }
 
     friend std::ostream& operator<<(std::ostream& os, const SurfacePoint &sp) {

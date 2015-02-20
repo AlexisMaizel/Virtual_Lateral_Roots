@@ -163,7 +163,6 @@ void Surface::InitPoint(SurfacePoint &p, double u, double v)
 // the corresponding point for (u,v) is minimal to the desired point cp
 bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
 {
-  // TODO
   // Initial guess for p
   p.u = sp.u;
   p.v = sp.v;
@@ -184,14 +183,14 @@ bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
     CalcPos(u1);
     CalcPos(u2);
     du = (norm(cp - u1.pos) - norm(cp - u2.pos))/fabs(u1.u - u2.u);
-
+    
     SurfacePoint v1 = p, v2 = p;
     v1.v -= DX;
     v2.v += DX;
     CalcPos(v1);
     CalcPos(v2);
     dv = (norm(cp - v1.pos) - norm(cp - v2.pos))/fabs(v1.v - v2.v);
-
+    
     // Do line minimization
     double step = .01;
     while(step > DX)
@@ -271,8 +270,8 @@ void Surface::GrowStep(double dt)
     std::size_t curSurface = (std::size_t)temp;
     double tFactor = temp - (double)curSurface;
    
-    std::cout << "time: " << time << std::endl;
     /*
+    std::cout << "time: " << time << std::endl;
     std::cout << "curSurface: " << curSurface << std::endl;
     std::cout << "tFactor: " << tFactor << std::endl;
     */

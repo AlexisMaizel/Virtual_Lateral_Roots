@@ -95,19 +95,22 @@ void Bezier::LoadGrowthBezier( const std::string bezFile,
     exit(1);
   }
   
+  for( std::size_t i = 0; i < MAXPATCHES * MAXPATCHES * PATCHSIZE; i++ )
+    ptsV[i] = 0.;
+  
   unsigned int patchcount = 0;
   while(bIn && patchcount < MAXPATCHES * MAXPATCHES)
   {
+    if( !bIn || patchcount == numPatches )
+      break;
+    
     float *pts = ptsV + PATCHMAP[patchcount] * PATCHSIZE;
     for(unsigned int i = 0; i < PATCHPOINTS; i++)
       for(unsigned int j = 0; j < PATCHPOINTS; j++)
         for(int k = 0; k < 3; k++)
           bIn >> *pts++;
-        
-    if( patchcount == numPatches )
-      break;
-    else
-      patchcount++;
+    
+    patchcount++;
   }
   
   count = (unsigned int)pow((double)(patchcount), 0.5);
@@ -158,7 +161,7 @@ void Bezier::Interpolate( Bezier &src1, Bezier &src2,
 void Bezier::Print()
 {
   cout << "Patch count " << count << endl;
-  
+  /*
   for(unsigned int k = 0; k < count * count; k++)
   {
     for(int i = 0; i < 16; i++)
@@ -168,15 +171,15 @@ void Bezier::Print()
       cout << endl;
     }
     cout << endl;
-  }
+  }*/
   
-  /*
+  
   for( std::size_t i = 0; i < MAXPATCHES * MAXPATCHES * PATCHSIZE; i++ )
   {
     std::cout << ptsV[i] << " ";
     if( (i+1)%(PATCHPOINTS*3) == 0 )
       std::cout << std::endl;
-  }*/
+  }
 }
 
 //----------------------------------------------------------------
@@ -220,6 +223,8 @@ Point3d Bezier::EvalCoord( double u, double v )
   // Find correct patch
   float *pts = ptsV + (iv * MAXPATCHES + iu) * PATCHSIZE;
 
+  //std::cout << "u: " << u << " v: " << v << " iu: " << iu << " iv: " << iv << std::endl;
+  
   // Evaluate
   double x = 0, y = 0, z = 0;
   for(unsigned int j = 0; j < PATCHPOINTS; j++)
@@ -234,6 +239,7 @@ Point3d Bezier::EvalCoord( double u, double v )
       z += s * *pts++;
     }
   Point3d p(x, y, z);
+  //std::cout << p << std::endl;
   return(p);
 }
 

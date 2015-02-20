@@ -459,7 +459,8 @@ while curI < endI-deltaI+1
       nc2 = 1;
       for j=1:dimData( dataIndex )
         if cellDatas{ dataIndex }{ j, 5 } == curTN(dataIndex)
-          pos = [ cellDatas{ dataIndex }{ j, 2 } cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
+          pos = [ cellDatas{ dataIndex }{ j, 2 }...
+            cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
           matPos2(nc2, :) = pos;
           cellIds2(nc2, :) = cellDatas{ dataIndex }{ j, 1 };
           cellPrecursors2{nc2} = cellDatas{ dataIndex }{ j, 8 };
@@ -482,13 +483,15 @@ while curI < endI-deltaI+1
       nc2 = 1;
       for j=1:dimData( dataIndex )
         if cellDatas{ dataIndex }{ j, 5 } == curTC(dataIndex)
-          pos = [ cellDatas{ dataIndex }{ j, 2 } cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
+          pos = [ cellDatas{ dataIndex }{ j, 2 }...
+            cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
           matPos1(nc1, :) = pos;
           cellIds1(nc1, :) = cellDatas{ dataIndex }{ j, 1 };
           nc1 = nc1 + 1;
         end
         if cellDatas{ dataIndex }{ j, 5 } == curTN(dataIndex)
-          pos = [ cellDatas{ dataIndex }{ j, 2 } cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
+          pos = [ cellDatas{ dataIndex }{ j, 2 }...
+            cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
           matPos2(nc2, :) = pos;
           cellIds2(nc2, :) = cellDatas{ dataIndex }{ j, 1 };
           cellPrecursors2{nc2} = cellDatas{ dataIndex }{ j, 8 };

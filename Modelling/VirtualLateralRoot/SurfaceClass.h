@@ -41,7 +41,8 @@ public:
                      const std::pair<double, double> &start,
                      const std::pair<double, double> &length,
                      const std::size_t treeId,
-                     Surface &lateralRoot );
+                     Surface &lateralRoot,
+                     const std::size_t addJunctionToWall = 4 );
   
   void generateCell( MyTissue &T,
                      const std::pair<double, double> &start,
@@ -49,7 +50,7 @@ public:
                      const std::size_t treeId,
                      RealSurface &lateralRoot,
                      const std::vector<Point3d> &conPoints,
-                     const std::size_t addJunctionToWall,
+                     const std::size_t addJunctionToWall = 4,
                      const bool oneCell = false );
   
   Point3d determinePos( const std::pair<double, double> &coord,
