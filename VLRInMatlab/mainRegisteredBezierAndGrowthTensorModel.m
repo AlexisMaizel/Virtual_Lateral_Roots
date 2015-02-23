@@ -15,7 +15,7 @@ colors = [ [ 1 0 1 ]; [ 1 1 0 ]; [ 1 0 0 ]; [ 0 1 0 ]; [ 0 0 1 ]; [ 0 1 1 ]; [ 0
 % 3 -> radial
 cView = 2;
 % startIndex
-startI = 10;
+startI = 1;
 % endIndex
 endI = 10;
 % step size
@@ -24,9 +24,9 @@ deltaI = 1;
 minI = 1;
 maxI = 10;
 % draw point set as ellipses at curI+deltaI
-renderNuclei = 1;
+renderNuclei = 0;
 % draw contour of cell nuclei at curI+deltaI
-renderContour = 0;
+renderContour = 1;
 % export as image file
 exportImages = 1;
 % exclude nuclei outliers
@@ -45,7 +45,7 @@ overlapping = 1;
 % 2 -> alpha shape
 triangulationType = 1;
 % term that should be included in the time evolution
-renderTermType = 3;
+renderTermType = 1;
 termTypeStr = { 'B' 'T' 'All' };
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
@@ -91,6 +91,8 @@ cameratoolbar( 'SetCoordSys', 'none' );
 % show camera toolbar by default
 cameratoolbar( 'Show' );
 
+numPlots = 3;
+
 grid off;
 xlabel('X');
 ylabel('Y');
@@ -110,6 +112,12 @@ ELLIPPATCH = [];
 BEZIER = [];
 BEZIERPOINTS = [];
 BEZIERPOINTSPATCH = [];
+L = [];
+LP = [];
+LN = [];
+SD = [];
+SDP = [];
+SDN = [];
 
 % path to image output
 imageDir = strcat( 'images/AllData/' );
@@ -132,29 +140,28 @@ set( gcf, 'Renderer', 'OpenGL' );
 set( gcf,'nextplot','replacechildren' );
 set( gcf, 'color', [ 1 1 1 ] );
 
+for pl=1:numPlots
+subplot( numPlots, 1, pl );
 % initialize 2D grid
 [ rows, columns ] =...
   generate2DGrid(...
   [totalMinAxes(1) totalMinAxes(2)],...
   [totalMaxAxes(1) totalMaxAxes(2)], resGrid );
-
-% line render index for each normalized step
-lineRenderIndex = 1;
+end
 
 % start measuring of elapsed time
 tic
 
-% initialization of bezier surface
+% bezier surface properties
 initialMinPos = [ -170 -30 0 ];
 initialMaxPos = [ 175 0 0];
 lastMinPos = [ -280 -50 0 ];
 lastMaxPos = [ 300 65 0];
+% initialization of bezier surface
 [ curS, finalS, Q ] = initializeBezierSurface( numPatches, initialMinPos,...
   initialMaxPos, bezierOffset );
 % at start initialS = curS
 initialS = curS;
-
-% path to image output
 surfaceDir = strcat( 'bezierGrowthSurfaces/' );
 mkdir( char(surfaceDir) );
 
@@ -165,7 +172,7 @@ fileId = fopen( char(fileName), 'w' );
 fprintf( fileId, '%1d\n', endI-startI+2 );
 % number of patches for each surface
 fprintf( fileId, '%1d\n', numPatches );
-exportBezierSurface( 0, curS, surfaceDir );
+exportBezierSurface( 0, initialS, surfaceDir );
 
 if considerAllCells == 0
   regLastTimeStep = [ 269 277 230 344 213 ];
@@ -175,10 +182,6 @@ else
 end
 
 % this variable is set to zero after the first traversal of the loop
-% since it indicated the begin of the loop; this is required in order to
-% set the information of the next time step to the infos of the current
-% one in each time step which prevent redundant computations, but this is
-% valid for all loop traversals except the first one
 begin = 1;
 
 % the variables of two successive time steps are added a 'C' (Current)
@@ -217,7 +220,7 @@ numTotalLinksN = zeros( numData, 1 );
 numTotalAveragedLinks = zeros( numData, 1 );
 
 % loop over all registered time steps
-for curI=startI:deltaI:endI
+for curI=startI:deltaI:endI-1
   % check handles and if they exist hide them for redrawing
   hideHandle( CONTOUR );
   hideHandle( ELLIP );
@@ -225,6 +228,12 @@ for curI=startI:deltaI:endI
   hideHandle( BEZIER );
   hideHandle( BEZIERPOINTS );
   hideHandle( BEZIERPOINTSPATCH );
+  hideHandle( L );
+  hideHandle( LP );
+  hideHandle( LN );
+  hideHandle( SD );
+  hideHandle( SDP );
+  hideHandle( SDN );
   
   % TODO
   % initialize tile grid for storing start and end points of longest
@@ -243,13 +252,25 @@ for curI=startI:deltaI:endI
   % tile grid for storing the average values of magnitudes
   tileGridM = cell( rows*columns, 1 );
   
-  % counter for changing control points
-  numCP = 1;
   % number of total cells per step
-  numTotalCells = 1;
+  nucleiCounter = 1;
+  contourCounter = 1;
+  bezierCounter = 1;
+  bezierPatchCounter = 1;
+  lineDeformationCounter = 1;
   
-  allCells = zeros( numData, 1 );
-  allCurCells = zeros( numData, 1 );
+  curCellsC = zeros( numData, 1 );
+  curCellsN = zeros( numData, 1 );
+  allCellsC = zeros( numData, 1 );
+  allCellsN = zeros( numData, 1 );
+  
+  if begin == 1 && curI > 1
+    % if curI is beginning at a later time step then update the bezier
+    % surface depending on the current curI
+    [Q, curS] = updateBezierSurfaceBoundary( curI/maxI, initialS, finalS, curS, numPatches );
+    % export initial bezier surface
+    exportBezierSurface( curI, curS, surfaceDir );
+  end
   
   % min and max values for positions to initialize the bezier surface
   %minPos = [ 5000 5000 5000 ];
@@ -262,169 +283,94 @@ for curI=startI:deltaI:endI
     [ u, v, dir, planePos, TF ] =...
       initTransformations( dataStr( 1, dataIndex ), cView, registerBase );
     
-    % get the corresponding time steps for the registered step
-    if begin ~= 1
-      curTC(dataIndex) = curTN(dataIndex);
-      numNormCellsC = numNormCellsN;
-      [ curTN(dataIndex), numNormCellsN ] = getCorrespondingTimeStep( curI+deltaI, minI, maxI,...
-        maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
-        numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
-      % initial curI at start
-    else
-      [ curTC(dataIndex), numNormCellsC ] = getCorrespondingTimeStep( curI, minI, maxI,...
-        maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
-        numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
-      
-      [ curTN(dataIndex), numNormCellsN ] = getCorrespondingTimeStep( curI+deltaI, minI, maxI,...
-        maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
-        numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
-    end
+    % get the corresponding time steps for the registered steps
+    [ curTC(dataIndex), numNormCellsC ] = getCorrespondingTimeStep( curI, minI, maxI,...
+      maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
+      numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
+    
+    [ curTN(dataIndex), numNormCellsN ] = getCorrespondingTimeStep( curI+deltaI, minI, maxI,...
+      maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
+      numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
     
     % update cell information
-    if begin ~= 1
-      % number of cells for current and next time step and data set
-      numCellsC(dataIndex) = numCellsN(dataIndex);
-      numCellsN(dataIndex) = numCellsPerTimeStep{dataIndex}(curTN(dataIndex), 1);
-      matPosC{dataIndex} = matPosN{dataIndex};
-      matPosN{dataIndex} = [];
-      cellIdsC{dataIndex} = cellIdsN{dataIndex};
-      cellIdsN{dataIndex} = [];
-      
-      % matrix of positions for current time step
-      matPos2 = zeros( numCellsN(dataIndex), 3 );
-      cellIds2 = zeros( numCellsN(dataIndex), 3 );
-      cellPrecursors2 = cell( numCellsN(dataIndex),1 );
-      
-      nc2 = 1;
-      for j=1:dimData( dataIndex )
-        % this is a special case for the data set 130508 for which we
-        % ignore the two cells that arise in the master cell file with
-        % lineage ID 5
-        if excludeOutliers == 1
-          if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) &&...
-              cellDatas{dataIndex}{j, 6} == 5
-            continue;
-          end
-          %       if strcmp( dataStr( 1, dataIndex ), '130607_raw' ) &&...
-          %           cellDatas{ dataIndex }{ j, 6 } == 6 &&...
-          %           ( cellDatas{ dataIndex }{ j, 1 } == 179 ||...
-          %           cellDatas{ dataIndex }{ j, 1 } == 118 )
-          %         continue;
-          %       end
-          %
-          %       if strcmp( dataStr( 1, dataIndex ), '121211_raw' ) &&...
-          %           cellDatas{ dataIndex }{ j, 6 } == 13 &&...
-          %           cellDatas{ dataIndex }{ j, 1 } == 413
-          %         continue;
-          %       end
+    % number of cells for current and next time step and data set
+    numCellsC(dataIndex) = numCellsPerTimeStep{dataIndex}(curTC(dataIndex), 1);
+    numCellsN(dataIndex) = numCellsPerTimeStep{dataIndex}(curTN(dataIndex), 1);
+    
+    % matrix of positions for current time step
+    matPos1 = zeros( numCellsC(dataIndex), 3 );
+    matPos2 = zeros( numCellsN(dataIndex), 3 );
+    cellIds1 = zeros( numCellsC(dataIndex), 1 );
+    cellIds2 = zeros( numCellsN(dataIndex), 1 );
+    cellPrecursors2 = cell( numCellsN(dataIndex),1 );
+    
+    nc1 = 1;
+    nc2 = 1;
+    for j=1:dimData( dataIndex )
+      % this is a special case for the data set 130508 for which we
+      % ignore the two cells that arise in the master cell file with
+      % lineage ID 5
+      if excludeOutliers == 1
+        if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) &&...
+            cellDatas{dataIndex}{j, 6} == 5
+          continue;
         end
-        if cellDatas{ dataIndex }{ j, 5 } == curTN(dataIndex)
-          pos = [ cellDatas{ dataIndex }{ j, 2 }...
-            cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
-          matPos2(nc2, :) = pos;
-          cellIds2(nc2, :) = cellDatas{ dataIndex }{ j, 1 };
-          cellPrecursors2{nc2} = cellDatas{ dataIndex }{ j, 8 };
-          nc2 = nc2 + 1;
-        end
+        %       if strcmp( dataStr( 1, dataIndex ), '130607_raw' ) &&...
+        %           cellDatas{ dataIndex }{ j, 6 } == 6 &&...
+        %           ( cellDatas{ dataIndex }{ j, 1 } == 179 ||...
+        %           cellDatas{ dataIndex }{ j, 1 } == 118 )
+        %         continue;
+        %       end
+        %
+        %       if strcmp( dataStr( 1, dataIndex ), '121211_raw' ) &&...
+        %           cellDatas{ dataIndex }{ j, 6 } == 13 &&...
+        %           cellDatas{ dataIndex }{ j, 1 } == 413
+        %         continue;
+        %       end
       end
-    else
-      % number of cells for current and next time step and data set
-      numCellsC(dataIndex) = numCellsPerTimeStep{dataIndex}(curTC(dataIndex), 1);
-      numCellsN(dataIndex) = numCellsPerTimeStep{dataIndex}(curTN(dataIndex), 1);
-      
-      % matrix of positions for current time step
-      matPos1 = zeros( numCellsC(dataIndex), 3 );
-      matPos2 = zeros( numCellsN(dataIndex), 3 );
-      cellIds1 = zeros( numCellsC(dataIndex), 1 );
-      cellIds2 = zeros( numCellsN(dataIndex), 1 );
-      cellPrecursors2 = cell( numCellsN(dataIndex),1 );
-      
-      nc1 = 1;
-      nc2 = 1;
-      for j=1:dimData( dataIndex )
-        % this is a special case for the data set 130508 for which we
-        % ignore the two cells that arise in the master cell file with
-        % lineage ID 5
-        if excludeOutliers == 1
-          if strcmp( dataStr( 1, dataIndex ), '130508_raw' ) &&...
-              cellDatas{dataIndex}{j, 6} == 5
-            continue;
-          end
-          %       if strcmp( dataStr( 1, dataIndex ), '130607_raw' ) &&...
-          %           cellDatas{ dataIndex }{ j, 6 } == 6 &&...
-          %           ( cellDatas{ dataIndex }{ j, 1 } == 179 ||...
-          %           cellDatas{ dataIndex }{ j, 1 } == 118 )
-          %         continue;
-          %       end
-          %
-          %       if strcmp( dataStr( 1, dataIndex ), '121211_raw' ) &&...
-          %           cellDatas{ dataIndex }{ j, 6 } == 13 &&...
-          %           cellDatas{ dataIndex }{ j, 1 } == 413
-          %         continue;
-          %       end
-        end
-        if cellDatas{ dataIndex }{ j, 5 } == curTC(dataIndex)
-          pos = [ cellDatas{ dataIndex }{ j, 2 }...
-            cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
-          matPos1(nc1, :) = pos;
-          cellIds1(nc1, :) = cellDatas{ dataIndex }{ j, 1 };
-          nc1 = nc1 + 1;
-        end
-        if cellDatas{ dataIndex }{ j, 5 } == curTN(dataIndex)
-          pos = [ cellDatas{ dataIndex }{ j, 2 }...
-            cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
-          matPos2(nc2, :) = pos;
-          cellIds2(nc2, :) = cellDatas{ dataIndex }{ j, 1 };
-          cellPrecursors2{nc2} = cellDatas{ dataIndex }{ j, 8 };
-          nc2 = nc2 + 1;
-        end
+      if cellDatas{ dataIndex }{ j, 5 } == curTC(dataIndex)
+        pos = [ cellDatas{ dataIndex }{ j, 2 }...
+          cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
+        matPos1(nc1, :) = pos;
+        cellIds1(nc1, :) = cellDatas{ dataIndex }{ j, 1 };
+        nc1 = nc1 + 1;
       end
-      
-      matPosC{dataIndex} = matPos1;
-      matPosN{dataIndex} = matPos2;
-      cellIdsC{dataIndex} = cellIds1;
-      cellIdsN{dataIndex} = cellIds2;
-      cellPrecursorsN{dataIndex} = cellPrecursors2;
+      if cellDatas{ dataIndex }{ j, 5 } == curTN(dataIndex)
+        pos = [ cellDatas{ dataIndex }{ j, 2 }...
+          cellDatas{ dataIndex }{ j, 3 } cellDatas{ dataIndex }{ j, 4 } ];
+        matPos2(nc2, :) = pos;
+        cellIds2(nc2, :) = cellDatas{ dataIndex }{ j, 1 };
+        cellPrecursors2{nc2} = cellDatas{ dataIndex }{ j, 8 };
+        nc2 = nc2 + 1;
+      end
     end
+    
+    matPosC{dataIndex} = matPos1;
+    matPosN{dataIndex} = matPos2;
+    cellIdsC{dataIndex} = cellIds1;
+    cellIdsN{dataIndex} = cellIds2;
+    cellPrecursorsN{dataIndex} = cellPrecursors2;
     
     % if at least three cells exists
     if numCellsC(dataIndex) > 3 && numCellsN(dataIndex) > 3
-      if begin ~= 1
-        uniqueEdgesC{dataIndex} = uniqueEdgesN{dataIndex};
-        triC{dataIndex} = triN{dataIndex};
-        if triangulationType == 1
-          % delaunay triangulation
-          triN{dataIndex} = delaunayTriangulation( matPosN{dataIndex}(:,1), matPosN{dataIndex}(:,2), matPosN{dataIndex}(:,3) );
-          uniqueEdgesN{dataIndex} = edges(triN{dataIndex});
-        else
-          % alpha shape triangulation
-          [VolN,ShapeN] = alphavol( [ matPosN{dataIndex}(:,1) matPosN{dataIndex}(:,2) matPosN{dataIndex}(:,3) ], sqrt( alphaRadiiVector( curTN(dataIndex), 1 )) );
-          triN{dataIndex} = ShapeN.tri;
-          uniqueEdgesN{dataIndex} = getUniqueEdges( triN{dataIndex} );
-        end
-        numTotalLinksC(dataIndex) = numTotalLinksN(dataIndex);
-        numTotalLinksN(dataIndex) = size( uniqueEdgesN{dataIndex}, 1 );
-        numTotalAveragedLinks(dataIndex) = ( numTotalLinksC(dataIndex) + numTotalLinksN(dataIndex) )/2.;
+      if triangulationType == 1
+        % delaunay triangulation
+        triC{dataIndex} = delaunayTriangulation( matPosC{dataIndex}(:,1), matPosC{dataIndex}(:,2), matPosC{dataIndex}(:,3) );
+        uniqueEdgesC{dataIndex} = edges( triC{dataIndex} );
+        triN{dataIndex} = delaunayTriangulation( matPosN{dataIndex}(:,1), matPosN{dataIndex}(:,2), matPosN{dataIndex}(:,3) );
+        uniqueEdgesN{dataIndex} = edges( triN{dataIndex} );
       else
-        if triangulationType == 1
-          % delaunay triangulation
-          triC{dataIndex} = delaunayTriangulation( matPosC{dataIndex}(:,1), matPosC{dataIndex}(:,2), matPosC{dataIndex}(:,3) );
-          uniqueEdgesC{dataIndex} = edges( triC{dataIndex} );
-          triN{dataIndex} = delaunayTriangulation( matPosN{dataIndex}(:,1), matPosN{dataIndex}(:,2), matPosN{dataIndex}(:,3) );
-          uniqueEdgesN{dataIndex} = edges( triN{dataIndex} );
-        else
-          % alpha shape triangulation
-          [VolC,ShapeC] = alphavol( [ matPosC{dataIndex}(:,1) matPosC{dataIndex}(:,2) matPosC{dataIndex}(:,3) ], sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
-          triC{dataIndex} = ShapeC.tri;
-          uniqueEdgesC{dataIndex} = getUniqueEdges( triC{dataIndex} );
-          [VolN,ShapeN] = alphavol( [ matPosN{dataIndex}(:,1) matPosN{dataIndex}(:,2) matPosN{dataIndex}(:,3) ], sqrt( alphaRadiiVector( curTN(dataIndex), 1 )) );
-          triN{dataIndex} = ShapeN.tri;
-          uniqueEdgesN{dataIndex} = getUniqueEdges( triN{dataIndex} );
-        end
-        numTotalLinksC(dataIndex) = size( uniqueEdgesC, 1 );
-        numTotalLinksN(dataIndex) = size( uniqueEdgesN, 1 );
-        numTotalAveragedLinks(dataIndex) = ( numTotalLinksC(dataIndex) + numTotalLinksN(dataIndex) )/2.;
+        % alpha shape triangulation
+        [VolC,ShapeC] = alphavol( [ matPosC{dataIndex}(:,1) matPosC{dataIndex}(:,2) matPosC{dataIndex}(:,3) ], sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
+        triC{dataIndex} = ShapeC.tri;
+        uniqueEdgesC{dataIndex} = getUniqueEdges( triC{dataIndex} );
+        [VolN,ShapeN] = alphavol( [ matPosN{dataIndex}(:,1) matPosN{dataIndex}(:,2) matPosN{dataIndex}(:,3) ], sqrt( alphaRadiiVector( curTN(dataIndex), 1 )) );
+        triN{dataIndex} = ShapeN.tri;
+        uniqueEdgesN{dataIndex} = getUniqueEdges( triN{dataIndex} );
       end
+      numTotalLinksC(dataIndex) = size( uniqueEdgesC, 1 );
+      numTotalLinksN(dataIndex) = size( uniqueEdgesN, 1 );
+      numTotalAveragedLinks(dataIndex) = ( numTotalLinksC(dataIndex) + numTotalLinksN(dataIndex) )/2.;
       
       if renderNuclei == 1
         hold on
@@ -433,38 +379,76 @@ for curI=startI:deltaI:endI
         else
           zOffset = 0.;
         end
+        % render current nuclei in first plot
+        subplot( numPlots, 1, 1 );
+        for m=1:size(matPosC{dataIndex}, 1)
+          % only render nuclei located in the master cell file
+          if cellFileMap{dataIndex}( cellIdsC{dataIndex}(m) ) == 0
+            p = matPosC{dataIndex}(m,:) - centerPosPerTimeStep{dataIndex}(curTC(dataIndex),:);
+            p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
+            [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
+              drawEllipse3d( p(1), p(2), p(3)+dataIndex*zOffset+0.2, radEllip, radEllip, 0, 0 );
+            set( ELLIP(nucleiCounter), 'color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+            set( ELLIPPATCH(nucleiCounter), 'FaceColor', colors( dataIndex, : ), 'FaceLighting', 'none' );
+            nucleiCounter = nucleiCounter+1;
+          end
+        end
+        % and render nuclei at next time step in second plot
+        subplot( numPlots, 1, 2 );
         for m=1:size(matPosN{dataIndex}, 1)
           % only render nuclei located in the master cell file
           if cellFileMap{dataIndex}( cellIdsN{dataIndex}(m) ) == 0
             p = matPosN{dataIndex}(m,:) - centerPosPerTimeStep{dataIndex}(curTN(dataIndex),:);
             p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
-            [ ELLIP(numTotalCells), ELLIPPATCH(numTotalCells) ] =...
+            [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
               drawEllipse3d( p(1), p(2), p(3)+dataIndex*zOffset+0.2, radEllip, radEllip, 0, 0 );
-            set( ELLIP(numTotalCells), 'color', colors( dataIndex, : ), 'LineWidth', lineWidth );
-            set( ELLIPPATCH(numTotalCells), 'FaceColor', colors( dataIndex, : ), 'FaceLighting', 'none' );
-            numTotalCells = numTotalCells+1;
+            set( ELLIP(nucleiCounter), 'color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+            set( ELLIPPATCH(nucleiCounter), 'FaceColor', colors( dataIndex, : ), 'FaceLighting', 'none' );
+            nucleiCounter = nucleiCounter+1;
           end
         end
       end
       
       % render contour lines of nuclei located in master cell file only
-      if renderContour == 1
+      cellsInMaster = [];
+      for m=1:size(matPosC{dataIndex}, 1)
+        if cellFileMap{dataIndex}( cellIdsC{dataIndex}(m) ) == 0
+          p = matPosC{dataIndex}(m,:) - centerPosPerTimeStep{dataIndex}(curTC(dataIndex),:);
+          p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
+          cellsInMaster = [ cellsInMaster ; p ];
+        end
+      end
+      dimC = size( cellsInMaster, 1 );
+      curCellsC(dataIndex) = dimC;
+      if dimC > 2 && renderContour == 1
         hold on
-        cellsInMaster = [];
-        for m=1:size(matPosN{dataIndex}, 1)
-          if cellFileMap{dataIndex}( cellIdsN{dataIndex}(m) ) == 0
-            p = matPosN{dataIndex}(m,:) - centerPosPerTimeStep{dataIndex}(curTN(dataIndex),:);
-            p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
-            cellsInMaster = [ cellsInMaster ; p ];
-          end
+        % render contour of current cells in first plot
+        subplot( 3, 1, 1 );
+        K = convhull( cellsInMaster(:,1), cellsInMaster(:,2) );
+        CONTOUR(contourCounter) = line(...
+          cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
+          'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+        contourCounter = contourCounter + 1;
+      end
+      cellsInMaster = [];
+      for m=1:size(matPosN{dataIndex}, 1)
+        if cellFileMap{dataIndex}( cellIdsN{dataIndex}(m) ) == 0
+          p = matPosN{dataIndex}(m,:) - centerPosPerTimeStep{dataIndex}(curTN(dataIndex),:);
+          p = applyTransformations( p, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
+          cellsInMaster = [ cellsInMaster ; p ];
         end
-        dimC = size( cellsInMaster, 1 );
-        if dimC > 2
-          K = convhull( cellsInMaster(:,1), cellsInMaster(:,2) );
-          CONTOUR(curI + maxI * dataIndex) = line(...
-            cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
-            'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
-        end
+      end
+      dimN = size( cellsInMaster, 1 );
+      curCellsN(dataIndex) = dimN;
+      if dimN > 2 && renderContour == 1
+        hold on
+        % and render contour of cells at next time step in second plot
+        subplot( 3, 1, 2 );
+        K = convhull( cellsInMaster(:,1), cellsInMaster(:,2) );
+        CONTOUR(contourCounter) = line(...
+          cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
+          'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+        contourCounter = contourCounter + 1;
       end
       
       % if the normalized steps are too accurate resulting in the same time
@@ -474,7 +458,10 @@ for curI=startI:deltaI:endI
         continue;
       end
       
-      allCells( dataIndex, 1 ) = numCellsPerTimeStep{dataIndex}(curTC(dataIndex),1);
+      allCellsC( dataIndex, 1 ) = numCellsPerTimeStep{dataIndex}(curTC(dataIndex),1);
+      allCellsN( dataIndex, 1 ) = numCellsPerTimeStep{dataIndex}(curTN(dataIndex),1);
+      %allCellsC( dataIndex, 1 ) = numNormCellsC;
+      %allCellsN( dataIndex, 1 ) = numNormCellsN;
       
       % check if numNormCells is greater or equal to the maximal number of
       % total cells
@@ -558,26 +545,28 @@ for curI=startI:deltaI:endI
   
   % after all data are processed determine the average visualization
   if renderAllLines == 0
+    hold on;
+    subplot( numPlots, 1, 3 );
     for gt=1:rows*columns
       if strcmp( termTypeStr( 1, renderTermType ), 'B' )
         % ignore empty tiles
         if size( tileGridP{ gt }, 1 ) ~= 0
           averageSlopeP = determineAverageSlope( tileGridP{ gt } );
-          LP(lineRenderIndex) = drawAverageLines( averageSlopeP, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          LP(lineDeformationCounter) = drawAverageLines( averageSlopeP, gt, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ], 0 );
           sd = determineSDDirections( tileGridP{ gt } );
           if sd ~= 0
-            SDP(lineRenderIndex) = drawStandardDeviationArea( sd, averageSlopeP, gt, [totalMinAxes(1) totalMinAxes(2)],...
+            SDP(lineDeformationCounter) = drawStandardDeviationArea( sd, averageSlopeP, gt, [totalMinAxes(1) totalMinAxes(2)],...
               [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ] );
           end
         end
         if size( tileGridN{ gt }, 1 ) ~= 0
           averageSlopeN = determineAverageSlope( tileGridN{ gt } );
-          LN(lineRenderIndex) = drawAverageLines( averageSlopeN, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          LN(lineDeformationCounter) = drawAverageLines( averageSlopeN, gt, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 1 ], 0 );
           sd = determineSDDirections( tileGridN{ gt } );
           if sd ~= 0
-            SDN(lineRenderIndex) = drawStandardDeviationArea( sd, averageSlopeN, gt, [totalMinAxes(1) totalMinAxes(2)],...
+            SDN(lineDeformationCounter) = drawStandardDeviationArea( sd, averageSlopeN, gt, [totalMinAxes(1) totalMinAxes(2)],...
               [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 1 ] );
           end
         end
@@ -585,18 +574,21 @@ for curI=startI:deltaI:endI
         % ignore empty tiles
         if size( tileGrid{ gt }, 1 ) ~= 0
           averageSlope = determineAverageSlope( tileGrid{ gt } );
-          L(lineRenderIndex) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          L(lineDeformationCounter) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
           sd = determineSDDirections( tileGrid{ gt } );
           if sd ~= 0
-            SD(lineRenderIndex) = drawStandardDeviationArea( sd, averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+            SD(lineDeformationCounter) = drawStandardDeviationArea( sd, averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
               [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ] );
           end
         end
       end
-      lineRenderIndex = lineRenderIndex + 1;
+      lineDeformationCounter = lineDeformationCounter + 1;
     end
+  % render only the longest elongations
   else
+    hold on;
+    subplot( numPlots, 1, 3 );
     for gt=1:rows*columns
       if strcmp( termTypeStr( 1, renderTermType ), 'B' )
         numLines = size( tileGridP{ gt }, 1 );
@@ -605,9 +597,9 @@ for curI=startI:deltaI:endI
           startPos = tileGridP{ gt }(l, 1:2);
           endPos = tileGridP{ gt }(l, 3:4);
           slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
-          LP(lineRenderIndex) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          LP(lineDeformationCounter) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ], 0 );
-          lineRenderIndex = lineRenderIndex + 1;
+          lineDeformationCounter = lineDeformationCounter + 1;
         end
         numLines = size( tileGridN{ gt }, 1 );
         for l=1:numLines
@@ -615,9 +607,9 @@ for curI=startI:deltaI:endI
           startPos = tileGridN{ gt }(l, 1:2);
           endPos = tileGridN{ gt }(l, 3:4);
           slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
-          LN(lineRenderIndex) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          LN(lineDeformationCounter) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 1 ], 0 );
-          lineRenderIndex = lineRenderIndex + 1;
+          lineDeformationCounter = lineDeformationCounter + 1;
         end
       else
         numLines = size( tileGrid{ gt }, 1 );
@@ -626,37 +618,59 @@ for curI=startI:deltaI:endI
           startPos = tileGrid{ gt }(l, 1:2);
           endPos = tileGrid{ gt }(l, 3:4);
           slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
-          L(lineRenderIndex) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
+          L(lineDeformationCounter) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
-          lineRenderIndex = lineRenderIndex + 1;
+          lineDeformationCounter = lineDeformationCounter + 1;
         end
       end
     end
   end
   
-  % update boundary control points of bezier surface
-  [Q, curS] = updateBezierSurfaceBoundary( curI/maxI, initialS, finalS, curS, numPatches );
-  
-  % export bezier surface
-  exportBezierSurface( curI, curS, surfaceDir );
-  
+  % render the current bezier surface at curI
   if renderBezier == 1
     hold on;
+    subplot( numPlots, 1, 1 );
     for p=1:numPatches
-      BEZIER(p + numPatches*curI) = mesh( Q(:,:,1,p), Q(:,:,2,p), Q(:,:,3,p) );
+      BEZIER(bezierPatchCounter) = mesh( Q(:,:,1,p), Q(:,:,2,p), Q(:,:,3,p), Q(:,:,3,p) );
+      bezierPatchCounter = bezierPatchCounter + 1;
     end
     for p=1:numPatches
-      cp = 1;
       for ci=1:4
         for cj=1:4
-          [ BEZIERPOINTS(numCP), BEZIERPOINTSPATCH(numCP) ] =...
+          [ BEZIERPOINTS(bezierCounter), BEZIERPOINTSPATCH(bezierCounter) ] =...
             drawEllipse3d( curS( ci, cj, 1, p ), curS( ci, cj, 2, p ), 0.2, radEllip, radEllip, 0, 0 );
-          set( BEZIERPOINTS(numCP), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
-          set( BEZIERPOINTSPATCH(numCP), 'FaceColor', [ 0 0 0 ], 'FaceLighting', 'none' );
-          numCP = numCP + 1;
+          set( BEZIERPOINTS(bezierCounter), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
+          set( BEZIERPOINTSPATCH(bezierCounter), 'FaceColor', [ 0 0 0 ], 'FaceLighting', 'none' );
+          bezierCounter = bezierCounter + 1;
         end
       end
-      cp = cp + 1;
+    end
+  end
+  
+  % update boundary control points of bezier surface for the next reg. time step
+  [Q, curS] = updateBezierSurfaceBoundary( (curI+deltaI)/maxI, initialS, finalS, curS, numPatches );
+  
+  % export bezier surface
+  exportBezierSurface( curI+deltaI, curS, surfaceDir );
+  
+  % render the changing bezier surface at curI+deltaI
+  if renderBezier == 1
+    hold on;
+    subplot( numPlots, 1, 2 );
+    for p=1:numPatches
+      BEZIER(bezierPatchCounter) = mesh( Q(:,:,1,p), Q(:,:,2,p), Q(:,:,3,p), Q(:,:,3,p) );
+      bezierPatchCounter = bezierPatchCounter + 1;
+    end
+    for p=1:numPatches
+      for ci=1:4
+        for cj=1:4
+          [ BEZIERPOINTS(bezierCounter), BEZIERPOINTSPATCH(bezierCounter) ] =...
+            drawEllipse3d( curS( ci, cj, 1, p ), curS( ci, cj, 2, p ), 0.2, radEllip, radEllip, 0, 0 );
+          set( BEZIERPOINTS(bezierCounter), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
+          set( BEZIERPOINTSPATCH(bezierCounter), 'FaceColor', [ 0 0 0 ], 'FaceLighting', 'none' );
+          bezierCounter = bezierCounter + 1;
+        end
+      end
     end
   end
   
@@ -669,15 +683,17 @@ for curI=startI:deltaI:endI
   
   if exportImages == 1 || render == 1
     exportResult( totalMinAxes, totalMaxAxes, bezierOffset, numData, pureDataStr,...
-      curTC, allCurCells, allCells, curI, numNormCells,...
-      viewStr( 1, cView ), imageDir, f );
+      curTC, curTN, curCellsC, curCellsN, allCellsC, allCellsN, curI, deltaI,...
+      viewStr( 1, cView ), imageDir, f, numPlots, renderTermType );
   else
     % else just print the current registered step
     if mod(curI,10) == 0
-      disp( strcat( 'Normalized Step ', num2str(curI), '-Cells', num2str(numNormCells) ) );
+      disp( strcat( {'Deformation between normalized step '}, num2str(curI),...
+  {' and '} , num2str(endI) ) );
     end
   end
-  
+  % the first traversal is done
+  begin = 0;
 end
 
 % print elapsed time

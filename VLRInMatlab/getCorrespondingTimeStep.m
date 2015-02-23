@@ -7,7 +7,7 @@ numRegisteredCellsStart = 18;
 if considerAllCells == 1
   numRegisteredCellsEnd = 265;
 else
-  numRegisteredCellsEnd = 143;
+  numRegisteredCellsEnd = 141;
 end
 numNormCells = getNormalizedCellNumber( curI, numRegisteredCellsStart,...
   numRegisteredCellsEnd, minI, maxI );

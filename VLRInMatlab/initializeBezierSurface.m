@@ -97,7 +97,7 @@ elseif numPatches == 4
       finalS( 3, 4, :, p ) = [ 300 -25 0 ];
     end
     % interpolation of patch
-    Q(:,:,:,p) = bezierpatchinterp(finalS(:,:,:,p), u, v);
+    %Q(:,:,:,p) = bezierpatchinterp(finalS(:,:,:,p), u, v);
   end
 else
   disp( strcat( 'Number of patches is not supported yet! ', num2str(numPatches) ) );
