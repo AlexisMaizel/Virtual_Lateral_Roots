@@ -1,9 +1,11 @@
-function averageSlope = determineAverageSlope( lineDirections )
+function [ averageSlope, averageDirection ] = determineAverageSlope( lineDirections )
 numLines = size( lineDirections, 1 );
 numPositive = 0;
 averagePSlope = 0;
 numNegative = 0;
 averageNSlope = 0;
+averageStart = zeros(1,2);
+averageEnd = zeros(1,2);
 for l=1:numLines
   % first compute the slope
   startPos = lineDirections(l, 1:2);
@@ -13,6 +15,8 @@ for l=1:numLines
   p1 = [ 0 0 ];
   p2 = [ 1 slope ];
   dir = [ p2(1)-p1(1) p2(2)-p1(2) ];
+  averageStart = averageStart + startPos;
+  averageEnd = averageEnd + endPos;
   dir = normalize( dir );
   angle = acos( dot([ 1 0 ], dir) );
   angle = angle*180/pi;
@@ -27,6 +31,9 @@ for l=1:numLines
     averageNSlope = averageNSlope + angle;
   end
 end
+
+% compute the average of the magnitude
+averageDirection = averageEnd./numLines - averageStart./numLines;
 
 if numPositive > 0
   averagePSlope = averagePSlope/numPositive;

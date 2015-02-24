@@ -26,7 +26,7 @@ maxI = 10;
 % draw point set as ellipses at curI+deltaI
 renderNuclei = 0;
 % draw contour of cell nuclei at curI+deltaI
-renderContour = 1;
+renderContour = 0;
 % export as image file
 exportImages = 1;
 % exclude nuclei outliers
@@ -70,7 +70,7 @@ endData = 5;
 % num of data
 numData = 5;
 % resolution of grid
-resGrid = 30;
+resGrid = 50;
 % register data sets based on base instead of dome tip
 registerBase = 0;
 % apply the registration to all existing cell ranges and not only the one
@@ -80,6 +80,9 @@ considerAllCells = 0;
 % properties of bezier patches
 numPatches = 4;
 bezierOffset = 0;
+
+% properties of growth tensor
+magnitudeScaling = 1.;
 
 % figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 1600 1200] );
@@ -219,6 +222,13 @@ numTotalLinksC = zeros( numData, 1 );
 numTotalLinksN = zeros( numData, 1 );
 numTotalAveragedLinks = zeros( numData, 1 );
 
+% number of total cells per step
+nucleiCounter = 1;
+contourCounter = 1;
+bezierCounter = 1;
+bezierPatchCounter = 1;
+lineDeformationCounter = 1;
+
 % loop over all registered time steps
 for curI=startI:deltaI:endI-1
   % check handles and if they exist hide them for redrawing
@@ -235,7 +245,6 @@ for curI=startI:deltaI:endI-1
   hideHandle( SDP );
   hideHandle( SDN );
   
-  % TODO
   % initialize tile grid for storing start and end points of longest
   % deformation of a cell between two subsequent time steps which includes
   % the orientation and the magnitude of deformation
@@ -246,18 +255,8 @@ for curI=startI:deltaI:endI-1
   tileGridP = cell( rows*columns, 1 );
   % tile grid for only negative axes (for B term)
   tileGridN = cell( rows*columns, 1 );
-  % tile grid for storing the average values of B and T terms related to
-  % their sum
-  tileGridC = cell( rows*columns, 1 );
   % tile grid for storing the average values of magnitudes
   tileGridM = cell( rows*columns, 1 );
-  
-  % number of total cells per step
-  nucleiCounter = 1;
-  contourCounter = 1;
-  bezierCounter = 1;
-  bezierPatchCounter = 1;
-  lineDeformationCounter = 1;
   
   curCellsC = zeros( numData, 1 );
   curCellsN = zeros( numData, 1 );
@@ -543,7 +542,7 @@ for curI=startI:deltaI:endI-1
     end
   end
   
-  % after all data are processed determine the average visualization
+  % after all data is processed determine the average visualization
   if renderAllLines == 0
     hold on;
     subplot( numPlots, 1, 3 );
@@ -551,7 +550,7 @@ for curI=startI:deltaI:endI-1
       if strcmp( termTypeStr( 1, renderTermType ), 'B' )
         % ignore empty tiles
         if size( tileGridP{ gt }, 1 ) ~= 0
-          averageSlopeP = determineAverageSlope( tileGridP{ gt } );
+          [ averageSlopeP, averageDirection ] = determineAverageSlope( tileGridP{ gt } );
           LP(lineDeformationCounter) = drawAverageLines( averageSlopeP, gt, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 1 0 0 ], 0 );
           sd = determineSDDirections( tileGridP{ gt } );
@@ -561,7 +560,7 @@ for curI=startI:deltaI:endI-1
           end
         end
         if size( tileGridN{ gt }, 1 ) ~= 0
-          averageSlopeN = determineAverageSlope( tileGridN{ gt } );
+          [ averageSlopeN, averageDirection ] = determineAverageSlope( tileGridN{ gt } );
           LN(lineDeformationCounter) = drawAverageLines( averageSlopeN, gt, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 1 ], 0 );
           sd = determineSDDirections( tileGridN{ gt } );
@@ -573,7 +572,7 @@ for curI=startI:deltaI:endI-1
       else
         % ignore empty tiles
         if size( tileGrid{ gt }, 1 ) ~= 0
-          averageSlope = determineAverageSlope( tileGrid{ gt } );
+          [ averageSlope, averageDirection ] = determineAverageSlope( tileGrid{ gt } );
           L(lineDeformationCounter) = drawAverageLines( averageSlope, gt, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
           sd = determineSDDirections( tileGrid{ gt } );
@@ -585,7 +584,7 @@ for curI=startI:deltaI:endI-1
       end
       lineDeformationCounter = lineDeformationCounter + 1;
     end
-  % render only the longest elongations
+  % render all elongations
   else
     hold on;
     subplot( numPlots, 1, 3 );
@@ -628,8 +627,8 @@ for curI=startI:deltaI:endI-1
   
   % render the current bezier surface at curI
   if renderBezier == 1
-    hold on;
     subplot( numPlots, 1, 1 );
+    hold on;
     for p=1:numPatches
       BEZIER(bezierPatchCounter) = mesh( Q(:,:,1,p), Q(:,:,2,p), Q(:,:,3,p), Q(:,:,3,p) );
       bezierPatchCounter = bezierPatchCounter + 1;
@@ -646,17 +645,26 @@ for curI=startI:deltaI:endI-1
       end
     end
   end
-  
+
   % update boundary control points of bezier surface for the next reg. time step
   [Q, curS] = updateBezierSurfaceBoundary( (curI+deltaI)/maxI, initialS, finalS, curS, numPatches );
+  
+  % update the inner control points of the bezier surface
+  if strcmp( termTypeStr( 1, renderTermType ), 'B' )
+    [Q, curS] = updateBezierSurface( tileGridP, curS, totalMinAxes, totalMaxAxes,...
+      resGrid, rows, columns, magnitudeScaling, numPatches );
+  else
+    [Q, curS] = updateBezierSurface( tileGrid, curS, totalMinAxes, totalMaxAxes,...
+    resGrid, rows, columns, magnitudeScaling, numPatches );
+  end
   
   % export bezier surface
   exportBezierSurface( curI+deltaI, curS, surfaceDir );
   
   % render the changing bezier surface at curI+deltaI
   if renderBezier == 1
-    hold on;
     subplot( numPlots, 1, 2 );
+    hold on;
     for p=1:numPatches
       BEZIER(bezierPatchCounter) = mesh( Q(:,:,1,p), Q(:,:,2,p), Q(:,:,3,p), Q(:,:,3,p) );
       bezierPatchCounter = bezierPatchCounter + 1;
@@ -673,7 +681,7 @@ for curI=startI:deltaI:endI-1
       end
     end
   end
-  
+
   % render only first and last frame
   if curI == startI || curI == endI
     render = 1;
