@@ -60,6 +60,8 @@ public:
   
   SurfaceType::type _sType;
   
+  bool _forceInitialSituation;
+  
   //----------------------------------------------------------------
   
   void readParms()
@@ -77,6 +79,7 @@ public:
     parms("Main", "BezierGrowthSurface", _bezierGrowthSurface);
     parms("Main", "SurfaceScale", _surfaceScale);
     parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
+    parms("Main", "ForceInitialSituation", _forceInitialSituation );
 
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
@@ -139,7 +142,7 @@ public:
     
     //std::cout << "LOD: " << _lod << std::endl;
     
-    _surfaceClass.init( _lod, _lineageFileName, _exportLineage, t, _sType );
+    _surfaceClass.init( _lod, _lineageFileName, _exportLineage, t, _sType, _forceInitialSituation );
     
     _VLRBezierSurface.init( parms, "Surface",
                             _bezierGrowthSurface, _initialCellsOfRealData );
@@ -472,11 +475,25 @@ public:
   
   //----------------------------------------------------------------
   
+  void getxMinMax( const cell &c, double &xMin, double &xMax )
+  {
+    forall(const junction& j, T.S.neighbors(c))
+    {
+      if( j->sp.Pos().i() < xMin )
+        xMin = j->sp.Pos().i();
+      
+      if( j->sp.Pos().i() > xMax )
+        xMax = j->sp.Pos().i();
+    }  
+  }
+  
+  //----------------------------------------------------------------
+  
   bool step_divisions()
   {
     // for which number of cells should the division area ratio check apply
     // this is required since at the beginning only few divisions occur due
-    // to the small increasing of area based on the inital area size
+    // to the small increasing of area based on the initial area size
     std::size_t areaRatioStart;
     if( T.C.size() > 1 )
       areaRatioStart = 0;
@@ -485,68 +502,128 @@ public:
     
     // Find cells to be divided
     std::list<cell> to_divide;
-    forall(const cell& c, T.C)
-    {
-      // update center position
-      Point3d center;
-      double area;
-      this->setCellCenter( c, center, area );
     
-      if( surfaceType == 0 )
-        _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
-      else
-        _VLRDataPointSurface.setPos(c->tp, center);
-        
-      c->area = area;
-      c->center = center;
-      c->timeStep = _surfaceClass.getTime();
-      c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
+    // force the initial start of the VLR
+    if( T.C.size() < 6 && _forceInitialSituation )
+    {
+      double firstDivisionsAreaRatio = 0.05;
+      double secondDivisionsAreaRatio = 0.2;
+
+      forall(const cell& c, T.C)
+      {
+        // update center position
+        Point3d center;
+        double area;
+        this->setCellCenter( c, center, area );
+        if( T.C.size() >= 4 )
+        {
+          if( surfaceType == 0 )
+            _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
+          else
+            _VLRDataPointSurface.setPos(c->tp, center);
+        }
+        else
+        {
+          double xMin = 5000.;
+          double xMax = -5000.;
+          this->getxMinMax( c, xMin, xMax );
+          double xLength = std::fabs( xMax - xMin );
+          Point3d divPos = center;
+          if( c->id == 1 )
+            divPos.i() = xMin + 2.*xLength/3.; 
+          else if( c->id == 2 )
+            divPos.i() = xMin + 1.*xLength/3.; 
+          
+          if( surfaceType == 0 )
+            _VLRBezierSurface.SetPoint(c->sp, c->sp, divPos);
+          else
+            _VLRDataPointSurface.setPos(c->tp, divPos);
+        }
       
-      double a = c->area;
-      double l = c->longestWallLength;
-      if( useAreaRatio && useWallRatio && c->id > areaRatioStart )
-      {
-        // divide cells if their area size has increased by a certain percentage amount
-        double initialArea = c->initialArea;
-        initialArea += initialArea*divisionAreaRatio;
-        // divide cell if its wall length has increased by a certain percentage amount
-        double initialLongestLength = c->initialLongestWallLength;
-        initialLongestLength += initialLongestLength*divisionWallRatio;
+        c->area = area;
+        c->center = center;
+        c->timeStep = _surfaceClass.getTime();
+        c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
         
-        if( a > initialArea || l > initialLongestLength )
-          to_divide.push_back(c);
-      } 
-      // apply a division if the cells area exceeds a certain threshold or area ratio
-      else if( useCombinedAreaRatio && c->id > areaRatioStart )
-      {
+        double a = c->area;
+        double l = c->longestWallLength;
+        
         // divide cells if their area size has increased by a certain percentage amount
         double initialArea = c->initialArea;
-        initialArea += initialArea*divisionAreaRatio;
-        if( a > initialArea && a > divisionArea )
-          to_divide.push_back(c);
-      }
-      // only apply the division based on ratio with at least areaRatioStart cells
-      else if( useAreaRatio && c->id > areaRatioStart )
-      {
-        // divide cells if their area size has increased by a certain percentage amount
-        double initialArea = c->initialArea;
-        initialArea += initialArea*divisionAreaRatio;
+        if( T.C.size() == 2 )
+          initialArea += initialArea*firstDivisionsAreaRatio;
+        else
+          initialArea += initialArea*secondDivisionsAreaRatio;
+        
         if( a > initialArea )
           to_divide.push_back(c);
       }
-      // only apply the division based on ratio with at least areaRatioStart cells
-      else if( useWallRatio && c->id > areaRatioStart )
+    }
+    else
+    {      
+      forall(const cell& c, T.C)
       {
-        // divide cell if its wall length has increased by a certain percentage amount
-        double initialLongestLength = c->longestWallLength;
-        initialLongestLength += initialLongestLength*divisionWallRatio;
-        if( l > initialLongestLength )
-          to_divide.push_back(c);
-      }
-      else
-      {
-        if( a > divisionArea )
-          to_divide.push_back(c);
+        // update center position
+        Point3d center;
+        double area;
+        this->setCellCenter( c, center, area );
+      
+        if( surfaceType == 0 )
+          _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
+        else
+          _VLRDataPointSurface.setPos(c->tp, center);
+          
+        c->area = area;
+        c->center = center;
+        c->timeStep = _surfaceClass.getTime();
+        c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
+        
+        double a = c->area;
+        double l = c->longestWallLength;
+        if( useAreaRatio && useWallRatio && c->id > areaRatioStart )
+        {
+          // divide cells if their area size has increased by a certain percentage amount
+          double initialArea = c->initialArea;
+          initialArea += initialArea*divisionAreaRatio;
+          // divide cell if its wall length has increased by a certain percentage amount
+          double initialLongestLength = c->initialLongestWallLength;
+          initialLongestLength += initialLongestLength*divisionWallRatio;
+          
+          if( a > initialArea || l > initialLongestLength )
+            to_divide.push_back(c);
+        } 
+        // apply a division if the cells area exceeds a certain threshold or area ratio
+        else if( useCombinedAreaRatio && c->id > areaRatioStart )
+        {
+          // divide cells if their area size has increased by a certain percentage amount
+          double initialArea = c->initialArea;
+          initialArea += initialArea*divisionAreaRatio;
+          if( a > initialArea && a > divisionArea )
+            to_divide.push_back(c);
+        }
+        // only apply the division based on ratio with at least areaRatioStart cells
+        else if( useAreaRatio && c->id > areaRatioStart )
+        {
+          // divide cells if their area size has increased by a certain percentage amount
+          double initialArea = c->initialArea;
+          initialArea += initialArea*divisionAreaRatio;
+          if( a > initialArea )
+            to_divide.push_back(c);
+        }
+        // only apply the division based on ratio with at least areaRatioStart cells
+        else if( useWallRatio && c->id > areaRatioStart )
+        {
+          // divide cell if its wall length has increased by a certain percentage amount
+          double initialLongestLength = c->longestWallLength;
+          initialLongestLength += initialLongestLength*divisionWallRatio;
+          if( l > initialLongestLength )
+            to_divide.push_back(c);
+        }
+        else
+        {
+          if( a > divisionArea )
+            to_divide.push_back(c);
+        }
       }
     }
 
@@ -560,6 +637,19 @@ public:
         if( this->setNextDecussationDivision() )
           c->angle = fmod( c->angle + 90., 360. );
         
+        MyTissue::division_data ddata = this->setDivisionPoints( c );
+        T.divideCell( c, ddata );
+      }
+      // set the division properties for the second division
+      // periclinal division resulting in six cells
+      // **********************************
+      // *         *     *     *          *
+      // *         *************          *
+      // *         *     *     *          *
+      // **********************************
+      else if( T.C.size() > 3 && T.C.size() < 6 && _forceInitialSituation )
+      {
+        c->angle = 180.;
         MyTissue::division_data ddata = this->setDivisionPoints( c );
         T.divideCell( c, ddata );
       }

@@ -14,7 +14,8 @@ void SurfaceClass::init( const std::size_t lod,
                          const std::string &lineageFileName,
                          const bool exportLineage,
                          const std::size_t timeSteps,
-                         const SurfaceType::type sType )
+                         const SurfaceType::type sType,
+                         const bool forceInitialSituation )
 {
   if( _lod == 0 )
     _lod = 1;
@@ -28,6 +29,7 @@ void SurfaceClass::init( const std::size_t lod,
   _lineageFileName = lineageFileName;
   _exportLineage = exportLineage;
   _sType = sType;
+  _forceInitialSituation = forceInitialSituation;
 }
 
 // ---------------------------------------------------------------------
@@ -545,11 +547,19 @@ void SurfaceClass::generateCell( MyTissue &T,
   T.addCell( c, vs );
   
   std::vector<Point3d> polygon;
+  double xMin = 5000.;
+  double xMax = -5000.;
   Point3d center;
   forall(const junction& j, T.S.neighbors(c))
   {
     polygon.push_back( j->sp.Pos() );
     center += j->sp.Pos();
+    
+    if( j->sp.Pos().i() < xMin )
+      xMin = j->sp.Pos().i();
+    
+    if( j->sp.Pos().i() > xMax )
+      xMax = j->sp.Pos().i();
   }
   center /= polygon.size();
   
@@ -560,8 +570,29 @@ void SurfaceClass::generateCell( MyTissue &T,
   c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
   c->longestWallLength = c->initialLongestWallLength;
   
-  lateralRoot.SetPoint(c->sp, c->sp, center);
-  
+  // set the division properties for the first division
+  // anticlinal division in 1/3:2/3 ratio resulting in four cells
+  // **********************************
+  // *         *     *     *          *
+  // *         *     *     *          *
+  // *         *     *     *          *
+  // **********************************
+  if( _forceInitialSituation && c->id <= 2 )
+  {
+    // determine xLength of cell
+    double xLength = std::fabs( xMax - xMin );
+    Point3d divPos = center;
+    
+    if( c->id == 1 )
+      divPos.i() = xMin + 2.*xLength/3.; 
+    else if( c->id == 2 )
+      divPos.i() = xMin + 1.*xLength/3.; 
+    
+    lateralRoot.SetPoint(c->sp, c->sp, divPos);
+  }
+  else
+    lateralRoot.SetPoint(c->sp, c->sp, center);
+
   if( _exportLineage )
     ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false, 0 );
   

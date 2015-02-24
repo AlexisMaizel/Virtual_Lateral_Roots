@@ -21,7 +21,8 @@ public:
              const std::string &lineageFileName,
              const bool exportLineage,
              const std::size_t timeSteps,
-             const SurfaceType::type sType );
+             const SurfaceType::type sType,
+             const bool forceInitialSituation );
   
   void initModelBasedOnBezier( MyTissue &T,
                                const std::size_t cellNumber,
@@ -80,6 +81,8 @@ private:
   std::string _lineageFileName;
   
   bool _exportLineage;
+  
+  bool _forceInitialSituation;
   
   SurfaceType::type _sType;
 };

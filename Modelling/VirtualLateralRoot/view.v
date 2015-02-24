@@ -1,7 +1,7 @@
 [Main]
 Dt: 0.1 // 0.002 // how fast the shape of the end stage is reached, default 0.1
 Growth: .1  // not considered in code
-InitialCellNumber: 6 // initial cell number designed for VLR: 1, 2, 6 or 8
+InitialCellNumber: 2 // initial cell number designed for VLR: 1, 2, 6 or 8
 InitialCellsOfRealData: none // valid entries are:
 // none, 120830_raw, 121204_raw_2014, 121211_raw, 130508_raw, 130607_raw, Average2, Average4, Average6, Average8
 SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
@@ -11,6 +11,7 @@ SurfaceType: 0 // type of surface: 0 -> bezier surface, 1 -> surface based on tr
 BezierGrowthSurface: true // if the surface type is bezier then it can be chosen to choose the generated bezier surface that includes the growth tensor information
 SurfaceScale: 1 // scale factor for surface based on real data points
 UseAutomaticContourPoints: false // use contour points that are generated automatically
+ForceInitialSituation: true // force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells
 
 [View]
 StepPerView: 1
@@ -18,7 +19,7 @@ BackgroundColor: 255
 
 [Division]
 DivisionArea: 0.025 // 1100 ... 0.025 threshold size of cells before they divide
-DivisionAreaRatio: 0.43 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionAreaRatio: 0.4 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
@@ -30,7 +31,7 @@ CellColoringType: 0 // cell coloring type: 0 -> cells are colored based on found
 
 [Tissue]
 DivisionAlgorithm: ShortWall // ClosestWall ShortWall ClosestMid
-CellPinch: 0.75 // real data point: 5.1, default: 0.75 displacement of the position of the newly inserted vertexes 0.155
+CellPinch: 0.1 // real data point: 5.1, default: 0.75 displacement of the position of the newly inserted vertexes 0.155
 CellMaxPinch: 0.1 // 1.5 ... 0.1 ... 0.155 max displacement of the position of the newly inserted vertexes
 CellWallMin: 0.0 // for SW, CW, CM
 StrictCellWallMin: false // for SW, CW, CM
