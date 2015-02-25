@@ -275,56 +275,92 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
   }
   // 5 cells
   else if( dataset == "121211_raw" )
-  {    
-    this->generateCell( T, std::make_pair( 0., 0. ),
-                        std::make_pair( 1./3., 1. ),
-                        lCounter, lateralRoot, conPoints );
-    
-    lCounter++;
-    
-    // inner smaller cells
-    for( std::size_t c = 0; c < 3; c++, lCounter++ )
+  {
+    if( _forceInitialSituation )
     {
-      double u = 1./3. + c*1./9.;
-      double v = 0.;
-      this->generateCell( T, std::make_pair( u, v ),
-                          std::make_pair( 1./9., 1. ),
+      for( std::size_t c=0; c < 2; c++, lCounter++ )
+      {
+        this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
+                            std::make_pair( 0.5, 1. ),
+                            lCounter, lateralRoot, conPoints );
+      }
+    }
+    else
+    {
+      this->generateCell( T, std::make_pair( 0., 0. ),
+                          std::make_pair( 1./3., 1. ),
+                          lCounter, lateralRoot, conPoints );
+      
+      lCounter++;
+      
+      // inner smaller cells
+      for( std::size_t c = 0; c < 3; c++, lCounter++ )
+      {
+        double u = 1./3. + c*1./9.;
+        double v = 0.;
+        this->generateCell( T, std::make_pair( u, v ),
+                            std::make_pair( 1./9., 1. ),
+                            lCounter, lateralRoot, conPoints );
+      }
+      
+      this->generateCell( T, std::make_pair( 2./3., 0. ),
+                          std::make_pair( 1./3., 1. ),
                           lCounter, lateralRoot, conPoints );
     }
-    
-    this->generateCell( T, std::make_pair( 2./3., 0. ),
-                        std::make_pair( 1./3., 1. ),
-                        lCounter, lateralRoot, conPoints );
   }
   // 1 cell
   else if( dataset == "130508_raw" )
   {
-    this->generateCell( T, std::make_pair( 0., 0. ),
-                        std::make_pair( 1., 1. ),
-                        lCounter, lateralRoot, conPoints, 4, true );
+    if( _forceInitialSituation )
+    {
+      for( std::size_t c=0; c < 2; c++, lCounter++ )
+      {
+        this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
+                            std::make_pair( 0.5, 1. ),
+                            lCounter, lateralRoot, conPoints );
+      }
+    }
+    else
+    {
+      this->generateCell( T, std::make_pair( 0., 0. ),
+                          std::make_pair( 1., 1. ),
+                          lCounter, lateralRoot, conPoints, 4, true );
+    }
   }
   // 3 cells
   else if( dataset == "130607_raw" )
   {
-    for( std::size_t c = 0; c < 3; c++, lCounter++ )
+    if( _forceInitialSituation )
     {
-      double length,u,v;
-      if( c == 0 )
+      for( std::size_t c=0; c < 2; c++, lCounter++ )
       {
-        length = 1./5.;
-        u = 0.;
-        v = 0.;
+        this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
+                            std::make_pair( 0.5, 1. ),
+                            lCounter, lateralRoot, conPoints );
       }
-      else
+    }
+    else
+    {
+      for( std::size_t c = 0; c < 3; c++, lCounter++ )
       {
-        length = 2./5.;
-        u = 1./5. + (c-1)*2./5.;
-        v = 0.;
+        double length,u,v;
+        if( c == 0 )
+        {
+          length = 1./5.;
+          u = 0.;
+          v = 0.;
+        }
+        else
+        {
+          length = 2./5.;
+          u = 1./5. + (c-1)*2./5.;
+          v = 0.;
+        }
+          
+        this->generateCell( T, std::make_pair( u, v ),
+                            std::make_pair( length, 1. ),
+                            lCounter, lateralRoot, conPoints );
       }
-        
-      this->generateCell( T, std::make_pair( u, v ),
-                          std::make_pair( length, 1. ),
-                          lCounter, lateralRoot, conPoints );
     }
   }
   else if( dataset == "Average2" )
@@ -728,11 +764,19 @@ void SurfaceClass::generateCell( MyTissue &T,
   T.addCell( c, vs );
   
   std::vector<Point2d> polygon;
+  double xMin = 5000.;
+  double xMax = -5000.;
   Point3d center;
   forall(const junction& j, T.S.neighbors(c))
   {
     polygon.push_back( j->tp.Pos() );
     center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+    
+    if( j->tp.Pos().i() < xMin )
+      xMin = j->tp.Pos().i();
+    
+    if( j->tp.Pos().i() > xMax )
+      xMax = j->tp.Pos().i();
   }
   center /= polygon.size();
 
@@ -743,7 +787,28 @@ void SurfaceClass::generateCell( MyTissue &T,
   c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
   c->longestWallLength = c->initialLongestWallLength;
     
-  lateralRoot.setPos(c->tp, center);
+  // set the division properties for the first division
+  // anticlinal division in 1/3:2/3 ratio resulting in four cells
+  // **********************************
+  // *         *     *     *          *
+  // *         *     *     *          *
+  // *         *     *     *          *
+  // **********************************
+  if( _forceInitialSituation && c->id <= 2 )
+  {
+    // determine xLength of cell
+    double xLength = std::fabs( xMax - xMin );
+    Point3d divPos = center;
+    
+    if( c->id == 1 )
+      divPos.i() = xMin + 2.*xLength/3.; 
+    else if( c->id == 2 )
+      divPos.i() = xMin + 1.*xLength/3.; 
+    
+    lateralRoot.setPos(c->tp, divPos);
+  }
+  else
+    lateralRoot.setPos(c->tp, center);
   
   if( _exportLineage )
     ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false, 1 );

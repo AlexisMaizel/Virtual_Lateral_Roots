@@ -95,6 +95,10 @@ struct CellContent
   Point3d divDir;
   // convex hull of cell
   std::vector<Point2d> convexHull;
+  // for the forced initial situation we distinguish between
+  // outer and inner cells based on the distance between cell
+  // and VLR center
+  bool innerCell;
 };
 
 struct WallContent

@@ -62,6 +62,11 @@ public:
   
   bool _forceInitialSituation;
   
+  Point3d _initialBoundary;
+  
+  double _firstDivisionsAreaRatio;
+  double _secondDivisionsAreaRatio;
+  
   //----------------------------------------------------------------
   
   void readParms()
@@ -94,6 +99,9 @@ public:
     parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
     parms( "Division", "DivisionAngleThreshold", _angleThreshold );
     parms( "Division", "CellColoringType", _cellColoringType );
+    
+    parms( "Division", "FirstDivisionsAreaRatio", _firstDivisionsAreaRatio);
+    parms( "Division", "SecondDivisionsAreaRatio", _secondDivisionsAreaRatio);
 
     parms( "Tissue", "CellPinch", _cellPinch );
     parms( "Tissue", "CellMaxPinch", _cellMaxPinch );
@@ -184,7 +192,7 @@ public:
     
     if( dt > start-steps )
       ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName, dt, 0, true );
-    
+        
     // bezier
     if( surfaceType == 0 )
     {
@@ -229,6 +237,37 @@ public:
       }
     }
     
+    // determine the initial boundary between two founder cells
+    _initialBoundary = Point3d( 0., 0., 0. );
+    if( _forceInitialSituation )
+    {
+      Point3d max = Point3d( -5000., -5000., 0. );
+      // consider the right most position
+      forall(const cell& c, T.C)
+      {
+        if( c->id == 1 )
+        {
+          forall(const junction& j, T.S.neighbors(c))
+          {
+            Point3d pos;
+            
+            if( surfaceType == 1 )
+              pos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+            else
+              pos = j->sp.Pos();
+            
+            if( pos.i() > max.i() )
+              max.i() = pos.i();
+            
+            if( pos.j() > max.j() )
+              max.j() = pos.j();
+          }
+          
+          _initialBoundary = max;
+        }
+      }
+    }
+    
     setStatus();
   }
   
@@ -260,9 +299,18 @@ public:
     Point3d direction = Point3d(-sin(a), cos(a), 0);
     forall( const junction& j,T.S.neighbors(c) )
     {
+      Point3d jpos, jnpos;
       const junction& jn = T.S.nextTo(c, j);
-      const Point3d& jpos = j->sp.Pos();
-      const Point3d& jnpos = jn->sp.Pos();
+      if( surfaceType == 0 )
+      {
+        jpos = j->sp.Pos();
+        jnpos = jn->sp.Pos();
+      }
+      else
+      {
+        jpos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+        jnpos = Point3d( jn->tp.Pos().i(), jn->tp.Pos().j(), 0. );
+      }
       Point3d u;
       double s;
       if(geometry::planeLineIntersection(u, s, center, direction, jpos, jnpos) and s >= 0 and s <= 1)
@@ -281,6 +329,7 @@ public:
           break;
       }
     }
+    
     vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
     
     // apply cell pinching
@@ -352,6 +401,30 @@ public:
     
     // set cell properties for right cell
     this->setCellProperties( cr, c );
+    
+    // for the forced situation check which of the four cells
+    // are the inner ones
+    if( _forceInitialSituation && T.C.size() > 2 && T.C.size() < 5 )
+    {
+      double xIC = _initialBoundary.i();
+      double yIC = _initialBoundary.j();
+      double xLC = cl->center.i();
+      double yLC = cl->center.j();
+      double xRC = cr->center.i();
+      double yRC = cr->center.j();
+      double distL = std::sqrt( (xIC-xLC)*(xIC-xLC) + (yIC-yLC)*(yIC-yLC) );
+      double distR = std::sqrt( (xIC-xRC)*(xIC-xRC) + (yIC-yRC)*(yIC-yRC) );
+      if( distL < distR )
+      {
+        cl->innerCell = true;
+        cr->innerCell = false;
+      }
+      else
+      {
+        cl->innerCell = false;
+        cr->innerCell = true;
+      }
+    }
     
     // check which cell is the upper one and only increase the layer value
     // of the upper one in the case of having a periclinal division if 
@@ -479,11 +552,22 @@ public:
   {
     forall(const junction& j, T.S.neighbors(c))
     {
-      if( j->sp.Pos().i() < xMin )
-        xMin = j->sp.Pos().i();
-      
-      if( j->sp.Pos().i() > xMax )
-        xMax = j->sp.Pos().i();
+      if( surfaceType == 0 )
+      {
+        if( j->sp.Pos().i() < xMin )
+          xMin = j->sp.Pos().i();
+        
+        if( j->sp.Pos().i() > xMax )
+          xMax = j->sp.Pos().i();
+      }
+      else
+      {
+        if( j->tp.Pos().i() < xMin )
+          xMin = j->tp.Pos().i();
+        
+        if( j->tp.Pos().i() > xMax )
+          xMax = j->tp.Pos().i();
+      }
     }  
   }
   
@@ -506,23 +590,13 @@ public:
     // force the initial start of the VLR
     if( T.C.size() < 6 && _forceInitialSituation )
     {
-      double firstDivisionsAreaRatio = 0.05;
-      double secondDivisionsAreaRatio = 0.2;
-
       forall(const cell& c, T.C)
       {
         // update center position
         Point3d center;
         double area;
         this->setCellCenter( c, center, area );
-        if( T.C.size() >= 4 )
-        {
-          if( surfaceType == 0 )
-            _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
-          else
-            _VLRDataPointSurface.setPos(c->tp, center);
-        }
-        else
+        if( T.C.size() < 4 )
         {
           double xMin = 5000.;
           double xMax = -5000.;
@@ -539,6 +613,13 @@ public:
           else
             _VLRDataPointSurface.setPos(c->tp, divPos);
         }
+        else
+        {
+          if( surfaceType == 0 )
+            _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
+          else
+            _VLRDataPointSurface.setPos(c->tp, center);
+        }
       
         c->area = area;
         c->center = center;
@@ -550,13 +631,29 @@ public:
         
         // divide cells if their area size has increased by a certain percentage amount
         double initialArea = c->initialArea;
-        if( T.C.size() == 2 )
-          initialArea += initialArea*firstDivisionsAreaRatio;
+        if( T.C.size() < 4 )
+          initialArea += initialArea*_firstDivisionsAreaRatio;
         else
-          initialArea += initialArea*secondDivisionsAreaRatio;
+          initialArea += initialArea*_secondDivisionsAreaRatio;
         
-        if( a > initialArea )
-          to_divide.push_back(c);
+        if( T.C.size() == 3 )
+        {
+          // when one of the two founder cells has already divided
+          // then assure that the second founder cell will divide
+          // before one of the two daughter cells of the first division
+          // divide again
+          if( c->id == 2 || c->id == 1 )
+          {
+            if( a > initialArea )
+              to_divide.push_back(c);
+          }
+        }
+        // else perform the "normal" division routine
+        else
+        {
+          if( a > initialArea )
+            to_divide.push_back(c);
+        }
       }
     }
     else
@@ -626,7 +723,7 @@ public:
         }
       }
     }
-
+    
     // Divide the cells
     forall(const cell& c, to_divide)
     {
@@ -649,9 +746,12 @@ public:
       // **********************************
       else if( T.C.size() > 3 && T.C.size() < 6 && _forceInitialSituation )
       {
-        c->angle = 180.;
-        MyTissue::division_data ddata = this->setDivisionPoints( c );
-        T.divideCell( c, ddata );
+        if( c->innerCell )
+        {
+          c->angle = 180.;
+          MyTissue::division_data ddata = this->setDivisionPoints( c );
+          T.divideCell( c, ddata );
+        }
       }
       else
         T.divideCell(c);
