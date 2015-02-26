@@ -66,6 +66,9 @@ public:
   
   double _firstDivisionsAreaRatio;
   double _secondDivisionsAreaRatio;
+  std::size_t _timeDelay;
+  std::size_t _timeSixCellStage;
+  bool _smootherCells;
   
   //----------------------------------------------------------------
   
@@ -85,6 +88,7 @@ public:
     parms("Main", "SurfaceScale", _surfaceScale);
     parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
     parms("Main", "ForceInitialSituation", _forceInitialSituation );
+    parms("Main", "SmootherCells", _smootherCells );
 
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
@@ -102,6 +106,7 @@ public:
     
     parms( "Division", "FirstDivisionsAreaRatio", _firstDivisionsAreaRatio);
     parms( "Division", "SecondDivisionsAreaRatio", _secondDivisionsAreaRatio);
+    parms( "Division", "TimeDelay", _timeDelay);
 
     parms( "Tissue", "CellPinch", _cellPinch );
     parms( "Tissue", "CellMaxPinch", _cellMaxPinch );
@@ -587,6 +592,17 @@ public:
     // Find cells to be divided
     std::list<cell> to_divide;
     
+    // wait after the six cell stage until the predefined time has passed
+    bool wait = false;
+    if( T.C.size() == 6 && _forceInitialSituation )
+    {
+      std::size_t curTime = _surfaceClass.getTime();
+      if( curTime - _timeSixCellStage > _timeDelay )
+        wait = false;
+      else
+        wait = true;
+    }
+    
     // force the initial start of the VLR
     if( T.C.size() < 6 && _forceInitialSituation )
     {
@@ -652,9 +668,23 @@ public:
         else
         {
           if( a > initialArea )
+          {
+            // if there are 5 cells and if we are in this loop
+            // a next division will occur; so we store the time
+            // of the six cell stage
+            if( T.C.size() == 5 )
+              _timeSixCellStage = _surfaceClass.getTime();
+              
             to_divide.push_back(c);
+          }
         }
       }
+    }
+    // wait for the six-cell stage some time steps such that the
+    // the future divisions are not occurring too fast
+    else if( T.C.size() == 6 && _forceInitialSituation && wait )
+    {
+      
     }
     else
     {      
