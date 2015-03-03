@@ -73,7 +73,7 @@ for c=1:numCellsN
     continue;
   end
   
-  % get position of current cell
+  % get position of cell at next time step
   if triangulationType == 1
     p1 = [ triN.Points( c, 1 ) triN.Points( c, 2 ) triN.Points( c, 3 ) ];
   else
@@ -91,7 +91,7 @@ for c=1:numCellsN
     objectIdC = objectIdN;
   end
   
-  % get the position of the previous cell in the previous time step
+  % get the position of the cell at the current time step
   p2 = getCellPosition( objectIdC, triC, cellIdsC,...
     triangulationType, matPosC );
   
@@ -232,6 +232,8 @@ for c=1:numCellsN
   % draw the single cell as ellipsoid
   [ x, y, z ] = ellipsoid( 0, 0, 0, radii(1)/2., radii(2)/2., radii(3)/2., nEllip );
   %ellipPos = (p1+p2)/2.;
+  % p1 is the position at the next time step
+  % p2 is the position at the current time step
   ellipPos = p1;
   X = ellipPos(1) + x*xEigVec(1) + y*yEigVec(1) + z*zEigVec(1);
   Y = ellipPos(2) + x*xEigVec(2) + y*yEigVec(2) + z*zEigVec(2);

@@ -1,4 +1,5 @@
-function [ S, finalS, Q ] = initializeBezierSurface( numPatches, min, max, offset )
+function [ S, finalS, Q ] = initializeBezierSurface( numPatches, min, max,...
+  offset, emphasizeDomeTip )
 
 % each patch has 16 control points
 %number of interpolated values between end control points
@@ -79,19 +80,33 @@ elseif numPatches == 4
       finalS( 4, 4, :, p ) = [ 300 -35 0 ];
     % top left
     elseif p == 3
-      finalS( 4, 1, :, p ) = [ -280 -20 0 ];
-      finalS( 4, 2, :, p ) = [ -180 15 0 ];
-      finalS( 4, 3, :, p ) = [ -80 90 0 ];
-      finalS( 4, 4, :, p ) = [ 0 85 0 ];
+      if emphasizeDomeTip == 0
+        finalS( 4, 1, :, p ) = [ -280 -20 0 ];
+        finalS( 4, 2, :, p ) = [ -180 15 0 ];
+        finalS( 4, 3, :, p ) = [ -80 90 0 ];
+        finalS( 4, 4, :, p ) = [ 0 85 0 ];
+      else
+        finalS( 4, 1, :, p ) = [ -280 -10 0 ];
+        finalS( 4, 2, :, p ) = [ -180 30 0 ];
+        finalS( 4, 3, :, p ) = [ -80 180 0 ];
+        finalS( 4, 4, :, p ) = [ 0 170 0 ];
+      end
       finalS( 1, 1, :, p ) = [ -280 -35 0 ];
       finalS( 2, 1, :, p ) = [ -280 -30 0 ];
       finalS( 3, 1, :, p ) = [ -280 -25 0 ];
     % top right
     else
-      finalS( 4, 1, :, p ) = [ 0 85 0 ];
-      finalS( 4, 2, :, p ) = [ 100 90 0 ];
-      finalS( 4, 3, :, p ) = [ 200 15 0 ];
-      finalS( 4, 4, :, p ) = [ 300 -20 0 ];
+      if emphasizeDomeTip == 0
+        finalS( 4, 1, :, p ) = [ 0 85 0 ];
+        finalS( 4, 2, :, p ) = [ 100 90 0 ];
+        finalS( 4, 3, :, p ) = [ 200 15 0 ];
+        finalS( 4, 4, :, p ) = [ 300 -20 0 ];
+      else
+        finalS( 4, 1, :, p ) = [ 0 170 0 ];
+        finalS( 4, 2, :, p ) = [ 100 180 0 ];
+        finalS( 4, 3, :, p ) = [ 200 30 0 ];
+        finalS( 4, 4, :, p ) = [ 300 -10 0 ];
+      end
       finalS( 1, 4, :, p ) = [ 300 -35 0 ];
       finalS( 2, 4, :, p ) = [ 300 -30 0 ];
       finalS( 3, 4, :, p ) = [ 300 -25 0 ];

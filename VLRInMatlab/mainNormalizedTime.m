@@ -119,7 +119,7 @@ camproj( 'orthographic' );
 
 % apply preprocessing step of data
 [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
-  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView, 0 );
+  prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView, 0, 0 );
 
 if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
   % surface instance
@@ -692,14 +692,17 @@ while curI < endI-deltaI+1
         if dimL > 2 && renderContour == 1
           if triangulationType == 1
             K = convhull( timePositions( :, 4 ), timePositions( :, 5 ) );
-            CONTOUR(dataIndex) = line( timePositions( K, 4 ), timePositions( K, 5 ), timePositions( K, 6 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+            CONTOUR(dataIndex) = line( timePositions( K, 4 ), timePositions( K, 5 ), timePositions( K, 6 ),...
+              'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
           else
-            [VolC,ShapeC] = alphavol( [ timePositions( :, 4 ), timePositions( :, 5 ) ], sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
+            [VolC,ShapeC] = alphavol( [ timePositions( :, 4 ), timePositions( :, 5 ) ],...
+              sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
             K = ShapeC.bnd(:,1);
             dimK = size( K, 1 );
             if dimK > 1
               K(dimK+1,:) = K(1,:);
-              CONTOUR(dataIndex) = line( timePositions( K, 4 ), timePositions( K, 5 ), timePositions( K, 6 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+              CONTOUR(dataIndex) = line( timePositions( K, 4 ), timePositions( K, 5 ),...
+                timePositions( K, 6 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
             end
           end
         end

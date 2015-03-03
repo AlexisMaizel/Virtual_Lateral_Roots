@@ -17,12 +17,12 @@ cView = 2;
 % startIndex
 startI = 1;
 % endIndex
-endI = 10;
+endI = 20;
 % step size
 deltaI = 1;
 % min and max index
 minI = 1;
-maxI = 10;
+maxI = 20;
 % draw point set as ellipses at curI+deltaI
 renderNuclei = 0;
 % draw contour of cell nuclei at curI+deltaI
@@ -30,7 +30,7 @@ renderContour = 0;
 % export as image file
 exportImages = 1;
 % exclude nuclei outliers
-excludeOutliers = 1;
+excludeOutliers = 0;
 % render only master file?
 renderMasterFile = 1;
 % render bezier surface and control points
@@ -43,9 +43,9 @@ overlapping = 1;
 % use triangulation based on delaunay or alpha shape
 % 1 -> delaunay
 % 2 -> alpha shape
-triangulationType = 1;
+triangulationType = 2;
 % term that should be included in the time evolution
-renderTermType = 1;
+renderTermType = 3;
 termTypeStr = { 'B' 'T' 'All' };
 % vector of data strings
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
@@ -70,7 +70,7 @@ endData = 5;
 % num of data
 numData = 5;
 % resolution of grid
-resGrid = 50;
+resGrid = 30;
 % register data sets based on base instead of dome tip
 registerBase = 0;
 % apply the registration to all existing cell ranges and not only the one
@@ -80,9 +80,15 @@ considerAllCells = 0;
 % properties of bezier patches
 numPatches = 4;
 bezierOffset = 0;
-
+% add next to the height deformation based on the growth tensor information
+% also an interpolated value of the bezier control points between the
+% boundary control points (but only for the height)
+interpolatedHeighGrowth = 1;
 % properties of growth tensor
-magnitudeScaling = 1.;
+magnitudeScaling = 0.2;
+% manually increase the height of the upper control points
+% such that the dome tip development is better captured in the model
+emphasizeDomeTip = 0;
 
 % figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [100 100 1600 1200] );
@@ -108,6 +114,10 @@ camproj( 'orthographic' );
   prepareData( dataStr, startData, endData, numData, 'Ellipses',...
   renderMasterFile, cView, excludeOutliers, 0 );
 
+if emphasizeDomeTip == 1
+  totalMaxAxes(2) = totalMaxAxes(2)*2.;
+end
+
 % drawing handles
 CONTOUR = [];
 ELLIP = [];
@@ -123,7 +133,7 @@ SDP = [];
 SDN = [];
 
 % path to image output
-imageDir = strcat( 'images/AllData/' );
+imageDir = strcat( 'images/' );
 mkdir( char(imageDir) );
 
 % output format of values
@@ -162,7 +172,7 @@ lastMinPos = [ -280 -50 0 ];
 lastMaxPos = [ 300 65 0];
 % initialization of bezier surface
 [ curS, finalS, Q ] = initializeBezierSurface( numPatches, initialMinPos,...
-  initialMaxPos, bezierOffset );
+  initialMaxPos, bezierOffset, emphasizeDomeTip );
 % at start initialS = curS
 initialS = curS;
 surfaceDir = strcat( 'bezierGrowthSurfaces/' );
@@ -251,6 +261,7 @@ for curI=startI:deltaI:endI-1
   
   % tile grid for T term when there is no positive/negative issue
   tileGrid = cell( rows*columns, 1 );
+  tileGridDir = cell( rows*columns, 1 );
   % tile grid for only positive axes (for B term)
   tileGridP = cell( rows*columns, 1 );
   % tile grid for only negative axes (for B term)
@@ -281,6 +292,11 @@ for curI=startI:deltaI:endI-1
     % registration of data sets
     [ u, v, dir, planePos, TF ] =...
       initTransformations( dataStr( 1, dataIndex ), cView, registerBase );
+    
+    % get the alpha shape radii for all time steps
+    if triangulationType == 2
+      alphaRadiiVector = getAlphaRadius( dataStr( 1, dataIndex ) );
+    end
     
     % get the corresponding time steps for the registered steps
     [ curTC(dataIndex), numNormCellsC ] = getCorrespondingTimeStep( curI, minI, maxI,...
@@ -423,10 +439,22 @@ for curI=startI:deltaI:endI-1
         hold on
         % render contour of current cells in first plot
         subplot( 3, 1, 1 );
-        K = convhull( cellsInMaster(:,1), cellsInMaster(:,2) );
-        CONTOUR(contourCounter) = line(...
-          cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
-          'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+        if triangulationType == 1
+          K = convhull( cellsInMaster(:,1), cellsInMaster(:,2) );
+          CONTOUR(contourCounter) = line(...
+            cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
+            'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+        else
+          [VolC,ShapeC] = alphavol( [ cellsInMaster(:, 1), cellsInMaster(:, 2) ],...
+            sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
+          K = ShapeC.bnd(:,1);
+          dimK = size( K, 1 );
+          if dimK > 1
+            K(dimK+1,:) = K(1,:);
+            CONTOUR(contourCounter) = line( cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
+              cellsInMaster( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+          end
+        end
         contourCounter = contourCounter + 1;
       end
       cellsInMaster = [];
@@ -443,10 +471,22 @@ for curI=startI:deltaI:endI-1
         hold on
         % and render contour of cells at next time step in second plot
         subplot( 3, 1, 2 );
-        K = convhull( cellsInMaster(:,1), cellsInMaster(:,2) );
-        CONTOUR(contourCounter) = line(...
-          cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
-          'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+        if triangulationType == 1
+          K = convhull( cellsInMaster(:,1), cellsInMaster(:,2) );
+          CONTOUR(contourCounter) = line(...
+            cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
+            'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+        else
+          [VolC,ShapeC] = alphavol( [ cellsInMaster(:, 1), cellsInMaster(:, 2) ],...
+            sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
+          K = ShapeC.bnd(:,1);
+          dimK = size( K, 1 );
+          if dimK > 1
+            K(dimK+1,:) = K(1,:);
+            CONTOUR(contourCounter) = line( cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
+              cellsInMaster( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+          end
+        end
         contourCounter = contourCounter + 1;
       end
       
@@ -517,10 +557,12 @@ for curI=startI:deltaI:endI-1
         % store the line positions in such a way that the position with
         % the smaller x value is always the first entry
         if lineX(1) <= lineX(2)
-          lineDirection = [ lineX(1) lineY(1) lineX(2) lineY(2) ];
+          lineDirectionXInc = [ lineX(1) lineY(1) lineX(2) lineY(2) ];
         else
-          lineDirection = [ lineX(2) lineY(2) lineX(1) lineY(1) ];
+          lineDirectionXInc = [ lineX(2) lineY(2) lineX(1) lineY(1) ];
         end
+        
+        lineDirection = [ lineX(1) lineY(1) lineX(2) lineY(2) ];
         
         % determine tileIndex of current ellipse position and add it to the
         % tile grid in order to average all deformations occurring in each
@@ -528,12 +570,14 @@ for curI=startI:deltaI:endI-1
         tileIndex = getTileIndex( c, [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
         if strcmp( termTypeStr( 1, renderTermType ), 'B' )
           if indexColorSet( l, 2 ) == 1
-            tileGridP{ tileIndex } = [ tileGridP{ tileIndex }; lineDirection ];
+            tileGridP{ tileIndex } = [ tileGridP{ tileIndex }; lineDirectionXInc ];
+            tileGridDir{ tileIndex } = [ tileGridDir{ tileIndex }; lineDirection ];
           else
-            tileGridN{ tileIndex } = [ tileGridN{ tileIndex }; lineDirection ];
+            tileGridN{ tileIndex } = [ tileGridN{ tileIndex }; lineDirectionXInc ];
           end
         else
-          tileGrid{ tileIndex } = [ tileGrid{ tileIndex }; lineDirection ];
+          tileGrid{ tileIndex } = [ tileGrid{ tileIndex }; lineDirectionXInc ];
+          tileGridDir{ tileIndex } = [ tileGridDir{ tileIndex }; lineDirection ];
         end
       end
     else
@@ -651,11 +695,11 @@ for curI=startI:deltaI:endI-1
   
   % update the inner control points of the bezier surface
   if strcmp( termTypeStr( 1, renderTermType ), 'B' )
-    [Q, curS] = updateBezierSurface( tileGridP, curS, totalMinAxes, totalMaxAxes,...
-      resGrid, rows, columns, magnitudeScaling, numPatches );
+    [Q, curS] = updateBezierSurface( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
+      resGrid, rows, columns, magnitudeScaling, numPatches, interpolatedHeighGrowth );
   else
-    [Q, curS] = updateBezierSurface( tileGrid, curS, totalMinAxes, totalMaxAxes,...
-    resGrid, rows, columns, magnitudeScaling, numPatches );
+    [Q, curS] = updateBezierSurface( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
+    resGrid, rows, columns, magnitudeScaling, numPatches, interpolatedHeighGrowth );
   end
   
   % export bezier surface
@@ -695,10 +739,8 @@ for curI=startI:deltaI:endI-1
       viewStr( 1, cView ), imageDir, f, numPlots, renderTermType );
   else
     % else just print the current registered step
-    if mod(curI,10) == 0
-      disp( strcat( {'Deformation between normalized step '}, num2str(curI),...
-  {' and '} , num2str(endI) ) );
-    end
+    disp( strcat( {'Deformation between normalized step '}, num2str(curI),...
+  {' and '} , num2str(curI+deltaI) ) );
   end
   % the first traversal is done
   begin = 0;

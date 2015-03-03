@@ -1,6 +1,6 @@
-function [Q, curS] = updateBezierSurface( tileGrid, curS,...
-  totalMinAxes, totalMaxAxes,...
-  resGrid, rows, columns, magnitudeScaling, numPatches )
+function [Q, curS] = updateBezierSurface( tileGridDir, curS,...
+  totalMinAxes, totalMaxAxes, resGrid, rows, columns,...
+  magnitudeScaling, numPatches, interpolatedHeighGrowth )
 %number of interpolated values between end control points
 ni = 10;
 %uniform parameterization
@@ -21,9 +21,9 @@ if numPatches == 1
         tileIndex = getTileIndex( cp, [totalMinAxes(1) totalMinAxes(2)],...
           [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
         % ignore empty tiles
-        if size( tileGrid{tileIndex}, 1 ) ~= 0
-          [ ~, averageDirection ] =...
-            determineAverageSlope( tileGrid{tileIndex} );
+        if size( tileGridDir{tileIndex}, 1 ) ~= 0
+          [ averageDirection ] =...
+            determineAverageDirection( tileGridDir{tileIndex} );
           translation = [ averageDirection(1,1)*magnitudeScaling...
             averageDirection(1,2)*magnitudeScaling ];
         end
@@ -31,11 +31,13 @@ if numPatches == 1
         % translate the inner control point based on the growing
         % height which is determined by interpolation between the uppermost
         % and the lowermost cp
-        min = 1;
-        max = 4;
-        factor = (i-min)/(max-min);
-        curS( i, j, 2, 1 ) =...
-          (1-factor) * curS( 1, j, 2, 1 ) + factor * curS( 4, j, 2, 1 );
+        if interpolatedHeighGrowth == 1
+          min = 1;
+          max = 4;
+          factor = (i-min)/(max-min);
+          curS( i, j, 2, 1 ) =...
+            (1-factor) * curS( 1, j, 2, 1 ) + factor * curS( 4, j, 2, 1 );
+        end
         % then apply transformation to cp
         curS( i, j, 1, 1 ) = curS( i, j, 1, 1 ) + translation(1,1);
         curS( i, j, 2, 1 ) = curS( i, j, 2, 1 ) + translation(1,2);
@@ -64,42 +66,44 @@ elseif numPatches == 4
           tileIndex = getTileIndex( cp, [totalMinAxes(1) totalMinAxes(2)],...
             [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
           % ignore empty tiles
-          if size( tileGrid{tileIndex}, 1 ) ~= 0
-            [ ~, averageDirection ] =...
-              determineAverageSlope( tileGrid{tileIndex} );
+          if size( tileGridDir{tileIndex}, 1 ) ~= 0
+            [ averageDirection ] =...
+              determineAverageDirection( tileGridDir{tileIndex} );
             translation = [ averageDirection(1,1)*magnitudeScaling...
             averageDirection(1,2)*magnitudeScaling ];
           end
 
-          min = 1;
-          max = 4;
-          % translate the inner control point based on the growing
-          % height which is determined by interpolation between the uppermost
-          % and the lowermost cp
-          if p == 1
-            factor = (i-min)/(max-min);
-            % divide by two because there are 2 patches
-            factor = factor/2.;
-            curS( i, j, 2, p ) =...
-              (1-factor) * curS( 1, j, 2, 1 ) + factor * curS( 4, j, 2, 3 );
-          elseif p == 2
-            factor = (i-min)/(max-min);
-            % divide by two because there are 2 patches
-            factor = factor/2.;
-            curS( i, j, 2, p ) =...
-              (1-factor) * curS( 1, j, 2, 2 ) + factor * curS( 4, j, 2, 4 );
-          elseif p == 3
-            factor = (i+2)/(max-min);
-            % divide by two because there are 2 patches
-            factor = factor/2.;
-            curS( i, j, 2, p ) =...
-              (1-factor) * curS( 1, j, 2, 1 ) + factor * curS( 4, j, 2, 3 );
-          else
-            factor = (i+2)/(max-min);
-            % divide by two because there are 2 patches
-            factor = factor/2.;
-            curS( i, j, 2, p ) =...
-              (1-factor) * curS( 1, j, 2, 2 ) + factor * curS( 4, j, 2, 4 );
+          if interpolatedHeighGrowth == 1
+            min = 1;
+            max = 4;
+            % translate the inner control point based on the growing
+            % height which is determined by interpolation between the uppermost
+            % and the lowermost cp
+            if p == 1
+              factor = (i-min)/(max-min);
+              % divide by two because there are 2 patches
+              factor = factor/2.;
+              curS( i, j, 2, p ) =...
+                (1-factor) * curS( 1, j, 2, 1 ) + factor * curS( 4, j, 2, 3 );
+            elseif p == 2
+              factor = (i-min)/(max-min);
+              % divide by two because there are 2 patches
+              factor = factor/2.;
+              curS( i, j, 2, p ) =...
+                (1-factor) * curS( 1, j, 2, 2 ) + factor * curS( 4, j, 2, 4 );
+            elseif p == 3
+              factor = (i+2)/(max-min);
+              % divide by two because there are 2 patches
+              factor = factor/2.;
+              curS( i, j, 2, p ) =...
+                (1-factor) * curS( 1, j, 2, 1 ) + factor * curS( 4, j, 2, 3 );
+            else
+              factor = (i+2)/(max-min);
+              % divide by two because there are 2 patches
+              factor = factor/2.;
+              curS( i, j, 2, p ) =...
+                (1-factor) * curS( 1, j, 2, 2 ) + factor * curS( 4, j, 2, 4 );
+            end
           end
           
           % then apply transformation to cp

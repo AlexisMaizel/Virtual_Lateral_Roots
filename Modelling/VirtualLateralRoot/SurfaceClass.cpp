@@ -55,6 +55,41 @@ void SurfaceClass::initModelBasedOnBezier( MyTissue &T,
     }
     break;
     case 6:
+    // 6 cells in total
+    for( std::size_t t = 0; t < 2; t++ )
+      for( std::size_t b = 0; b < 2; b++, lCounter++ )
+      {
+        double u = 1./3. + b*1./6.;
+        double v = 0. + t*1./2.;
+        double length = 1./6.;
+          
+        this->generateCell( T, std::make_pair( u, v ),
+                            std::make_pair( length, 1./2. ),
+                            lCounter, lateralRoot );
+      }
+      
+    // outer cells
+    for( std::size_t c = 0; c < 2; c++, lCounter++ )
+    {
+      double u = 0.;
+      if( c == 1 )
+        u = 2./3.;
+      double v = 0.;
+      double length = 1./3.;
+        
+      // set wall for which an additional junction has to be included
+      std::size_t addJunctionToWall;
+      if( c == 0 )
+        addJunctionToWall = 2;
+      else
+        addJunctionToWall = 0;
+      
+      this->generateCell( T, std::make_pair( u, v ),
+                          std::make_pair( length, 1. ),
+                          lCounter, lateralRoot, addJunctionToWall );
+    }
+    
+    /*
     // init the four inner smaller cells
     for( std::size_t w = 0; w < 2; w++ )
       for( std::size_t h = 0; h < 2; h++, lCounter++ )
@@ -81,6 +116,7 @@ void SurfaceClass::initModelBasedOnBezier( MyTissue &T,
                           std::make_pair( 1./4., 1. ),
                           lCounter, lateralRoot, addJunctionToWall );
     }
+    */
     break;
     case 8:
     for( std::size_t h = 0; h < 2; h++, lCounter++ )
@@ -394,22 +430,23 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
     for( std::size_t t = 0; t < 2; t++ )
       for( std::size_t b = 0; b < 2; b++, lCounter++ )
       {
-        double u = 1./4. + b*1./4.;
+        double u = 1./3. + b*1./6.;
         double v = 0. + t*1./2.;
-        double length = 1./4.;
+        double length = 1./6.;
           
         this->generateCell( T, std::make_pair( u, v ),
                             std::make_pair( length, 1./2. ),
                             lCounter, lateralRoot, conPoints );
       }
       
+    // outer cells
     for( std::size_t c = 0; c < 2; c++, lCounter++ )
     {
       double u = 0.;
       if( c == 1 )
-        u = 3./4.;
+        u = 2./3.;
       double v = 0.;
-      double length = 1./4.;
+      double length = 1./3.;
         
       // set wall for which an additional junction has to be included
       std::size_t addJunctionToWall;

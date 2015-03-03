@@ -152,6 +152,8 @@ public:
       t = 350;
     else if( _initialCellsOfRealData.compare( 0, 7, "Average") == 0 )
       t = 150;
+    else if( _bezierGrowthSurface && _initialCellsOfRealData == "none" )
+      t = 590;
     
     //std::cout << "LOD: " << _lod << std::endl;
     
