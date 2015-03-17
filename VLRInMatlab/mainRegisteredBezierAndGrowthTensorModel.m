@@ -77,7 +77,12 @@ registerBase = 0;
 % that all data sets share (cells in [18,143])
 considerAllCells = 0;
 
-% properties of bezier patches
+% properties of bezier patches or surface
+% use of exactly one bezier surface or a set of merged bezier patches
+useBezierSurface = 1;
+% dim of control points for the bezier surface -> dim x dim control points
+dimCP = 8;
+% number of bezier patches (if selected) each with 15 control points
 numPatches = 4;
 bezierOffset = 0;
 % add next to the height deformation based on the growth tensor information
@@ -171,7 +176,7 @@ initialMaxPos = [ 175 0 0];
 lastMinPos = [ -280 -50 0 ];
 lastMaxPos = [ 300 65 0];
 % initialization of bezier surface
-[ curS, finalS, Q ] = initializeBezierSurface( numPatches, initialMinPos,...
+[ curS, finalS, Q ] = initializeBezierPatches( numPatches, initialMinPos,...
   initialMaxPos, bezierOffset, emphasizeDomeTip );
 % at start initialS = curS
 initialS = curS;
@@ -185,7 +190,7 @@ fileId = fopen( char(fileName), 'w' );
 fprintf( fileId, '%1d\n', endI-startI+2 );
 % number of patches for each surface
 fprintf( fileId, '%1d\n', numPatches );
-exportBezierSurface( 0, initialS, surfaceDir );
+exportBezierPatches( 0, initialS, surfaceDir );
 
 if considerAllCells == 0
   regLastTimeStep = [ 269 277 230 344 213 ];
@@ -277,9 +282,9 @@ for curI=startI:deltaI:endI-1
   if begin == 1 && curI > 1
     % if curI is beginning at a later time step then update the bezier
     % surface depending on the current curI
-    [Q, curS] = updateBezierSurfaceBoundary( curI/maxI, initialS, finalS, curS, numPatches );
+    [Q, curS] = updateBezierPatchesBoundary( curI/maxI, initialS, finalS, curS, numPatches );
     % export initial bezier surface
-    exportBezierSurface( curI, curS, surfaceDir );
+    exportBezierPatches( curI, curS, surfaceDir );
   end
   
   % min and max values for positions to initialize the bezier surface
@@ -691,19 +696,19 @@ for curI=startI:deltaI:endI-1
   end
 
   % update boundary control points of bezier surface for the next reg. time step
-  [Q, curS] = updateBezierSurfaceBoundary( (curI+deltaI)/maxI, initialS, finalS, curS, numPatches );
+  [Q, curS] = updateBezierPatchesBoundary( (curI+deltaI)/maxI, initialS, finalS, curS, numPatches );
   
   % update the inner control points of the bezier surface
   if strcmp( termTypeStr( 1, renderTermType ), 'B' )
-    [Q, curS] = updateBezierSurface( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
+    [Q, curS] = updateBezierPatches( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
       resGrid, rows, columns, magnitudeScaling, numPatches, interpolatedHeighGrowth );
   else
-    [Q, curS] = updateBezierSurface( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
+    [Q, curS] = updateBezierPatches( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
     resGrid, rows, columns, magnitudeScaling, numPatches, interpolatedHeighGrowth );
   end
   
   % export bezier surface
-  exportBezierSurface( curI+deltaI, curS, surfaceDir );
+  exportBezierPatches( curI+deltaI, curS, surfaceDir );
   
   % render the changing bezier surface at curI+deltaI
   if renderBezier == 1
