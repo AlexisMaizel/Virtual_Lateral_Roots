@@ -25,7 +25,7 @@ UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
 DivisionWallRatio: 0.45 // 0.45 divide a cell if a wall of the cell is longer than a certain percentage of the initial length
-UseDecussationDivision: false
+DivisionType: Decussation // Decussation PerToGrowth ; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
 ProbabilityOfDecussationDivision: 0.9 // probability for having a decussation division (has to be in [0, 1])
 DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal and periclinal division
 CellColoringType: 0 // cell coloring type: 0 -> cells are colored based on founder cells/lineage trees; 1 -> cells are colored based on layer assignments after each periclinal division; 2 -> cells are colored based on type: interior or boundary

@@ -620,8 +620,8 @@ void SurfaceClass::generateCell( MyTissue &T,
   T.addCell( c, vs );
   
   std::vector<Point3d> polygon;
-  double xMin = 5000.;
-  double xMax = -5000.;
+  double xMin = 5000000.;
+  double xMax = -5000000.;
   Point3d center;
   forall(const junction& j, T.S.neighbors(c))
   {
@@ -636,8 +636,10 @@ void SurfaceClass::generateCell( MyTissue &T,
   }
   center /= polygon.size();
   
-  // store initial area for current cell
+  c->xMin = xMin;
+  c->xMax = xMax;
   c->center = center;
+  c->centerPos.push_back( center );
   c->initialArea = geometry::polygonArea(polygon);
   c->area = c->initialArea;
   c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
@@ -653,21 +655,18 @@ void SurfaceClass::generateCell( MyTissue &T,
   if( _forceInitialSituation && c->id <= 2 )
   {
     // determine xLength of cell
-    double xLength = std::fabs( xMax - xMin );
-    Point3d divPos = center;
+    double xLength = std::fabs( c->xMax - c->xMin );
     
     if( c->id == 1 )
-      divPos.i() = xMin + 2.*xLength/3.; 
+      center.i() = c->xMin + 2.*xLength/3.; 
     else if( c->id == 2 )
-      divPos.i() = xMin + 1.*xLength/3.; 
-    
-    lateralRoot.SetPoint(c->sp, c->sp, divPos);
+      center.i() = c->xMin + 1.*xLength/3.; 
   }
-  else
-    lateralRoot.SetPoint(c->sp, c->sp, center);
+  
+  lateralRoot.SetPoint(c->sp, c->sp, center);
 
   if( _exportLineage )
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false, 0 );
+    ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
   
   // afterwards increment the id counter
   _IDCounter++;
@@ -801,8 +800,8 @@ void SurfaceClass::generateCell( MyTissue &T,
   T.addCell( c, vs );
   
   std::vector<Point2d> polygon;
-  double xMin = 5000.;
-  double xMax = -5000.;
+  double xMin = 5000000.;
+  double xMax = -5000000.;
   Point3d center;
   forall(const junction& j, T.S.neighbors(c))
   {
@@ -817,8 +816,10 @@ void SurfaceClass::generateCell( MyTissue &T,
   }
   center /= polygon.size();
 
-  // store initial area for current cell
+  c->xMin = xMin;
+  c->xMax = xMax;
   c->center = center;
+  c->centerPos.push_back( center );
   c->initialArea = geometry::polygonArea(polygon);
   c->area = c->initialArea;
   c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
@@ -835,20 +836,17 @@ void SurfaceClass::generateCell( MyTissue &T,
   {
     // determine xLength of cell
     double xLength = std::fabs( xMax - xMin );
-    Point3d divPos = center;
     
     if( c->id == 1 )
-      divPos.i() = xMin + 2.*xLength/3.; 
+      center.i() = xMin + 2.*xLength/3.; 
     else if( c->id == 2 )
-      divPos.i() = xMin + 1.*xLength/3.; 
-    
-    lateralRoot.setPos(c->tp, divPos);
+      center.i() = xMin + 1.*xLength/3.; 
   }
-  else
-    lateralRoot.setPos(c->tp, center);
+  
+  lateralRoot.setPos(c->tp, center);
   
   if( _exportLineage )
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, _time, false, 1 );
+    ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
   
   // afterwards increment the id counter
   _IDCounter++;  

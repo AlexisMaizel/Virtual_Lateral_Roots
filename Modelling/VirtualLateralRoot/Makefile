@@ -17,7 +17,7 @@ LD_SO_FLAGS+=
 #    for compiling the model as a stand-alone program
 LD_EXE_FLAGS+=
 
-model.o: model.moc
+model.o: model.moc ModelHeader.h PrincipalComponentAnalysis.h
 
 BezierSurface.o: BezierSurface.cpp BezierSurface.h
 

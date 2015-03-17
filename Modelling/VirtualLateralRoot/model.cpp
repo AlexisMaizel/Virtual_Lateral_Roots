@@ -2,6 +2,7 @@
 #include "ModelExporter.h"
 #include "ModelUtils.h"
 #include "SurfaceClass.h"
+#include "PrincipalComponentAnalysis.h"
 
 //#define TimeAgainstCellAnalysis
 
@@ -36,7 +37,6 @@ public:
   bool _exportLineage;
   bool _exportDivisionProperties;
   double probabilityOfDecussationDivision;
-  bool useDecussationDivision;
   double _angleThreshold;
   std::size_t surfaceType;
   bool _bezierGrowthSurface;
@@ -70,6 +70,8 @@ public:
   std::size_t _timeSixCellStage;
   bool _smootherCells;
   
+  std::string _divisionType;
+  
   //----------------------------------------------------------------
   
   void readParms()
@@ -99,7 +101,7 @@ public:
     parms( "Division", "UseCombinedAreaRatio", useCombinedAreaRatio);
     parms( "Division", "UseWallRatio", useWallRatio);
     parms( "Division", "DivisionWallRatio", divisionWallRatio);
-    parms( "Division", "UseDecussationDivision", useDecussationDivision );
+    parms( "Division", "DivisionType", _divisionType );
     parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
     parms( "Division", "DivisionAngleThreshold", _angleThreshold );
     parms( "Division", "CellColoringType", _cellColoringType );
@@ -178,8 +180,7 @@ public:
     
     if( _exportLineage )
     {
-      ModelExporter::exportLineageInformation( _lineageFileName, dummy, T,
-                                               0, true, surfaceType );
+      ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
       ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T,
                                       true, surfaceType );
     }
@@ -196,7 +197,7 @@ public:
     _timeAgainstCellsFileName = "/tmp/timeAgainstCells";
     _timeAgainstCellsFileName += _initialCellsOfRealData;
     _timeAgainstCellsFileName += ".csv";
-    
+   
     if( dt > start-steps )
       ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName, dt, 0, true );
         
@@ -235,9 +236,7 @@ public:
     {
       forall(const cell& c, T.C)
       {
-        ModelExporter::exportLineageInformation( _lineageFileName, c, T,
-                                                 _surfaceClass.getTime(),
-                                                 false, surfaceType );
+        ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
         
         ModelExporter::exportCellWalls( _cellWallsFileName, c,
                                         T, false, surfaceType );
@@ -290,7 +289,7 @@ public:
     int val = rand() % 10 + 1;
     //std::cout << "val: " << val << std::endl;
     
-    if( val <= (int)((1.-probabilityOfDecussationDivision)*10.) )
+    if( val <= (int)(probabilityOfDecussationDivision*10.) )
       return true;
     else
       return false;
@@ -385,7 +384,7 @@ public:
     if( useWallRatio )
       status += QString( "Wall divison ratio: %1 \t" ).arg(divisionWallRatio);
     
-    if( useDecussationDivision )
+    if( _divisionType == "Decussation" )
       status += QString( "Decussation propability: %1" ).arg(probabilityOfDecussationDivision);
     
     setStatusMessage( status );
@@ -472,6 +471,7 @@ public:
     this->setCellCenter( c, center, area );
     c->initialArea = area;
     c->center = center;
+    c->centerPos.push_back( center );
     c->area = c->initialArea;
     c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
     c->longestWallLength = c->initialLongestWallLength;
@@ -555,8 +555,10 @@ public:
   
   //----------------------------------------------------------------
   
-  void getxMinMax( const cell &c, double &xMin, double &xMax )
+  void determineXMinMax( const cell &c )
   {
+    double xMin = 5000000.;
+    double xMax = -5000000.;
     forall(const junction& j, T.S.neighbors(c))
     {
       if( surfaceType == 0 )
@@ -575,7 +577,11 @@ public:
         if( j->tp.Pos().i() > xMax )
           xMax = j->tp.Pos().i();
       }
-    }  
+    }
+    
+    // set min and max values for x
+    c->xMin = xMin;
+    c->xMax = xMax;
   }
   
   //----------------------------------------------------------------
@@ -605,6 +611,10 @@ public:
         wait = true;
     }
     
+    // at first determine the min and max values for each cell
+    forall(const cell& c, T.C)
+      this->determineXMinMax(c);
+    
     // force the initial start of the VLR
     if( T.C.size() < 6 && _forceInitialSituation )
     {
@@ -616,31 +626,22 @@ public:
         this->setCellCenter( c, center, area );
         if( T.C.size() < 4 )
         {
-          double xMin = 5000.;
-          double xMax = -5000.;
-          this->getxMinMax( c, xMin, xMax );
-          double xLength = std::fabs( xMax - xMin );
-          Point3d divPos = center;
+          double xLength = std::fabs( c->xMax - c->xMin );
           if( c->id == 1 )
-            divPos.i() = xMin + 2.*xLength/3.; 
+            center.i() = c->xMin + 2.*xLength/3.; 
           else if( c->id == 2 )
-            divPos.i() = xMin + 1.*xLength/3.; 
-          
-          if( surfaceType == 0 )
-            _VLRBezierSurface.SetPoint(c->sp, c->sp, divPos);
-          else
-            _VLRDataPointSurface.setPos(c->tp, divPos);
+            center.i() = c->xMin + 1.*xLength/3.;
         }
+        
+        if( surfaceType == 0 )
+          _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
         else
-        {
-          if( surfaceType == 0 )
-            _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
-          else
-            _VLRDataPointSurface.setPos(c->tp, center);
-        }
+          _VLRDataPointSurface.setPos(c->tp, center);
       
         c->area = area;
         c->center = center;
+        // add the current center position to the set
+        c->centerPos.push_back( center );
         c->timeStep = _surfaceClass.getTime();
         c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
         
@@ -684,9 +685,28 @@ public:
     }
     // wait for the six-cell stage some time steps such that the
     // the future divisions are not occurring too fast
+    // and only update the center of cells
     else if( T.C.size() == 6 && _forceInitialSituation && wait )
     {
-      
+      forall(const cell& c, T.C)
+      {
+        // update center position
+        Point3d center;
+        double area;
+        this->setCellCenter( c, center, area );
+        
+        if( surfaceType == 0 )
+          _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
+        else
+          _VLRDataPointSurface.setPos(c->tp, center);
+        
+        c->area = area;
+        c->center = center;
+        // add the current center position to the set
+        c->centerPos.push_back( center );
+        c->timeStep = _surfaceClass.getTime();
+        c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
+      }
     }
     else
     {      
@@ -704,6 +724,8 @@ public:
           
         c->area = area;
         c->center = center;
+        // add the current center position to the set
+        c->centerPos.push_back( center );
         c->timeStep = _surfaceClass.getTime();
         c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
         
@@ -759,16 +781,9 @@ public:
     // Divide the cells
     forall(const cell& c, to_divide)
     {
-      if( useDecussationDivision && c->id > areaRatioStart )
-      {
-        // if true then the next division is perpendicular to the last one
-        // else the division is collinear to the previous division direction
-        if( this->setNextDecussationDivision() )
-          c->angle = fmod( c->angle + 90., 360. );
-        
-        MyTissue::division_data ddata = this->setDivisionPoints( c );
-        T.divideCell( c, ddata );
-      }
+      // perform the "normal" division routine for the initial two founder cells
+      if( T.C.size() < 4 && _forceInitialSituation )
+        T.divideCell(c);
       // set the division properties for the second division
       // periclinal division resulting in six cells
       // **********************************
@@ -784,6 +799,32 @@ public:
           MyTissue::division_data ddata = this->setDivisionPoints( c );
           T.divideCell( c, ddata );
         }
+      }
+      else if( _divisionType == "Decussation" && c->id > areaRatioStart )
+      {
+        // if true then the next division is perpendicular to the last one
+        // else the division is collinear to the previous division direction
+        if( this->setNextDecussationDivision() )
+          c->angle = fmod( c->angle + 90., 360. );
+        
+        MyTissue::division_data ddata = this->setDivisionPoints( c );
+        T.divideCell( c, ddata );
+      }
+      else if( _divisionType == "PerToGrowth" && c->id > areaRatioStart )
+      {
+        // if true then the next division is perpendicular to the principal
+        // component growth of the center deformation since the cell was born
+        // determine principal growth direction
+        if( c->centerPos.size() > 1 )
+          c->principalGrowthDir = this->determineLongestPCGrowth( c->centerPos );
+        else
+          std::cout << "Too few center positions!" << std::endl;
+        
+        Point3d xaxisDir = Point3d( 1., 0., 0. );
+        c->angle = 180./M_PI * acos( c->principalGrowthDir*xaxisDir ) + 90.;
+        // update the division angle
+        MyTissue::division_data ddata = this->setDivisionPoints( c );
+        T.divideCell( c, ddata );
       }
       else
         T.divideCell(c);
@@ -811,9 +852,7 @@ public:
     if( _exportLineage && !_lastStep )
     {
       forall(const cell& c, T.C)
-        ModelExporter::exportLineageInformation( _lineageFileName, c, T,
-                                                  _surfaceClass.getTime(),
-                                                  false, surfaceType );
+        ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
     }
   }
   
@@ -884,6 +923,29 @@ public:
     }
   }
 
+  //----------------------------------------------------------------
+  
+  Point3d determineLongestPCGrowth( const std::vector<Point3d> &positions )
+  {
+    Point3d principalGrowthDir;
+    
+    Eigen::MatrixXd points( positions.size(), 3 );
+    
+    for( std::size_t r=0;r<positions.size();r++ )
+    {
+      points( r, 0 ) = positions.at(r).i();
+      points( r, 1 ) = positions.at(r).j();
+      points( r, 2 ) = positions.at(r).k();
+    }
+      
+    //std::cout << "Matrix: " << points << std::endl;
+    std::vector<double> lpc = PCA::compute( points );
+    principalGrowthDir = Point3d( lpc.at(0), lpc.at(1), lpc.at(2) );
+    std::cout << "LPC: " << principalGrowthDir << std::endl;
+    
+    return principalGrowthDir;
+  }
+  
   //----------------------------------------------------------------
   
   void initDraw(Viewer* viewer)

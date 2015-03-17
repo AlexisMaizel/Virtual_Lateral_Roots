@@ -58,6 +58,9 @@ struct CellContent
   std::size_t parentId;
   std::size_t treeId;
   std::size_t timeStep;
+  // set of center positions except the initial one
+  // to compute the principal growth direction
+  std::vector<Point3d> centerPos;
   Point3d center;
   // initial area of cell right after division
   double initialArea;
@@ -99,6 +102,12 @@ struct CellContent
   // outer and inner cells based on the distance between cell
   // and VLR center
   bool innerCell;
+  double xMin;
+  double xMax;
+  // the principal growth direction of the current cell depending
+  // on the deformation behavior of the center of the cell since it is
+  // born (e.g. right after a division)
+  Point3d principalGrowthDir;
 };
 
 struct WallContent

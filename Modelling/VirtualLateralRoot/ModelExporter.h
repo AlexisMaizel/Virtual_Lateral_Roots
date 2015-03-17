@@ -15,9 +15,7 @@ namespace ModelExporter
   void exportLineageInformation( const std::string &filename,
                                  const cell& c,
                                  const MyTissue& T,
-                                 const std::size_t timeStep,
-                                 const bool init,
-                                 const std::size_t surfaceType );
+                                 const bool init );
   
   void exportTimeAgainstCells( const std::string &filename,
                                const double dT,

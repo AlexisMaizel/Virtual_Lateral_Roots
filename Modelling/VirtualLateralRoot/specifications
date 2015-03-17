@@ -3,6 +3,7 @@ ModelExporter.cpp
 ModelExporter.h
 ModelUtils.cpp
 ModelUtils.h
+PrincipalComponentAnalysis.h
 SurfaceClass.cpp
 SurfaceClass.h
 RealSurface.cpp
@@ -80,7 +81,7 @@ VVE:
 
 Files:
 	all:
-		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h BezierSurface.cpp BezierSurface.h SurfacePoints.cpp SurfacePoints.h RealSurface.cpp RealSurface.h specifications SurfaceClass.cpp SurfaceClass.h
+		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h BezierSurface.cpp BezierSurface.h SurfacePoints.cpp SurfacePoints.h RealSurface.cpp RealSurface.h specifications SurfaceClass.cpp SurfaceClass.h PrincipalComponentAnalysis.h
 	program:
 		EDIT model.cpp
 	parameters:
