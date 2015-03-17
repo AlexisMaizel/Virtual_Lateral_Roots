@@ -1,4 +1,4 @@
-function exportBezierPatches( curI, surface, surfaceDir )
+function exportBezierSurface( curI, surface, surfaceDir )
 if curI < 10
   digit = strcat( '_00' );
 elseif curI < 100
@@ -11,15 +11,11 @@ end
 fileName = strcat( surfaceDir, 'bezierTensorSurface', digit, num2str(curI), '.txt' );
 fileId = fopen( char(fileName), 'w' );
 
-% loop over patches
-for p=1:size( surface, 4 )
-  % loop over control points
-  for i=1:4
-    for j=1:4
-      fprintf( fileId, '%4f %4f %4f ', surface( i, j, :, p ) );
-    end
-    fprintf( fileId, '\n' );
+% loop over control points
+for i=1:4
+  for j=1:4
+    fprintf( fileId, '%4f %4f %4f ', surface( i, j, : ) );
   end
   fprintf( fileId, '\n' );
 end
-
+fprintf( fileId, '\n' );

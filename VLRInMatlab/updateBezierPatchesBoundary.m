@@ -1,4 +1,4 @@
-function [Q, curS] = updateBezierSurfaceBoundary( factor, initialS, finalS, curS, numPatches )
+function [Q, curS] = updateBezierPatchesBoundary( factor, initialS, finalS, curS, numPatches )
 %number of interpolated values between end control points
 ni = 10;
 %uniform parameterization

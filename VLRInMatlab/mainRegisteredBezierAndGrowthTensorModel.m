@@ -81,7 +81,8 @@ considerAllCells = 0;
 % use of exactly one bezier surface or a set of merged bezier patches
 useBezierSurface = 1;
 % dim of control points for the bezier surface -> dim x dim control points
-dimCP = 8;
+dimCP = 7;
+bezierSteps = 10;
 % number of bezier patches (if selected) each with 15 control points
 numPatches = 4;
 bezierOffset = 0;
@@ -176,8 +177,13 @@ initialMaxPos = [ 175 0 0];
 lastMinPos = [ -280 -50 0 ];
 lastMaxPos = [ 300 65 0];
 % initialization of bezier surface
-[ curS, finalS, Q ] = initializeBezierPatches( numPatches, initialMinPos,...
-  initialMaxPos, bezierOffset, emphasizeDomeTip );
+if useBezierSurface == 0
+  [ curS, finalS, Q ] = initializeBezierPatches( numPatches, initialMinPos,...
+    initialMaxPos, bezierOffset, emphasizeDomeTip );
+else
+  [ curS, finalS, Q ] = initializeBezierSurface( dimCP, initialMinPos,...
+  initialMaxPos, bezierOffset, bezierSteps, emphasizeDomeTip );
+end
 % at start initialS = curS
 initialS = curS;
 surfaceDir = strcat( 'bezierGrowthSurfaces/' );
@@ -190,7 +196,11 @@ fileId = fopen( char(fileName), 'w' );
 fprintf( fileId, '%1d\n', endI-startI+2 );
 % number of patches for each surface
 fprintf( fileId, '%1d\n', numPatches );
-exportBezierPatches( 0, initialS, surfaceDir );
+if useBezierSurface == 0
+  exportBezierPatches( 0, initialS, surfaceDir );
+else
+  exportBezierSurface( 0, initialS, surfaceDir );
+end
 
 if considerAllCells == 0
   regLastTimeStep = [ 269 277 230 344 213 ];
@@ -282,9 +292,15 @@ for curI=startI:deltaI:endI-1
   if begin == 1 && curI > 1
     % if curI is beginning at a later time step then update the bezier
     % surface depending on the current curI
-    [Q, curS] = updateBezierPatchesBoundary( curI/maxI, initialS, finalS, curS, numPatches );
-    % export initial bezier surface
-    exportBezierPatches( curI, curS, surfaceDir );
+    if useBezierSurface == 0
+      [Q, curS] = updateBezierPatchesBoundary( curI/maxI, initialS, finalS, curS, numPatches );
+      % export initial bezier surface
+      exportBezierPatches( curI, curS, surfaceDir );
+    else
+      [Q, curS] = updateBezierSurfaceBoundary( curI/maxI, initialS, finalS, curS, dimCP, bezierSteps );
+      % export initial bezier surface
+      exportBezierSurface( curI, curS, surfaceDir );
+    end
   end
   
   % min and max values for positions to initialize the bezier surface
@@ -678,15 +694,29 @@ for curI=startI:deltaI:endI-1
   if renderBezier == 1
     subplot( numPlots, 1, 1 );
     hold on;
-    for p=1:numPatches
-      BEZIER(bezierPatchCounter) = mesh( Q(:,:,1,p), Q(:,:,2,p), Q(:,:,3,p), Q(:,:,3,p) );
+    if useBezierSurface == 0
+      for p=1:numPatches
+        BEZIER(bezierPatchCounter) = mesh( Q(:,:,1,p), Q(:,:,2,p), Q(:,:,3,p), Q(:,:,3,p) );
+        bezierPatchCounter = bezierPatchCounter + 1;
+      end
+      for p=1:numPatches
+        for ci=1:4
+          for cj=1:4
+            [ BEZIERPOINTS(bezierCounter), BEZIERPOINTSPATCH(bezierCounter) ] =...
+              drawEllipse3d( curS( ci, cj, 1, p ), curS( ci, cj, 2, p ), 0.2, radEllip, radEllip, 0, 0 );
+            set( BEZIERPOINTS(bezierCounter), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
+            set( BEZIERPOINTSPATCH(bezierCounter), 'FaceColor', [ 0 0 0 ], 'FaceLighting', 'none' );
+            bezierCounter = bezierCounter + 1;
+          end
+        end
+      end
+    else
+      BEZIER(bezierPatchCounter) = mesh( Q(:,:,1), Q(:,:,2), Q(:,:,3), Q(:,:,3) );
       bezierPatchCounter = bezierPatchCounter + 1;
-    end
-    for p=1:numPatches
-      for ci=1:4
-        for cj=1:4
+      for ci=1:dimCP
+        for cj=1:dimCP
           [ BEZIERPOINTS(bezierCounter), BEZIERPOINTSPATCH(bezierCounter) ] =...
-            drawEllipse3d( curS( ci, cj, 1, p ), curS( ci, cj, 2, p ), 0.2, radEllip, radEllip, 0, 0 );
+            drawEllipse3d( curS( ci, cj, 1 ), curS( ci, cj, 2 ), 0.2, radEllip, radEllip, 0, 0 );
           set( BEZIERPOINTS(bezierCounter), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
           set( BEZIERPOINTSPATCH(bezierCounter), 'FaceColor', [ 0 0 0 ], 'FaceLighting', 'none' );
           bezierCounter = bezierCounter + 1;
@@ -696,33 +726,57 @@ for curI=startI:deltaI:endI-1
   end
 
   % update boundary control points of bezier surface for the next reg. time step
-  [Q, curS] = updateBezierPatchesBoundary( (curI+deltaI)/maxI, initialS, finalS, curS, numPatches );
-  
-  % update the inner control points of the bezier surface
-  if strcmp( termTypeStr( 1, renderTermType ), 'B' )
-    [Q, curS] = updateBezierPatches( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
-      resGrid, rows, columns, magnitudeScaling, numPatches, interpolatedHeighGrowth );
+  if useBezierSurface == 0
+    [Q, curS] = updateBezierPatchesBoundary( (curI+deltaI)/maxI, initialS, finalS, curS, numPatches );
+    % update the inner control points of the bezier surface
+    if strcmp( termTypeStr( 1, renderTermType ), 'B' )
+      [Q, curS] = updateBezierPatches( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
+        resGrid, rows, columns, magnitudeScaling, numPatches, interpolatedHeighGrowth );
+    else
+      [Q, curS] = updateBezierPatches( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
+        resGrid, rows, columns, magnitudeScaling, numPatches, interpolatedHeighGrowth );
+    end
+    exportBezierPatches( curI+deltaI, curS, surfaceDir );
   else
-    [Q, curS] = updateBezierPatches( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
-    resGrid, rows, columns, magnitudeScaling, numPatches, interpolatedHeighGrowth );
+    [Q, curS] = updateBezierSurfaceBoundary( (curI+deltaI)/maxI, initialS, finalS, curS, dimCP, bezierSteps );
+    % update the inner control points of the bezier surface
+    if strcmp( termTypeStr( 1, renderTermType ), 'B' )
+      [Q, curS] = updateBezierSurface( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
+        resGrid, rows, columns, magnitudeScaling, dimCP, bezierSteps, interpolatedHeighGrowth );
+    else
+      [Q, curS] = updateBezierSurface( tileGridDir, curS, totalMinAxes, totalMaxAxes,...
+        resGrid, rows, columns, magnitudeScaling, dimCP, bezierSteps, interpolatedHeighGrowth );
+    end
+    exportBezierSurface( curI+deltaI, curS, surfaceDir );
   end
-  
-  % export bezier surface
-  exportBezierPatches( curI+deltaI, curS, surfaceDir );
   
   % render the changing bezier surface at curI+deltaI
   if renderBezier == 1
     subplot( numPlots, 1, 2 );
     hold on;
-    for p=1:numPatches
-      BEZIER(bezierPatchCounter) = mesh( Q(:,:,1,p), Q(:,:,2,p), Q(:,:,3,p), Q(:,:,3,p) );
+    if useBezierSurface == 0
+      for p=1:numPatches
+        BEZIER(bezierPatchCounter) = mesh( Q(:,:,1,p), Q(:,:,2,p), Q(:,:,3,p), Q(:,:,3,p) );
+        bezierPatchCounter = bezierPatchCounter + 1;
+      end
+      for p=1:numPatches
+        for ci=1:4
+          for cj=1:4
+            [ BEZIERPOINTS(bezierCounter), BEZIERPOINTSPATCH(bezierCounter) ] =...
+              drawEllipse3d( curS( ci, cj, 1, p ), curS( ci, cj, 2, p ), 0.2, radEllip, radEllip, 0, 0 );
+            set( BEZIERPOINTS(bezierCounter), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
+            set( BEZIERPOINTSPATCH(bezierCounter), 'FaceColor', [ 0 0 0 ], 'FaceLighting', 'none' );
+            bezierCounter = bezierCounter + 1;
+          end
+        end
+      end
+    else
+      BEZIER(bezierPatchCounter) = mesh( Q(:,:,1), Q(:,:,2), Q(:,:,3), Q(:,:,3) );
       bezierPatchCounter = bezierPatchCounter + 1;
-    end
-    for p=1:numPatches
-      for ci=1:4
-        for cj=1:4
+      for ci=1:dimCP
+        for cj=1:dimCP
           [ BEZIERPOINTS(bezierCounter), BEZIERPOINTSPATCH(bezierCounter) ] =...
-            drawEllipse3d( curS( ci, cj, 1, p ), curS( ci, cj, 2, p ), 0.2, radEllip, radEllip, 0, 0 );
+            drawEllipse3d( curS( ci, cj, 1 ), curS( ci, cj, 2 ), 0.2, radEllip, radEllip, 0, 0 );
           set( BEZIERPOINTS(bezierCounter), 'color', [ 0 0 0 ], 'LineWidth', lineWidth );
           set( BEZIERPOINTSPATCH(bezierCounter), 'FaceColor', [ 0 0 0 ], 'FaceLighting', 'none' );
           bezierCounter = bezierCounter + 1;
