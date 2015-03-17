@@ -70,6 +70,7 @@ public:
   std::size_t _timeSixCellStage;
   bool _smootherCells;
   
+  bool _useAlternativeDT;
   std::string _divisionType;
   
   //----------------------------------------------------------------
@@ -101,6 +102,7 @@ public:
     parms( "Division", "UseCombinedAreaRatio", useCombinedAreaRatio);
     parms( "Division", "UseWallRatio", useWallRatio);
     parms( "Division", "DivisionWallRatio", divisionWallRatio);
+    parms( "Division", "UseAlternativeDivisionType", _useAlternativeDT );
     parms( "Division", "DivisionType", _divisionType );
     parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
     parms( "Division", "DivisionAngleThreshold", _angleThreshold );
@@ -800,7 +802,9 @@ public:
           T.divideCell( c, ddata );
         }
       }
-      else if( _divisionType == "Decussation" && c->id > areaRatioStart )
+      else if( _divisionType == "Decussation" &&
+               c->id > areaRatioStart &&
+               _useAlternativeDT )
       {
         // if true then the next division is perpendicular to the last one
         // else the division is collinear to the previous division direction
@@ -810,7 +814,9 @@ public:
         MyTissue::division_data ddata = this->setDivisionPoints( c );
         T.divideCell( c, ddata );
       }
-      else if( _divisionType == "PerToGrowth" && c->id > areaRatioStart )
+      else if( _divisionType == "PerToGrowth" &&
+               c->id > areaRatioStart &&
+               _useAlternativeDT )
       {
         // if true then the next division is perpendicular to the principal
         // component growth of the center deformation since the cell was born
