@@ -40,7 +40,8 @@ class Bezier {
     
     // Load bezier surface with included growth tensor information from file
     void LoadGrowthBezier( const std::string bezFile,
-                           const std::size_t numPatches );
+                           const std::size_t numPatches,
+                           const std::size_t numControlPoints );
     
     // Copy and/or scale
     void Scale( Bezier &b, double Scale );

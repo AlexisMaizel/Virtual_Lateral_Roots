@@ -1,4 +1,4 @@
-function exportBezierSurface( curI, surface, surfaceDir )
+function exportBezierSurface( curI, surface, surfaceDir, dimCP )
 if curI < 10
   digit = strcat( '_00' );
 elseif curI < 100
@@ -12,8 +12,8 @@ fileName = strcat( surfaceDir, 'bezierTensorSurface', digit, num2str(curI), '.tx
 fileId = fopen( char(fileName), 'w' );
 
 % loop over control points
-for i=1:4
-  for j=1:4
+for i=1:dimCP
+  for j=1:dimCP
     fprintf( fileId, '%4f %4f %4f ', surface( i, j, : ) );
   end
   fprintf( fileId, '\n' );

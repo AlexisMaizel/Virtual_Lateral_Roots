@@ -116,7 +116,7 @@ void Surface::init( util::Parms &parms,
       fileName += ".txt";
       
       // load bezier growth surface
-      surface[i].LoadGrowthBezier( fileName, _numPatches );
+      surface[i].LoadGrowthBezier( fileName, _numPatches, _numControlPoints );
     }
   }
 }
@@ -133,6 +133,7 @@ void Surface::determineSurfaceHeaderProperties( const std::string bezFile )
   }
   bIn >> _numSurfaces;
   bIn >> _numPatches;
+  bIn >> _numControlPoints;
 }
 
 //----------------------------------------------------------------

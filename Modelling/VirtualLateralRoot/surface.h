@@ -111,6 +111,7 @@ class Surface {
     bool _bezierGrowthSurface;
     std::size_t _numSurfaces;
     std::size_t _numPatches;
+    std::size_t _numControlPoints;
 };
 
 #endif

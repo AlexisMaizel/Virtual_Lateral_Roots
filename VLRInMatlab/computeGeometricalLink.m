@@ -2,7 +2,7 @@ function B = computeGeometricalLink( p1, p2, triC, triN, matPosC, matPosN,...
   cellIdsC, cellIdsN, deltaT, conservedLinksPerCell, numConservedLinksPerCell,...
   numAveragedLinksPerCell, triangulationType,...
   centerPosPerTimeStep, curTC, curTN )
-B = zeros(3);
+B = [ 0 0 0 ; 0 0 0 ; 0 0 0 ];
 % loop over all linked and conserved neighbors
 % determining B
 for n=1:numConservedLinksPerCell
@@ -29,17 +29,19 @@ for n=1:numConservedLinksPerCell
   % compute link matrix which is the matrix C in the paper (Appendix C1)
   C = getLinkMatrix( la, ld/deltaT );
   
+  % averaging
+%   if numConservedLinksPerCell > 0
+%     C = C./numConservedLinksPerCell;
+%   end
+  if numAveragedLinksPerCell > 0
+    C = C./numAveragedLinksPerCell;
+  end
+  
+  % multiply the factor of N_c/N_tot (see paper in Appendix C1)
+  if numAveragedLinksPerCell > 0
+    C = C.*( numConservedLinksPerCell / numAveragedLinksPerCell);
+  end
+  
   % sum of C and the transposed one
   B = B + C + C';
-end
-
-% after processing each neighbor, divide each entry by number
-% of conserved neighbors -> averaging
-if numConservedLinksPerCell > 0
-  B = B./numConservedLinksPerCell;
-end
-
-% multiply the factor of N_c/N_tot (see paper in Appendix C1)
-if numAveragedLinksPerCell > 0
-  B = B.*( numConservedLinksPerCell / numAveragedLinksPerCell);
 end

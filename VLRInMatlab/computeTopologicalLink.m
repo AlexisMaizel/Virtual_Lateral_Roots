@@ -2,13 +2,13 @@ function T = computeTopologicalLink( p1, p2, triC, triN, matPosC, matPosN,...
   cellIdsC, cellIdsN, objectIdC, objectIdN, objectLinksC, deltaT,...
   appearedLinksPerCell, disappearedLinksPerCell,...
   numAveragedLinksPerCell, triangulationType,...
-  centerPosPerTimeStep, curTC, curTN )
-  % topological term
-  T1 = zeros(3);
-  T2 = zeros(3);
+  centerPosPerTimeStep, curTC )
+% topological terms
+T1 = [ 0 0 0 ; 0 0 0 ; 0 0 0 ];
+T2 = [ 0 0 0 ; 0 0 0 ; 0 0 0 ];
   
-  % number of added links between two time steps
-  numAppearedLinksPerCell = size( appearedLinksPerCell, 2 );
+% number of added links between two time steps
+numAppearedLinksPerCell = size( appearedLinksPerCell, 2 );
   
 % loop over all appeared linked neighbors determining the first part of T
 for a=1:numAppearedLinksPerCell
@@ -18,16 +18,19 @@ for a=1:numAppearedLinksPerCell
   % link at time step t + deltaT
   pos1 = getCellPosition( neighborId, triN, cellIdsN,...
     triangulationType, matPosN );
-  pos1 = pos1 - centerPosPerTimeStep(curTN,:);
   
   pos2 = getCellPosition( objectIdN, triN, cellIdsN,...
     triangulationType, matPosN );
-  pos2 = pos2 - centerPosPerTimeStep(curTN,:);
   
   l = pos1 - pos2;
     
   % compute link matrix
   m = getLinkMatrix( l, l );
+  
+  % averaging
+  if numAveragedLinksPerCell > 0
+    m = m./numAveragedLinksPerCell;
+  end
   
   % update matrix T
   T1 = T1 + m;
@@ -42,16 +45,20 @@ if isConserved( objectIdN, objectLinksC ) == 0
   % compute link matrix
   m = getLinkMatrix( l, l );
   
+  % averaging
+  if numAveragedLinksPerCell > 0
+    m = m./numAveragedLinksPerCell;
+  end
+  
   T1 = T1 + m;
   
   numAppearedLinksPerCell = numAppearedLinksPerCell + 1;
 end
 
-% after processing each neighbor, divide each entry by number
-% of appeared neighbors -> averaging
-if numAppearedLinksPerCell > 0
-  T1 = T1./numAppearedLinksPerCell;
-end
+% averaging
+% if numAppearedLinksPerCell > 0
+%   T1 = T1./numAppearedLinksPerCell;
+% end
 
 % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
 if numAveragedLinksPerCell > 0
@@ -59,9 +66,11 @@ if numAveragedLinksPerCell > 0
 end
 
 % divide by deltaT
-T1 = T1./deltaT;
+if deltaT > 0
+  T1 = T1./deltaT;
+end
 
-% number of added links between two time steps
+% number of disappeared links between two time steps
 numDisappearedLinksPerCell = size( disappearedLinksPerCell, 2 );
 
 % loop over all disappeared linked neighbors determining the second part of T
@@ -72,26 +81,28 @@ for d=1:numDisappearedLinksPerCell
   % link at time step t
   pos1 = getCellPosition( neighborId, triC, cellIdsC,...
     triangulationType, matPosC );
-  pos1 = pos1 - centerPosPerTimeStep(curTC,:);
   
   pos2 = getCellPosition( objectIdC, triC, cellIdsC,...
     triangulationType, matPosC );
-  pos2 = pos2 - centerPosPerTimeStep(curTC,:);
   
   l = pos1 - pos2;
   
   % compute link matrix
   m = getLinkMatrix( l, l );
   
+  % averaging
+  if numAveragedLinksPerCell > 0
+    m = m./numAveragedLinksPerCell;
+  end
+  
   % update matrix T
   T2 = T2 + m;
 end
 
-% after processing each neighbor, divide each entry by number
-% of disappeared neighbors -> averaging
-if numDisappearedLinksPerCell > 0
-  T2 = T2./numDisappearedLinksPerCell;
-end
+% averaging
+% if numDisappearedLinksPerCell > 0
+%   T2 = T2./numDisappearedLinksPerCell;
+% end
 
 % multiply the factor of deltaN_a/N_tot (see paper in Appendix C1)
 if numAveragedLinksPerCell > 0
@@ -99,6 +110,8 @@ if numAveragedLinksPerCell > 0
 end
 
 % divide by deltaT
-T2 = T2./deltaT;
+if deltaT > 0
+  T2 = T2./deltaT;
+end
 
 T = T1 - T2;

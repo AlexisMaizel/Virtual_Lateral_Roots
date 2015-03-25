@@ -4,6 +4,8 @@ function semiAxes = determineAxes( X, Y, Z, center, dir )
   maxSemiAxis = [];
   minSemiAxis = [];
   
+  % determine point on ellipse which has the longest distance to the center
+  % of the ellipse -> longest semi axis
   dim = size( X, 1 );
   for d=1:dim
     for c=1:dim
