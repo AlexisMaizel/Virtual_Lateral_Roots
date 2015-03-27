@@ -11,7 +11,8 @@ SurfaceType: 0 // type of surface: 0 -> bezier surface, 1 -> surface based on tr
 BezierGrowthSurface: true // if the surface type is bezier then it can be chosen to choose the generated bezier surface that includes the growth tensor information
 SurfaceScale: 1 // scale factor for surface based on real data points
 UseAutomaticContourPoints: false // use contour points that are generated automatically
-ForceInitialSituation: true // force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells
+ForceInitialSituation: true // 
+InitialSituationType: 2 // forced division situation at the beginning; can be 0, 1 or 2 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells
 SmootherCells: false // TODO: if this is true then there are two additional cell positions between two subsequent time steps that are interpolated linearly
 
 [View]
@@ -25,7 +26,7 @@ UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
 DivisionWallRatio: 0.45 // 0.45 divide a cell if a wall of the cell is longer than a certain percentage of the initial length
-UseAlternativeDivisionType: true
+UseAlternativeDivisionType: false
 DivisionType: PerToGrowth // Decussation PerToGrowth ; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
 ProbabilityOfDecussationDivision: 0.9 // probability for having a decussation division (has to be in [0, 1])
 DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal and periclinal division

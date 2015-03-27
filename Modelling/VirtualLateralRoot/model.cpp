@@ -60,7 +60,7 @@ public:
   
   SurfaceType::type _sType;
   
-  bool _forceInitialSituation;
+  std::size_t _initialSituationType;
   
   Point3d _initialBoundary;
   
@@ -68,6 +68,7 @@ public:
   double _secondDivisionsAreaRatio;
   std::size_t _timeDelay;
   std::size_t _timeSixCellStage;
+  std::size_t _timeFourCellStage;
   bool _smootherCells;
   
   bool _useAlternativeDT;
@@ -90,7 +91,7 @@ public:
     parms("Main", "BezierGrowthSurface", _bezierGrowthSurface);
     parms("Main", "SurfaceScale", _surfaceScale);
     parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
-    parms("Main", "ForceInitialSituation", _forceInitialSituation );
+    parms("Main", "InitialSituationType", _initialSituationType );
     parms("Main", "SmootherCells", _smootherCells );
 
     parms("View", "StepPerView", stepPerView);
@@ -161,7 +162,8 @@ public:
     
     //std::cout << "LOD: " << _lod << std::endl;
     
-    _surfaceClass.init( _lod, _lineageFileName, _exportLineage, t, _sType, _forceInitialSituation );
+    _surfaceClass.init( _lod, _lineageFileName, _exportLineage,
+                        t, _sType, _initialSituationType != 0 );
     
     _VLRBezierSurface.init( parms, "Surface",
                             _bezierGrowthSurface, _initialCellsOfRealData );
@@ -247,7 +249,7 @@ public:
     
     // determine the initial boundary between two founder cells
     _initialBoundary = Point3d( 0., 0., 0. );
-    if( _forceInitialSituation )
+    if( _initialSituationType != 0 )
     {
       Point3d max = Point3d( -5000., -5000., 0. );
       // consider the right most position
@@ -403,6 +405,7 @@ public:
     
     // set properties of dividing cell
     c->angle = angle;
+    c->divType = divType;
     
     // set cell properties for left cell
     this->setCellProperties( cl, c );
@@ -412,7 +415,7 @@ public:
     
     // for the forced situation check which of the four cells
     // are the inner ones
-    if( _forceInitialSituation && T.C.size() > 2 && T.C.size() < 5 )
+    if( _initialSituationType != 0 && T.C.size() > 2 && T.C.size() < 5 )
     {
       double xIC = _initialBoundary.i();
       double yIC = _initialBoundary.j();
@@ -473,6 +476,7 @@ public:
     this->setCellCenter( c, center, area );
     c->initialArea = area;
     c->center = center;
+    c->divType = parentCell->divType;
     c->centerPos.push_back( center );
     c->area = c->initialArea;
     c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
@@ -604,7 +608,16 @@ public:
     
     // wait after the six cell stage until the predefined time has passed
     bool wait = false;
-    if( T.C.size() == 6 && _forceInitialSituation )
+    if( T.C.size() == 4 && _initialSituationType == 1 )
+    {
+      std::size_t curTime = _surfaceClass.getTime();
+      if( curTime - _timeFourCellStage > _timeDelay )
+        wait = false;
+      else
+        wait = true;
+    }
+    
+    if( T.C.size() == 6 && _initialSituationType == 2 )
     {
       std::size_t curTime = _surfaceClass.getTime();
       if( curTime - _timeSixCellStage > _timeDelay )
@@ -617,8 +630,34 @@ public:
     forall(const cell& c, T.C)
       this->determineXMinMax(c);
     
+    // wait for the four-cell stage some time steps such that the
+    // the future divisions are not occurring too fast
+    // and only update the center of cells
+    if( T.C.size() == 4 &&
+        _initialSituationType == 1 && wait )
+    {
+      forall(const cell& c, T.C)
+      {
+        // update center position
+        Point3d center;
+        double area;
+        this->setCellCenter( c, center, area );
+        
+        if( surfaceType == 0 )
+          _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
+        else
+          _VLRDataPointSurface.setPos(c->tp, center);
+        
+        c->area = area;
+        c->center = center;
+        // add the current center position to the set
+        c->centerPos.push_back( center );
+        c->timeStep = _surfaceClass.getTime();
+        c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
+      }
+    }
     // force the initial start of the VLR
-    if( T.C.size() < 6 && _forceInitialSituation )
+    else if( T.C.size() < 6 && _initialSituationType != 0 )
     {
       forall(const cell& c, T.C)
       {
@@ -668,6 +707,8 @@ public:
             if( a > initialArea )
               to_divide.push_back(c);
           }
+          
+          _timeFourCellStage = _surfaceClass.getTime();
         }
         // else perform the "normal" division routine
         else
@@ -688,7 +729,8 @@ public:
     // wait for the six-cell stage some time steps such that the
     // the future divisions are not occurring too fast
     // and only update the center of cells
-    else if( T.C.size() == 6 && _forceInitialSituation && wait )
+    else if( T.C.size() == 6 &&
+             _initialSituationType != 0 && wait )
     {
       forall(const cell& c, T.C)
       {
@@ -784,7 +826,7 @@ public:
     forall(const cell& c, to_divide)
     {
       // perform the "normal" division routine for the initial two founder cells
-      if( T.C.size() < 4 && _forceInitialSituation )
+      if( T.C.size() < 4 && _initialSituationType != 0 )
         T.divideCell(c);
       // set the division properties for the second division
       // periclinal division resulting in six cells
@@ -793,7 +835,7 @@ public:
       // *         *************          *
       // *         *     *     *          *
       // **********************************
-      else if( T.C.size() > 3 && T.C.size() < 6 && _forceInitialSituation )
+      else if( T.C.size() > 3 && T.C.size() < 6 && _initialSituationType == 2 )
       {
         if( c->innerCell )
         {
