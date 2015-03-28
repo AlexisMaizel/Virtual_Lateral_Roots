@@ -639,6 +639,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   c->xMin = xMin;
   c->xMax = xMax;
   c->center = center;
+  c->divType = DivisionType::NONE;
   c->centerPos.push_back( center );
   c->initialArea = geometry::polygonArea(polygon);
   c->area = c->initialArea;
@@ -819,6 +820,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   c->xMin = xMin;
   c->xMax = xMax;
   c->center = center;
+  c->divType = DivisionType::NONE;
   c->centerPos.push_back( center );
   c->initialArea = geometry::polygonArea(polygon);
   c->area = c->initialArea;

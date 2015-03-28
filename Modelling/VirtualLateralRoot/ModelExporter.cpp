@@ -27,7 +27,7 @@ void exportLineageInformation( const std::string &filename,
     // dimension
     out << "3 2 0\n";
     // header
-    out << "ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer DivisionType\n";
+    out << "ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer\n";
     out.close();
     return;
   }
@@ -60,17 +60,7 @@ void exportLineageInformation( const std::string &filename,
       << "TrackId "
       << "TrackColor "
       << "0 "
-      << c->layerValue << " ";
-      
-  std::size_t divType;
-  // anticlinal
-  if( c->divType == DivisionType::ANTICLINAL )
-    divType = 0;
-  // periclinal
-  else
-    divType = 1;
-  
-  out << divType << "\n";
+      << c->layerValue << "\n";
   
   out.close();
 }

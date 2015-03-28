@@ -12,7 +12,7 @@ BezierGrowthSurface: true // if the surface type is bezier then it can be chosen
 SurfaceScale: 1 // scale factor for surface based on real data points
 UseAutomaticContourPoints: false // use contour points that are generated automatically
 ForceInitialSituation: true // 
-InitialSituationType: 2 // forced division situation at the beginning; can be 0, 1 or 2 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells
+InitialSituationType: 0 // forced division situation at the beginning; can be 0, 1 or 2 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells
 SmootherCells: false // TODO: if this is true then there are two additional cell positions between two subsequent time steps that are interpolated linearly
 
 [View]
@@ -21,12 +21,12 @@ BackgroundColor: 255
 
 [Division]
 DivisionArea: 1100 // 1100 ... 0.025 threshold size of cells before they divide
-DivisionAreaRatio: 0.56 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionAreaRatio: 0.399 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
 DivisionWallRatio: 0.45 // 0.45 divide a cell if a wall of the cell is longer than a certain percentage of the initial length
-UseAlternativeDivisionType: false
+UseAlternativeDivisionType: true
 DivisionType: PerToGrowth // Decussation PerToGrowth ; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
 ProbabilityOfDecussationDivision: 0.9 // probability for having a decussation division (has to be in [0, 1])
 DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal and periclinal division

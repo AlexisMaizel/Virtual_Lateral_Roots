@@ -158,7 +158,7 @@ public:
     else if( _initialCellsOfRealData.compare( 0, 7, "Average") == 0 )
       t = 150;
     else if( _bezierGrowthSurface && _initialCellsOfRealData == "none" )
-      t = 590;
+      t = 502;
     
     //std::cout << "LOD: " << _lod << std::endl;
     
@@ -476,7 +476,7 @@ public:
     this->setCellCenter( c, center, area );
     c->initialArea = area;
     c->center = center;
-    c->divType = parentCell->divType;
+    c->divType = DivisionType::NONE;
     c->centerPos.push_back( center );
     c->area = c->initialArea;
     c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
