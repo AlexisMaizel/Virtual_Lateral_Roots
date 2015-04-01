@@ -3,6 +3,7 @@ function [Q, curS] = updateBezierSurface( tileGridDir, curS,...
   magnitudeScaling, dimCP, steps, interpolatedHeightGrowth )
 oldVersion = 1;
 attenuation = 2;
+affectNeighborhood = 0;
 if oldVersion == 1
   for i=1:dimCP
     for j=1:dimCP
@@ -63,15 +64,20 @@ else
       
       % now translate each cp radially by decreasing factor with center of
       % the current cp
-      for ii=1:dimCP
-        for jj=1:dimCP
-          distGrid = max( abs( ii - i ), abs( jj - j ) );
-          curTrans = translation * 1./power( attenuation, distGrid );
-          % then apply transformation to cp
-          for c=1:2
-            curS( ii, jj, c ) = curS( ii, jj, c ) + curTrans(1,c);
+      if affectNeighborhood == 1
+        for ii=1:dimCP
+          for jj=1:dimCP
+            distGrid = max( abs( ii - i ), abs( jj - j ) );
+            curTrans = translation * 1./power( attenuation, distGrid );
+            % then apply transformation to cp
+            for c=1:2
+              curS( ii, jj, c ) = curS( ii, jj, c ) + curTrans(1,c);
+            end
           end
         end
+      else
+        curS( i, j, 1 ) = curS( i, j, 1 ) + translation(1);
+        curS( i, j, 2 ) = curS( i, j, 2 ) + translation(2);
       end
     end
   end

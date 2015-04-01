@@ -3,10 +3,8 @@ numLines = size( lineDirections, 1 );
 averageStart = zeros(1,2);
 averageEnd = zeros(1,2);
 for l=1:numLines
-  startPos = lineDirections(l, 1:2);
-  endPos = lineDirections(l, 3:4);
-  averageStart = averageStart + startPos;
-  averageEnd = averageEnd + endPos;
+  averageStart = averageStart + lineDirections(l, 1:2);
+  averageEnd = averageEnd + lineDirections(l, 3:4);
 end
 
 % compute the average of the magnitude

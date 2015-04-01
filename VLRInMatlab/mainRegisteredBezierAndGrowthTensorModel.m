@@ -99,6 +99,8 @@ magnitudeScaling = 1.;
 % manually increase the height of the upper control points
 % such that the dome tip development is better captured in the model
 emphasizeDomeTip = 1;
+% represent the deformation only based on the longest deformation or all
+% principal components of the deformation
 onlyLongestDeformation = 0;
 
 % figure properties
@@ -839,7 +841,7 @@ for curI=startI:deltaI:endI-1
   end
   
   if exportImages == 1 || render == 1
-    exportResult( totalMinAxes, totalMaxAxes, bezierOffset, numData, pureDataStr,...
+    exportDeformationResult( totalMinAxes, totalMaxAxes, bezierOffset, numData, pureDataStr,...
       curTC, curTN, curCellsC, curCellsN, allCellsC, allCellsN, curI, deltaI,...
       viewStr( 1, cView ), imageDir, f, numPlots, renderTermType,...
       contribut, positiveEVVector, startData, endData );

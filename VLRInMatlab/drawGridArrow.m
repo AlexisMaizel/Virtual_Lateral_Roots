@@ -37,4 +37,4 @@ lineY = [ centerTilePos(2)-averageDirection(2), centerTilePos(2)+averageDirectio
 hold on;
 averageDirection = normalizeVector3d( averageDirection );
 L = quiver3( lineX(1)-averageDirection(1), lineY(1)-averageDirection(2), 50, averageDirection(1), averageDirection(2), 0,...
-  tilesizeX, 'LineWidth', 1.2, 'Color', color, 'MaxHeadSize', 1.0 );
+  tilesizeX, 'LineWidth', 0.8, 'Color', color, 'MaxHeadSize', 1.0 );
