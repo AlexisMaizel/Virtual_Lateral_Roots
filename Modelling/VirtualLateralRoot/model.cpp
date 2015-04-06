@@ -283,76 +283,6 @@ public:
   
   //----------------------------------------------------------------
   
-  bool setNextDecussationDivision()
-  {
-    // here we randomly decide which kind of division the current cell
-    // will do based on a probability value given as a parameter
-    srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
-    
-    // generate a value between 1 and 10
-    int val = rand() % 10 + 1;
-    //std::cout << "val: " << val << std::endl;
-    
-    if( val <= (int)(probabilityOfDecussationDivision*10.) )
-      return true;
-    else
-      return false;
-  }
-
-  //----------------------------------------------------------------
-  
-  MyTissue::division_data setDivisionPoints( const cell& c )
-  {
-    MyTissue::division_data ddata;
-    const Point3d& center = c->center;
-    double a = M_PI/180. * c->angle;
-    Point3d direction = Point3d(-sin(a), cos(a), 0);
-    forall( const junction& j,T.S.neighbors(c) )
-    {
-      Point3d jpos, jnpos;
-      const junction& jn = T.S.nextTo(c, j);
-      if( surfaceType == 0 )
-      {
-        jpos = j->sp.Pos();
-        jnpos = jn->sp.Pos();
-      }
-      else
-      {
-        jpos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-        jnpos = Point3d( jn->tp.Pos().i(), jn->tp.Pos().j(), 0. );
-      }
-      Point3d u;
-      double s;
-      if(geometry::planeLineIntersection(u, s, center, direction, jpos, jnpos) and s >= 0 and s <= 1)
-      {
-        if((jpos - center)*direction > 0)
-        {
-          ddata.v1 = j;
-          ddata.pv = u;
-        }
-        else if((jpos - center)*direction < 0)
-        {
-          ddata.u1 = j;
-          ddata.pu = u;
-        }
-        if(ddata.u1 and ddata.v1)
-          break;
-      }
-    }
-    
-    vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
-    
-    // apply cell pinching
-    tissue::CellPinchingParams params;
-    params.cellPinch = _cellPinch;
-    params.cellMaxPinch = _cellMaxPinch;
-    tissue::cellPinching( c, T, ddata, params );
-    
-    return ddata;
-  }
-  
-  //----------------------------------------------------------------
-  
   void setStatus()
   {
     //double time = _VLRBezierSurface.GetTime();
@@ -874,12 +804,104 @@ public:
         MyTissue::division_data ddata = this->setDivisionPoints( c );
         T.divideCell( c, ddata );
       }
+      else if( _divisionType == "RandomAll" &&
+               c->id > areaRatioStart &&
+               _useAlternativeDT )
+      {
+        // if true then all division planes are determined randomly preserving
+        // almost symmetric cells with same area sizes
+        c->angle = this->getRandomDivisionAngle();
+        
+        MyTissue::division_data ddata = this->setDivisionPoints( c );
+        T.divideCell( c, ddata );
+      }
       else
         T.divideCell(c);
     }
 
     return !to_divide.empty();
   }
+  
+  //----------------------------------------------------------------
+  
+  bool setNextDecussationDivision()
+  {
+    // here we randomly decide which kind of division the current cell
+    // will do based on a probability value given as a parameter
+    srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
+    
+    // generate a value between 1 and 10
+    int val = rand() % 10 + 1;
+    //std::cout << "val: " << val << std::endl;
+    
+    if( val <= (int)(probabilityOfDecussationDivision*10.) )
+      return true;
+    else
+      return false;
+  }
+
+  //----------------------------------------------------------------
+  
+  int getRandomDivisionAngle()
+  {
+    srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
+    
+    // generate a value between 1 and 180
+    return ( rand() % 180 + 1 );
+  }
+  
+  //----------------------------------------------------------------
+  
+  MyTissue::division_data setDivisionPoints( const cell& c )
+  {
+    MyTissue::division_data ddata;
+    const Point3d& center = c->center;
+    double a = M_PI/180. * c->angle;
+    Point3d direction = Point3d(-sin(a), cos(a), 0);
+    forall( const junction& j,T.S.neighbors(c) )
+    {
+      Point3d jpos, jnpos;
+      const junction& jn = T.S.nextTo(c, j);
+      if( surfaceType == 0 )
+      {
+        jpos = j->sp.Pos();
+        jnpos = jn->sp.Pos();
+      }
+      else
+      {
+        jpos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+        jnpos = Point3d( jn->tp.Pos().i(), jn->tp.Pos().j(), 0. );
+      }
+      Point3d u;
+      double s;
+      if(geometry::planeLineIntersection(u, s, center, direction, jpos, jnpos) and s >= 0 and s <= 1)
+      {
+        if((jpos - center)*direction > 0)
+        {
+          ddata.v1 = j;
+          ddata.pv = u;
+        }
+        else if((jpos - center)*direction < 0)
+        {
+          ddata.u1 = j;
+          ddata.pu = u;
+        }
+        if(ddata.u1 and ddata.v1)
+          break;
+      }
+    }
+    
+    vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
+    
+    // apply cell pinching
+    tissue::CellPinchingParams params;
+    params.cellPinch = _cellPinch;
+    params.cellMaxPinch = _cellMaxPinch;
+    tissue::cellPinching( c, T, ddata, params );
+    
+    return ddata;
+  }
+  
   
   //----------------------------------------------------------------
   
