@@ -34,6 +34,20 @@ namespace ModelUtils
   
   double cross( const Point2d &p1, const Point2d &p2, const Point2d &p3 );
   
+  Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
+                                           const std::size_t surfaceType,
+                                           double &area,
+                                           const double eps );
+  
+  bool shouldNodeBeErased( const Point3d &nodePos1,
+                           const Point3d &nodePos2,
+                           const double eps );
+  
+  std::vector<MyTissue::division_data> determinePossibleDivisionData(
+                                      const cell& c,
+                                      const std::size_t surfaceType,
+                                      const double eps );
+  
   std::vector<Point3d> loadContourPoints( const std::string &fileName,
                                           const double surfaceScale );
   

@@ -277,6 +277,248 @@ std::vector<Point3d> loadContourPoints( const std::string &fileName,
 
 // ---------------------------------------------------------------------
 
+Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
+                                         const std::size_t surfaceType,
+                                         double &area,
+                                         const double eps )
+{
+  Point3d center = Point3d( 0., 0., 0. );
+  area = 0.;
+  
+  // first create linked information of junctions such that
+  // later each triple of junctions can be compared to apply a lod
+  std::vector<Point3d> juncs;
+  forall( const junction& j, T.S.neighbors(c) )
+  {
+    if( surfaceType == 0 )
+      juncs.push_back( j->sp.Pos() );
+    else
+      juncs.push_back( Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. ) );
+    
+    center += juncs.back();
+  }
+  
+  center /= juncs.size();
+  area = geometry::polygonArea(juncs);
+  
+  // generate vector for storing node indexes which will be erased
+  std::set<std::size_t> eraseNodes;
+  // new vector of junctions for which later the center of mass is computed
+  std::vector<Point3d> newJuncs;
+  
+  // loop over path making an edge criterion check for each triple of nodes
+  // Note that we have a ring of a cell which means that for example for a 
+  // cell with 4 junctions we also execute 4 checks of the edge criterion
+  bool lastIndexWillBeErased = false;
+  std::size_t erasedNodesInARow = 0;
+  for( std::size_t p=0; p<juncs.size(); p++ )
+  {
+    std::size_t erasedIndex;
+    
+    // initialize ab and ac
+    Point3d ac;
+    Point3d ab;
+    Point3d a,b,c;
+    
+    // generate direction vector AC and AB
+    if( p == juncs.size()-2 )
+    {
+      a = juncs.at( p );
+      b = juncs.at( p+1 );
+      c = juncs.at( 0 );
+      
+      if( lastIndexWillBeErased )
+      {
+        lastIndexWillBeErased = false;
+        a = juncs.at( p-erasedNodesInARow );
+      }
+      
+      ac = c - a;
+      ab = b - a;
+      erasedIndex = p+1;
+      //std::cout << "pl: " << a << " pm: " << b << " pr: " << c << std::endl;          
+    }
+    else if( p == juncs.size()-1 )
+    {
+      a = juncs.at( p );
+      b = juncs.at( 0 );
+      
+      if( lastIndexWillBeErased )
+      {
+        lastIndexWillBeErased = false;
+        a = juncs.at( p-erasedNodesInARow );
+      }
+      
+      // for this special case check if the index=1 was not already
+      // erased; if so then consider the next position which is not
+      // erased
+      std::size_t index = 1;
+      while( eraseNodes.find(index) != eraseNodes.end() )
+        index++;
+      
+      c = juncs.at( index );
+      
+      ac = c - a;
+      ab = b - a;
+      erasedIndex = 0;
+      //std::cout << "pl: " << a << " pm: " << b << " pr: " << c << std::endl;
+    }
+    else
+    {
+      a = juncs.at( p );
+      b = juncs.at( p+1 );
+      c = juncs.at( p+2 );
+      
+      if( lastIndexWillBeErased )
+      {
+        lastIndexWillBeErased = false;
+        a = juncs.at( p-erasedNodesInARow );
+      }
+      
+      ac = c - a;
+      ab = b - a;
+      erasedIndex = p+1;
+      //std::cout << "pl: " << a << " pm: " << b << " pr: " << c << std::endl;
+    }
+    
+    // if node B does not pass test then add to vector eraseNodes
+    if( shouldNodeBeErased( ac, ab, eps ) )
+    {
+      //std::cout << "erasedIndex: " << erasedIndex << std::endl;
+      eraseNodes.insert( erasedIndex );
+      lastIndexWillBeErased = true;
+      
+      if( erasedIndex - 1 == p )
+        erasedNodesInARow++;
+    }
+    else
+      erasedNodesInARow = 0;
+  }
+  
+  if( eraseNodes.size() > 0 )
+  {
+    center = Point3d( 0., 0., 0. );
+    area = 0.;
+    
+    for( std::size_t i=0; i<juncs.size(); i++ )
+    {
+      if( eraseNodes.find(i) == eraseNodes.end() )
+      {
+        newJuncs.push_back( juncs.at(i) );
+        center += newJuncs.back();
+      }
+    }
+    
+    center /= newJuncs.size();
+    area = geometry::polygonArea(newJuncs);
+  }
+  
+  //std::cout << "center: " << center << std::endl;
+  return center;
+}
+
+//----------------------------------------------------------------------------
+
+bool shouldNodeBeErased( const Point3d &nodePos1,
+                         const Point3d &nodePos2,
+                         const double eps )
+{
+  // edge criterion:
+  // shortest distance between AC=nodePos1 and node B which is
+  // between node A and C in the path is calculated by:
+  // shortest dist = norm( AC x AB ) / norm( AC )
+
+  // temporal numerator vector
+  Point3d numerator;
+
+  // calculate cross product of AC=nodePos1 and AB=nodePos2
+  // and write result in numerator
+  numerator = nodePos1 ^ nodePos2;
+
+  // compute norm of above result and of second
+  double numeratorResult = norm( numerator );
+  double denominatorResult = norm( nodePos1 );
+  
+  // result is shortest distance between line AC=nodePos1 and point B
+  double result = numeratorResult/denominatorResult;
+  //std::cout << "result: " << result << std::endl;
+
+  // if the result is zero that means the direction vectors are colinear
+  // then set the result to true because the inner node is then not required
+  if( result == 0 )
+    return true;
+
+  if(result < eps)
+    return true;
+  else
+    return false;
+}
+
+// ---------------------------------------------------------------------
+
+std::vector<MyTissue::division_data> determinePossibleDivisionData(
+                                      const cell& c,
+                                      const std::size_t surfaceType,
+                                      const double eps )
+{
+  std::vector<MyTissue::division_data> divisionData;
+  double deltaAngle = 5.;
+  for( double angle = 0.; angle < 180.; angle += deltaAngle )
+  {
+    MyTissue::division_data ddata;
+    const Point3d& center = c->center;
+    double a = M_PI/180. * angle;
+    Point3d direction = Point3d(-sin(a), cos(a), 0);
+    forall( const junction& j,T.S.neighbors(c) )
+    {
+      Point3d jpos, jnpos;
+      const junction& jn = T.S.nextTo(c, j);
+      if( surfaceType == 0 )
+      {
+        jpos = j->sp.Pos();
+        jnpos = jn->sp.Pos();
+      }
+      else
+      {
+        jpos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+        jnpos = Point3d( jn->tp.Pos().i(), jn->tp.Pos().j(), 0. );
+      }
+      Point3d u;
+      double s;
+      if(geometry::planeLineIntersection(u, s, center, direction, jpos, jnpos) and s >= 0 and s <= 1)
+      {
+        if((jpos - center)*direction > 0)
+        {
+          ddata.v1 = j;
+          ddata.pv = u;
+        }
+        else if((jpos - center)*direction < 0)
+        {
+          ddata.u1 = j;
+          ddata.pu = u;
+        }
+        if(ddata.u1 and ddata.v1)
+          break;
+      }
+    }
+    
+    vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
+    
+    // apply cell pinching
+    tissue::CellPinchingParams params;
+    params.cellPinch = _cellPinch;
+    params.cellMaxPinch = _cellMaxPinch;
+    tissue::cellPinching( c, T, ddata, params );
+    
+    // TODO: check if the distance between ddata.pv and v1 or v2 is smaller than
+    // some eps OR if distance between ddata.pu and u1 or u2 is smaller than eps
+    
+    
+  }
+}
+
+// ---------------------------------------------------------------------
+
 double determineDivisionAngle( const MyTissue::division_data& ddata )
 {
   // get pair of points of division wall

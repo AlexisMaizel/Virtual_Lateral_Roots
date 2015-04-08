@@ -70,6 +70,8 @@ public:
   std::size_t _timeSixCellStage;
   std::size_t _timeFourCellStage;
   bool _smootherCells;
+  bool _centerOfMassAfterLOD;
+  double _LODThreshold;
   
   bool _useAlternativeDT;
   std::string _divisionType;
@@ -93,6 +95,8 @@ public:
     parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
     parms("Main", "InitialSituationType", _initialSituationType );
     parms("Main", "SmootherCells", _smootherCells );
+    parms("Main", "CenterOfMassAfterLOD", _centerOfMassAfterLOD );
+    parms("Main", "LODThreshold", _LODThreshold );
 
     parms("View", "StepPerView", stepPerView);
     parms("View", "BackgroundColor", bgColor);
@@ -428,22 +432,32 @@ public:
   void setCellCenter( const cell &c, Point3d &center, double &area )
   {
     center = Point3d( 0., 0., 0. );
-    std::vector<Point2d> polygon;
-    forall(const junction& j, T.S.neighbors(c))
+    if( !_centerOfMassAfterLOD )
     {
-      Point3d pos;
+      std::vector<Point2d> polygon;
+      forall(const junction& j, T.S.neighbors(c))
+      {
+        Point3d pos;
+        
+        if( surfaceType == 0 )
+          pos = j->sp.Pos();
+        else
+          pos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+        
+        polygon.push_back( Point2d( pos.i(), pos.j() ) );
+        center += pos;
+      }
       
-      if( surfaceType == 0 )
-        pos = j->sp.Pos();
-      else
-        pos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-      
-      polygon.push_back( Point2d( pos.i(), pos.j() ) );
-      center += pos;
+      center /= polygon.size();
+      area = geometry::polygonArea(polygon);
     }
-    
-    center /= polygon.size();
-    area = geometry::polygonArea(polygon);
+    else
+    {
+      center = ModelUtils::getCenterAfterApplyingLODToCell( c, T,
+                                                            surfaceType,
+                                                            area,
+                                                            _LODThreshold );
+    }
   }
   
   //----------------------------------------------------------------
@@ -774,6 +788,20 @@ public:
           T.divideCell( c, ddata );
         }
       }
+      else if( T.C.size() < 4 && _divisionType == "Random1DC" &&
+               c->id > areaRatioStart && _useAlternativeDT )
+      {
+        c->angle = this->getRandomDivisionAngle();
+        MyTissue::division_data ddata = this->setDivisionPoints( c );
+        T.divideCell( c, ddata );
+      }
+      else if( T.C.size() < 8 && _divisionType == "Random2DC" &&
+               c->id > areaRatioStart && _useAlternativeDT )
+      {
+        c->angle = this->getRandomDivisionAngle();
+        MyTissue::division_data ddata = this->setDivisionPoints( c );
+        T.divideCell( c, ddata );
+      }
       else if( _divisionType == "Decussation" &&
                c->id > areaRatioStart &&
                _useAlternativeDT )
@@ -811,7 +839,6 @@ public:
         // if true then all division planes are determined randomly preserving
         // almost symmetric cells with same area sizes
         c->angle = this->getRandomDivisionAngle();
-        
         MyTissue::division_data ddata = this->setDivisionPoints( c );
         T.divideCell( c, ddata );
       }
