@@ -21,8 +21,15 @@ if oldVersion == 1
         if size( tileGridDir{tileIndex}, 1 ) ~= 0
           [ averageDirection ] =...
             determineAverageDirection( tileGridDir{tileIndex} );
-          translation = [ averageDirection(1,1)*magnitudeScaling...
+          if averageDirection(1,2) > 0.
+            translation = [ averageDirection(1,1)...
             averageDirection(1,2)*magnitudeScaling ];
+          else
+            translation = [ averageDirection(1,1)...
+            averageDirection(1,2) ];
+          end
+          %translation = [ averageDirection(1,1)*magnitudeScaling...
+            %averageDirection(1,2)*magnitudeScaling ];
         end
         
         if interpolatedHeightGrowth == 1

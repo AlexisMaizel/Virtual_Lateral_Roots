@@ -60,7 +60,7 @@ endData = 5;
 % num of data
 numData = 5;
 % resolution of grid
-resGrid = 40;
+resGrid = 30;
 % register data sets based on base instead of dome tip
 registerBase = 0;
 % apply the registration to all existing cell ranges and not only the one
@@ -76,12 +76,15 @@ bezierOffset = 0;
 % add next to the height deformation based on the growth tensor information
 % also an interpolated value of the bezier control points between the
 % boundary control points (but only for the height)
-interpolatedHeightGrowth = 1;
+interpolatedHeightGrowth = 0;
 % properties of growth tensor
-magnitudeScaling = 1.;
+magnitudeScaling = 5.;
 % manually increase the height of the upper control points
 % such that the dome tip development is better captured in the model
-emphasizeDomeTip = 0;
+emphasizeDomeTip = 1;
+% affect also the neighborhood tiles depending on the displacement
+% information such that the surounding tiles may affect the control points
+affectNeighborHood = 1;
 
 % figure properties
 f = figure( 'Name', 'Mesh Deformation', 'Position', [0 0 600 800] );
@@ -368,6 +371,16 @@ for curI=startI:deltaI:endI-1
       tileIndex = getTileIndex( c, [totalMinAxes(1) totalMinAxes(2)],...
         [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
       tileGrid{tileIndex} = [ tileGrid{tileIndex}; displacement ];
+      
+      % also affect the neighbor tiles for each displacement in the center
+      % of tileIndex multiplied by an attenuation factor
+      if affectNeighborHood == 1
+        aFactor = 0.5;
+        for i=1:8
+          nIndex = getNeighborTileIndex( i, tileIndex, columns );
+          tileGrid{nIndex} = [ tileGrid{nIndex}; displacement*aFactor ];
+        end
+      end
       
       % render the individual displacements for each data set
       subplot( numPlots, 1, 3 );
