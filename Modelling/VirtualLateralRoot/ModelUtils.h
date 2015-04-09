@@ -46,7 +46,8 @@ namespace ModelUtils
   std::vector<MyTissue::division_data> determinePossibleDivisionData(
                                       const cell& c,
                                       const std::size_t surfaceType,
-                                      const double eps );
+                                      const double eps,
+                                      const MyTissue& T );
   
   std::vector<Point3d> loadContourPoints( const std::string &fileName,
                                           const double surfaceScale );

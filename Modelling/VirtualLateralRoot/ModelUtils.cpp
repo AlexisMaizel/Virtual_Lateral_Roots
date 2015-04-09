@@ -459,16 +459,21 @@ bool shouldNodeBeErased( const Point3d &nodePos1,
 std::vector<MyTissue::division_data> determinePossibleDivisionData(
                                       const cell& c,
                                       const std::size_t surfaceType,
-                                      const double eps )
+                                      const double eps,
+                                      const MyTissue& T )
 {
   std::vector<MyTissue::division_data> divisionData;
   double deltaAngle = 5.;
   for( double angle = 0.; angle < 180.; angle += deltaAngle )
   {
+    // points for storing cell wall information
+    Point3d u1,u2,v1,v2;
+    
     MyTissue::division_data ddata;
     const Point3d& center = c->center;
     double a = M_PI/180. * angle;
     Point3d direction = Point3d(-sin(a), cos(a), 0);
+    // for each cell wall
     forall( const junction& j,T.S.neighbors(c) )
     {
       Point3d jpos, jnpos;
@@ -483,38 +488,58 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
         jpos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
         jnpos = Point3d( jn->tp.Pos().i(), jn->tp.Pos().j(), 0. );
       }
+      
       Point3d u;
       double s;
+      // compute intersection between line [jpos, jnpos] and the plane with
+      // position center and normal direction; the result is stored in u and
+      // s: Position of the intersection on the line in [0,1].
       if(geometry::planeLineIntersection(u, s, center, direction, jpos, jnpos) and s >= 0 and s <= 1)
       {
         if((jpos - center)*direction > 0)
         {
           ddata.v1 = j;
           ddata.pv = u;
+          v1 = jpos;
+          v2 = jnpos;
         }
         else if((jpos - center)*direction < 0)
         {
           ddata.u1 = j;
           ddata.pu = u;
+          u1 = jpos;
+          u2 = jnpos;
         }
+        
         if(ddata.u1 and ddata.v1)
           break;
       }
     }
     
-    vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
-    
-    // apply cell pinching
-    tissue::CellPinchingParams params;
-    params.cellPinch = _cellPinch;
-    params.cellMaxPinch = _cellMaxPinch;
-    tissue::cellPinching( c, T, ddata, params );
-    
-    // TODO: check if the distance between ddata.pv and v1 or v2 is smaller than
+    // check if the distance between ddata.pv and v1 or v2 is smaller than
     // some eps OR if distance between ddata.pu and u1 or u2 is smaller than eps
+    bool pass = true;
     
+    double uJunctionLength = norm( u2 - u1 );
+    double vJunctionLength = norm( v2 - v1 );
+    double dist1 = norm( ddata.pu - u1 );
+    double dist2 = norm( ddata.pu - u2 );
+    double dist3 = norm( ddata.pv - v1 );
+    double dist4 = norm( ddata.pv - v2 );
     
+    // compute the percentage of length that is set by the user
+    double uPercLength = (uJunctionLength*eps)/100.;
+    double vPercLength = (vJunctionLength*eps)/100.;
+    
+    if( dist1 < uPercLength || dist2 < uPercLength ||
+        dist3 < vPercLength || dist4 < vPercLength )
+      pass = false;
+    
+    if( pass )
+      divisionData.push_back( ddata );
   }
+  
+  return divisionData;
 }
 
 // ---------------------------------------------------------------------
