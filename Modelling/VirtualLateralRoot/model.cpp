@@ -571,7 +571,7 @@ public:
     if( divData.size() != 0 )
     {
       // get a random choice of all possible division data
-      std::size_t choice = rand() % divData.size();
+      std::size_t choice = rand() % (divData.size()-1);
       
       ddata = divData.at( choice );
       vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
@@ -588,7 +588,69 @@ public:
     
     return ddata;
   }
+  //----------------------------------------------------------------
   
+  MyTissue::division_data getEnergyDivisionData( const cell& c,
+                                                 bool &empty )
+  {
+    // TODO
+    /*
+    std::vector<MyTissue::division_data> divData;
+    divData = ModelUtils::determinePossibleDivisionData(
+      c, surfaceType, _avoidTrianglesThreshold, T );
+    
+    // compute the lengths of all division lines and sort them
+    // in ascending order
+    std::vector<double> lengths;
+    lengths.resize( divData.size() );
+    double maxLength = 0.;
+    std::size_t maxIndex = 0;
+    
+    for( std::size_t l=0; l<lengths.size(); l++ )
+    {
+      Point3d pu = divData.at(l).pu;
+      Point3d pv = divData.at(l).pv;
+      double length = norm( pu - pv );
+      lengths.at(l) = length;
+      
+      if( length > maxLength )
+      {
+        maxLength = length;
+        maxIndex = l;
+      }
+    }
+    
+    srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
+    // get a random choice of 100 possible cases
+    std::size_t choice = rand() % 100 + 1;
+    
+    std::cout << "possible Divisions: " << divData.size() << std::endl;
+    
+    double randPercent = (double)choice/100.;
+    
+    
+    MyTissue::division_data ddata;
+    if( divData.size() != 0 )
+    {
+      // get a random choice of all possible division data
+      std::size_t choice = rand() % divData.size();
+      
+      ddata = divData.at( choice );
+      vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
+      
+      // apply cell pinching
+      tissue::CellPinchingParams params;
+      params.cellPinch = _cellPinch;
+      params.cellMaxPinch = _cellMaxPinch;
+      tissue::cellPinching( c, T, ddata, params );
+      empty = false;
+    }
+    else
+      empty = true;
+    
+    return ddata;
+    */
+  }
   //----------------------------------------------------------------
   
   MyTissue::division_data setDivisionPoints( const cell& c )
@@ -948,6 +1010,25 @@ public:
         // update the division angle
         MyTissue::division_data ddata = this->setDivisionPoints( c );
         T.divideCell( c, ddata );
+      }
+      else if( _divisionType == "Energy" &&
+               c->id > areaRatioStart &&
+               _useAlternativeDT )
+      {
+        // if true then all division planes are determined preserving
+        // almost non-triangle cells with same area sizes and the shortest cell wall
+        // has the lowest energy while the longest one has the highest energy;
+        // probability values are then assigned like this:
+        // lowest energy -> high probability
+        // highest energy -> low probability
+        bool empty = false;
+        MyTissue::division_data ddata = this->getEnergyDivisionData( c, empty );
+        // if the division data is empty then just use the default division
+        // rule (e.g. ShortestWall)
+        if( empty )
+          T.divideCell( c );
+        else
+          T.divideCell( c, ddata );
       }
       else if( _divisionType == "RandomAll" &&
                c->id > areaRatioStart &&

@@ -463,7 +463,7 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
                                       const MyTissue& T )
 {
   std::vector<MyTissue::division_data> divisionData;
-  double deltaAngle = 5.;
+  double deltaAngle = 3.;
   for( double angle = 0.; angle < 180.; angle += deltaAngle )
   {
     // points for storing cell wall information
