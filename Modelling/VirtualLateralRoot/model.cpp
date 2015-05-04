@@ -561,7 +561,7 @@ public:
   {
     std::vector<MyTissue::division_data> divData;
     divData = ModelUtils::determinePossibleDivisionData(
-      c, surfaceType, _avoidTrianglesThreshold, T );
+      c, surfaceType, _avoidTrianglesThreshold, _LODThreshold, T );
     
     srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
     
@@ -593,48 +593,95 @@ public:
   MyTissue::division_data getEnergyDivisionData( const cell& c,
                                                  bool &empty )
   {
-    // TODO
-    /*
     std::vector<MyTissue::division_data> divData;
     divData = ModelUtils::determinePossibleDivisionData(
-      c, surfaceType, _avoidTrianglesThreshold, T );
+      c, surfaceType, _avoidTrianglesThreshold, _LODThreshold, T );
+    
+    std::cout << std::endl;
     
     // compute the lengths of all division lines and sort them
     // in ascending order
     std::vector<double> lengths;
     lengths.resize( divData.size() );
+    double minLength = 5000.;
     double maxLength = 0.;
-    std::size_t maxIndex = 0;
+    double sumLength = 0.;
+    std::size_t minIndex = 0;
     
     for( std::size_t l=0; l<lengths.size(); l++ )
     {
       Point3d pu = divData.at(l).pu;
       Point3d pv = divData.at(l).pv;
+      //std::cout << "pu: " << pu << std::endl;
+      //std::cout << "pv: " << pv << std::endl;
       double length = norm( pu - pv );
       lengths.at(l) = length;
       
-      if( length > maxLength )
+      if( length < minLength )
       {
-        maxLength = length;
-        maxIndex = l;
+        minLength = length;
+        minIndex = l;
       }
+      
+      if( length >= maxLength )
+        maxLength = length;
+      
+      sumLength += length;
     }
     
-    srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
-    // get a random choice of 100 possible cases
-    std::size_t choice = rand() % 100 + 1;
-    
     std::cout << "possible Divisions: " << divData.size() << std::endl;
+    //std::cout << "minLength: " << minLength << std::endl;
+    //std::cout << "maxLength: " << maxLength << std::endl;
+    //std::cout << "sumLength: " << sumLength << std::endl;
     
-    double randPercent = (double)choice/100.;
-    
+    std::size_t probDist = 1;
     
     MyTissue::division_data ddata;
     if( divData.size() != 0 )
     {
-      // get a random choice of all possible division data
-      std::size_t choice = rand() % divData.size();
+      std::vector<double> probValues;
+      probValues.resize( divData.size() );
       
+      if( probDist == 2 )
+      {
+        // get the probability distribution function for all lengths
+        for( std::size_t l=0; l<probValues.size(); l++ )
+        {
+          double prob = (lengths.at(l)*100.)/sumLength;
+          // the current probability value assigns a higher prob to longer lengths;
+          // however, this should be inverse. Consequently, we substract the prob
+          // from 100 percent and divide it by lengths.size()-1 to get the inverse
+          // probability value
+          if( lengths.size() > 1 )
+            probValues.at(l) = (100. - prob);// /(lengths.size()-1);
+          else
+            probValues.at(l) = 100.;
+          
+          //std::cout << "prob value: " << probValues.at(l) << std::endl;
+        }
+      }
+      else
+      {
+        double mu = 0.;
+        double sd = std::sqrt(0.5);
+        std::vector<double> normLengths;
+        normLengths.resize( divData.size() );
+        for( std::size_t l=0; l<normLengths.size(); l++ )
+        {
+          normLengths.at(l) = (lengths.at(l)-minLength)/(maxLength-minLength);
+          double prob = ModelUtils::getNormalDistribution( normLengths.at(l), mu, sd );
+      
+          if( lengths.size() > 1 )
+            probValues.at(l) = prob*100.;
+          else
+            probValues.at(l) = 100.;
+          
+          //std::cout << l << " prob value: " << probValues.at(l) << std::endl;
+        }
+      }
+      
+      std::size_t choice = ModelUtils::getRandomResultOfDistribution( probValues );
+      //std::cout << "choice: " << choice << std::endl;
       ddata = divData.at( choice );
       vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
       
@@ -649,7 +696,6 @@ public:
       empty = true;
     
     return ddata;
-    */
   }
   //----------------------------------------------------------------
   

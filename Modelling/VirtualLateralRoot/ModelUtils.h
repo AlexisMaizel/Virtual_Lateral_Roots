@@ -46,13 +46,22 @@ namespace ModelUtils
   std::vector<MyTissue::division_data> determinePossibleDivisionData(
                                       const cell& c,
                                       const std::size_t surfaceType,
-                                      const double eps,
+                                      const double epsLength,
+                                      const double epsLOD,
                                       const MyTissue& T );
   
   std::vector<Point3d> loadContourPoints( const std::string &fileName,
                                           const double surfaceScale );
   
   bool xSort( const Point2d &p1, const Point2d &p2 );
+  
+  double getNormalDistribution( const double x, const double mu,
+                                const double sd );
+  
+  double getSD( const std::vector<double> &vals,
+                const double mu );
+  
+  std::size_t getRandomResultOfDistribution( const std::vector<double> &probs );
 }
 
 #endif // ModelUtils_HH

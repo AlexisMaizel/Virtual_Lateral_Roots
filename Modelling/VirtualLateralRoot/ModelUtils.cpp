@@ -6,6 +6,8 @@
   @author Jens Fangerau <jens.fangerau@iwr.uni-heidelberg.de>
 */
 
+#include <random>
+
 namespace ModelUtils
 {
   
@@ -417,6 +419,145 @@ Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
   return center;
 }
 
+// ---------------------------------------------------------------------
+
+std::vector<Point3d> determineSimplifiedJunctionsOfCell( const cell &c,
+                                                         const MyTissue& T,
+                                                         const std::size_t surfaceType,
+                                                         Point3d &center,
+                                                         const double eps )
+{
+  // first create linked information of junctions such that
+  // later each triple of junctions can be compared to apply a lod
+  std::vector<Point3d> juncs;
+  forall( const junction& j, T.S.neighbors(c) )
+  {
+    if( surfaceType == 0 )
+      juncs.push_back( j->sp.Pos() );
+    else
+      juncs.push_back( Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. ) );
+    
+    center += juncs.back();
+  }
+  
+  center /= juncs.size();
+  
+  // generate vector for storing node indexes which will be erased
+  std::set<std::size_t> eraseNodes;
+  // new vector of junctions for which later the center of mass is computed
+  std::vector<Point3d> newJuncs;
+  
+  // loop over path making an edge criterion check for each triple of nodes
+  // Note that we have a ring of a cell which means that for example for a 
+  // cell with 4 junctions we also execute 4 checks of the edge criterion
+  bool lastIndexWillBeErased = false;
+  std::size_t erasedNodesInARow = 0;
+  for( std::size_t p=0; p<juncs.size(); p++ )
+  {
+    std::size_t erasedIndex;
+    
+    // initialize ab and ac
+    Point3d ac;
+    Point3d ab;
+    Point3d a,b,c;
+    
+    // generate direction vector AC and AB
+    if( p == juncs.size()-2 )
+    {
+      a = juncs.at( p );
+      b = juncs.at( p+1 );
+      c = juncs.at( 0 );
+      
+      if( lastIndexWillBeErased )
+      {
+        lastIndexWillBeErased = false;
+        a = juncs.at( p-erasedNodesInARow );
+      }
+      
+      ac = c - a;
+      ab = b - a;
+      erasedIndex = p+1;
+      //std::cout << "pl: " << a << " pm: " << b << " pr: " << c << std::endl;          
+    }
+    else if( p == juncs.size()-1 )
+    {
+      a = juncs.at( p );
+      b = juncs.at( 0 );
+      
+      if( lastIndexWillBeErased )
+      {
+        lastIndexWillBeErased = false;
+        a = juncs.at( p-erasedNodesInARow );
+      }
+      
+      // for this special case check if the index=1 was not already
+      // erased; if so then consider the next position which is not
+      // erased
+      std::size_t index = 1;
+      while( eraseNodes.find(index) != eraseNodes.end() )
+        index++;
+      
+      c = juncs.at( index );
+      
+      ac = c - a;
+      ab = b - a;
+      erasedIndex = 0;
+      //std::cout << "pl: " << a << " pm: " << b << " pr: " << c << std::endl;
+    }
+    else
+    {
+      a = juncs.at( p );
+      b = juncs.at( p+1 );
+      c = juncs.at( p+2 );
+      
+      if( lastIndexWillBeErased )
+      {
+        lastIndexWillBeErased = false;
+        a = juncs.at( p-erasedNodesInARow );
+      }
+      
+      ac = c - a;
+      ab = b - a;
+      erasedIndex = p+1;
+      //std::cout << "pl: " << a << " pm: " << b << " pr: " << c << std::endl;
+    }
+    
+    // if node B does not pass test then add to vector eraseNodes
+    if( shouldNodeBeErased( ac, ab, eps ) )
+    {
+      //std::cout << "erasedIndex: " << erasedIndex << std::endl;
+      eraseNodes.insert( erasedIndex );
+      lastIndexWillBeErased = true;
+      
+      if( erasedIndex - 1 == p )
+        erasedNodesInARow++;
+    }
+    else
+      erasedNodesInARow = 0;
+  }
+  
+  if( eraseNodes.size() > 0 )
+  {
+    center = Point3d( 0., 0., 0. );
+    
+    for( std::size_t i=0; i<juncs.size(); i++ )
+    {
+      if( eraseNodes.find(i) == eraseNodes.end() )
+      {
+        newJuncs.push_back( juncs.at(i) );
+        center += newJuncs.back();
+      }
+    }
+    
+    center /= newJuncs.size();
+  }
+  // else the old junctions are also the current ones
+  else
+    newJuncs = juncs;
+  
+  return newJuncs;
+}
+
 //----------------------------------------------------------------------------
 
 bool shouldNodeBeErased( const Point3d &nodePos1,
@@ -459,35 +600,83 @@ bool shouldNodeBeErased( const Point3d &nodePos1,
 std::vector<MyTissue::division_data> determinePossibleDivisionData(
                                       const cell& c,
                                       const std::size_t surfaceType,
-                                      const double eps,
+                                      const double epsLength,
+                                      const double epsLOD,
                                       const MyTissue& T )
 {
+  const double EPS = 0.000000000001;
+  
   std::vector<MyTissue::division_data> divisionData;
+  
+  // we perform a LOD to the current cell such that for three colinear junctions
+  // the inner one is not considered because then the method to avoid triangles
+  // will not work any more
+  Point3d center = Point3d( 0., 0., 0. );
+  std::vector<Point3d> juncs = ModelUtils::determineSimplifiedJunctionsOfCell(
+    c, T, surfaceType, center, epsLOD );
+  
+  // determine corresponding junctions
+  std::map<std::size_t, const junction> junctionMap;
+  for( std::size_t ju=0;ju<juncs.size();ju++ )
+  {
+    forall( const junction& j,T.S.neighbors(c) )
+    {
+      Point3d jp;
+      if( surfaceType == 0 )
+        jp = j->sp.Pos();
+      else
+        jp = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+      
+      // if we have found the corresponding junction position
+      if( fabs( jp.i() - juncs.at(ju).i() ) <= EPS &&
+          fabs( jp.j() - juncs.at(ju).j() ) <= EPS &&
+          fabs( jp.k() - juncs.at(ju).k() ) <= EPS )
+      {
+        junctionMap.insert( std::make_pair( ju, j ) );
+        break;
+      }
+    }
+  }
+  
+  std::cout << "Orig pos: " << std::endl;
+  forall( const junction& j,T.S.neighbors(c) )
+  {
+    Point3d jp;
+    if( surfaceType == 0 )
+      jp = j->sp.Pos();
+    else
+      jp = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+    
+    std::cout << "pos: " << jp << std::endl;
+  }
+  
+  for( auto iter = junctionMap.begin(); iter != junctionMap.end(); ++iter )
+  {
+    if( surfaceType == 0 )
+      std::cout << "index: " << iter->first << " pos: " << iter->second->sp.Pos() << std::endl;
+    else
+      std::cout << "index: " << iter->first << " pos: " << iter->second->tp.Pos() << std::endl;
+  }
+  
   double deltaAngle = 3.;
   for( double angle = 0.; angle < 180.; angle += deltaAngle )
   {
     // points for storing cell wall information
     Point3d u1,u2,v1,v2;
-    
     MyTissue::division_data ddata;
-    const Point3d& center = c->center;
+    //const Point3d& center = c->center;
     double a = M_PI/180. * angle;
     Point3d direction = Point3d(-sin(a), cos(a), 0);
+    
     // for each cell wall
-    forall( const junction& j,T.S.neighbors(c) )
+    for( std::size_t ju=0;ju<juncs.size();ju++ )
     {
       Point3d jpos, jnpos;
-      const junction& jn = T.S.nextTo(c, j);
-      if( surfaceType == 0 )
-      {
-        jpos = j->sp.Pos();
-        jnpos = jn->sp.Pos();
-      }
+      jpos = juncs.at(ju);
+      if( ju == juncs.size()-1 )
+        jnpos = juncs.at(0);
       else
-      {
-        jpos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-        jnpos = Point3d( jn->tp.Pos().i(), jn->tp.Pos().j(), 0. );
-      }
+        jnpos = juncs.at(ju+1);
       
       Point3d u;
       double s;
@@ -498,14 +687,14 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
       {
         if((jpos - center)*direction > 0)
         {
-          ddata.v1 = j;
+          ddata.v1 = junctionMap.at(ju);
           ddata.pv = u;
           v1 = jpos;
           v2 = jnpos;
         }
         else if((jpos - center)*direction < 0)
         {
-          ddata.u1 = j;
+          ddata.u1 = junctionMap.at(ju);
           ddata.pu = u;
           u1 = jpos;
           u2 = jnpos;
@@ -528,8 +717,23 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
     double dist4 = norm( ddata.pv - v2 );
     
     // compute the percentage of length that is set by the user
-    double uPercLength = (uJunctionLength*eps)/100.;
-    double vPercLength = (vJunctionLength*eps)/100.;
+    double uPercLength = (uJunctionLength*epsLength)/100.;
+    double vPercLength = (vJunctionLength*epsLength)/100.;
+    
+    /*
+    std::cout << "uJunctionLength: " << uJunctionLength << std::endl;
+    std::cout << "vJunctionLength: " << vJunctionLength << std::endl;
+    std::cout << "uPercLength: " << uPercLength << std::endl;
+    std::cout << "vPercLength: " << vPercLength << std::endl;
+    std::cout << "dist1: " << dist1 << std::endl;
+    std::cout << "dist2: " << dist2 << std::endl;
+    std::cout << "dist3: " << dist3 << std::endl;
+    std::cout << "dist4: " << dist4 << std::endl;
+    std::cout << "pu: " << ddata.pu << std::endl;
+    std::cout << "pv: " << ddata.pv << std::endl;
+    std::cout << "u1: " << u1 << " u2: " << u2 << std::endl;
+    std::cout << "v1: " << v1 << " v2: " << v2 << std::endl;
+    */
     
     if( dist1 < uPercLength || dist2 < uPercLength ||
         dist3 < vPercLength || dist4 < vPercLength )
@@ -537,6 +741,8 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
     
     if( pass )
       divisionData.push_back( ddata );
+    
+    //std::cout << "pass: " << pass << std::endl;
   }
   
   return divisionData;
@@ -561,6 +767,41 @@ double determineDivisionAngle( const MyTissue::division_data& ddata )
   
   dir.normalize();
   return ( 180./M_PI * acos( dir*xaxisDir ) );
+}
+
+// ---------------------------------------------------------------------
+
+double getNormalDistribution( const double x,
+                              const double mu,
+                              const double sd )
+{
+  double a = 1./std::sqrt(2.*M_PI*sd*sd);
+  double e = std::exp( (-(x-mu)*(x-mu))/(2.*sd*sd) );
+  return a * e;
+}
+
+// ---------------------------------------------------------------------
+
+double getSD( const std::vector<double> &vals,
+              const double mu )
+{
+  double sum = 0.;
+  for( std::size_t v=0; v < vals.size(); v++ )
+    sum += (vals.at(v)-mu)*(vals.at(v)-mu);
+  
+  sum /= vals.size();
+  
+  return std::sqrt(sum);
+}
+
+// ---------------------------------------------------------------------
+
+std::size_t getRandomResultOfDistribution( const std::vector<double> &probs )
+{
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::discrete_distribution<int> d(probs.begin(), probs.end());
+  return d(gen);
 }
 
 // ---------------------------------------------------------------------
