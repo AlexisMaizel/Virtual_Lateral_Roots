@@ -8,6 +8,8 @@
 
 #include <random>
 
+const double EPS = 0.000000000001;
+
 namespace ModelUtils
 {
   
@@ -421,14 +423,15 @@ Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
 
 // ---------------------------------------------------------------------
 
-std::vector<Point3d> determineSimplifiedJunctionsOfCell( const cell &c,
-                                                         const MyTissue& T,
-                                                         const std::size_t surfaceType,
-                                                         Point3d &center,
-                                                         const double eps )
+std::set<junction> determineNeedlessJunctions( const cell &c,
+                                                     const MyTissue& T,
+                                                     const std::size_t surfaceType,
+                                                     Point3d &center,
+                                                     const double eps )
 {
   // first create linked information of junctions such that
   // later each triple of junctions can be compared to apply a lod
+  std::set<junction> junctions;
   std::vector<Point3d> juncs;
   forall( const junction& j, T.S.neighbors(c) )
   {
@@ -547,15 +550,34 @@ std::vector<Point3d> determineSimplifiedJunctionsOfCell( const cell &c,
         newJuncs.push_back( juncs.at(i) );
         center += newJuncs.back();
       }
+      // else find the corresponding junction pointer and insert
+      // it into the set of needless junctions
+      else
+      {
+        forall( const junction& j,T.S.neighbors(c) )
+        {
+          Point3d jp;
+          if( surfaceType == 0 )
+            jp = j->sp.Pos();
+          else
+            jp = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+          
+          // if we have found the corresponding junction position
+          if( fabs( jp.i() - juncs.at(i).i() ) <= EPS &&
+              fabs( jp.j() - juncs.at(i).j() ) <= EPS &&
+              fabs( jp.k() - juncs.at(i).k() ) <= EPS )
+          {
+            junctions.insert( j );
+            break;
+          }
+        }
+      }
     }
     
     center /= newJuncs.size();
   }
-  // else the old junctions are also the current ones
-  else
-    newJuncs = juncs;
   
-  return newJuncs;
+  return junctions;
 }
 
 //----------------------------------------------------------------------------
@@ -604,59 +626,14 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
                                       const double epsLOD,
                                       const MyTissue& T )
 {
-  const double EPS = 0.000000000001;
-  
   std::vector<MyTissue::division_data> divisionData;
   
   // we perform a LOD to the current cell such that for three colinear junctions
   // the inner one is not considered because then the method to avoid triangles
   // will not work any more
   Point3d center = Point3d( 0., 0., 0. );
-  std::vector<Point3d> juncs = ModelUtils::determineSimplifiedJunctionsOfCell(
+  std::set<junction> juncs = ModelUtils::determineNeedlessJunctions(
     c, T, surfaceType, center, epsLOD );
-  
-  // determine corresponding junctions
-  std::map<std::size_t, const junction> junctionMap;
-  for( std::size_t ju=0;ju<juncs.size();ju++ )
-  {
-    forall( const junction& j,T.S.neighbors(c) )
-    {
-      Point3d jp;
-      if( surfaceType == 0 )
-        jp = j->sp.Pos();
-      else
-        jp = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-      
-      // if we have found the corresponding junction position
-      if( fabs( jp.i() - juncs.at(ju).i() ) <= EPS &&
-          fabs( jp.j() - juncs.at(ju).j() ) <= EPS &&
-          fabs( jp.k() - juncs.at(ju).k() ) <= EPS )
-      {
-        junctionMap.insert( std::make_pair( ju, j ) );
-        break;
-      }
-    }
-  }
-  
-  std::cout << "Orig pos: " << std::endl;
-  forall( const junction& j,T.S.neighbors(c) )
-  {
-    Point3d jp;
-    if( surfaceType == 0 )
-      jp = j->sp.Pos();
-    else
-      jp = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-    
-    std::cout << "pos: " << jp << std::endl;
-  }
-  
-  for( auto iter = junctionMap.begin(); iter != junctionMap.end(); ++iter )
-  {
-    if( surfaceType == 0 )
-      std::cout << "index: " << iter->first << " pos: " << iter->second->sp.Pos() << std::endl;
-    else
-      std::cout << "index: " << iter->first << " pos: " << iter->second->tp.Pos() << std::endl;
-  }
   
   double deltaAngle = 3.;
   for( double angle = 0.; angle < 180.; angle += deltaAngle )
@@ -669,14 +646,20 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
     Point3d direction = Point3d(-sin(a), cos(a), 0);
     
     // for each cell wall
-    for( std::size_t ju=0;ju<juncs.size();ju++ )
+    forall( const junction& j,T.S.neighbors(c) )
     {
       Point3d jpos, jnpos;
-      jpos = juncs.at(ju);
-      if( ju == juncs.size()-1 )
-        jnpos = juncs.at(0);
+      const junction& jn = T.S.nextTo(c, j);
+      if( surfaceType == 0 )
+      {
+        jpos = j->sp.Pos();
+        jnpos = jn->sp.Pos();
+      }
       else
-        jnpos = juncs.at(ju+1);
+      {
+        jpos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
+        jnpos = Point3d( jn->tp.Pos().i(), jn->tp.Pos().j(), 0. );
+      }
       
       Point3d u;
       double s;
@@ -687,14 +670,14 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
       {
         if((jpos - center)*direction > 0)
         {
-          ddata.v1 = junctionMap.at(ju);
+          ddata.v1 = j;
           ddata.pv = u;
           v1 = jpos;
           v2 = jnpos;
         }
         else if((jpos - center)*direction < 0)
         {
-          ddata.u1 = junctionMap.at(ju);
+          ddata.u1 = j;
           ddata.pu = u;
           u1 = jpos;
           u2 = jnpos;
@@ -735,9 +718,55 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
     std::cout << "v1: " << v1 << " v2: " << v2 << std::endl;
     */
     
-    if( dist1 < uPercLength || dist2 < uPercLength ||
-        dist3 < vPercLength || dist4 < vPercLength )
+    // check if one of the current junctions v1, v2 or u1, u2 belong to
+    // the needless junction set; if so then for these junctions the distance
+    // threshold check is not applied
+    if( dist1 < uPercLength && juncs.find(ddata.u1) == juncs.end() )
       pass = false;
+    
+    if( dist3 < vPercLength && juncs.find(ddata.v1) == juncs.end() )
+      pass = false;
+    
+    if( pass )
+    {
+      bool ignoreu2 = false;
+      bool ignorev2 = false;
+      for( auto iter = juncs.begin(); iter != juncs.end(); ++iter )
+      {
+        Point3d jp;
+        if( surfaceType == 0 )
+          jp = (*iter)->sp.Pos();
+        else
+          jp = Point3d( (*iter)->tp.Pos().i(), (*iter)->tp.Pos().j(), 0. );
+        
+        // if we have found the corresponding junction position
+        if( fabs( jp.i() - u2.i() ) <= EPS &&
+            fabs( jp.j() - u2.j() ) <= EPS &&
+            fabs( jp.k() - u2.k() ) <= EPS )
+        {
+          ignoreu2 = true;
+          break;
+        }
+        
+        // if we have found the corresponding junction position
+        if( fabs( jp.i() - v2.i() ) <= EPS &&
+            fabs( jp.j() - v2.j() ) <= EPS &&
+            fabs( jp.k() - v2.k() ) <= EPS )
+        {
+          ignorev2 = true;
+          break;
+        }
+      }
+      
+      if( dist2 < uPercLength && !ignoreu2 )
+        pass = false;
+      
+      if( dist4 < vPercLength && !ignorev2 )
+        pass = false;
+    }
+    
+    //if( dist2 < uPercLength || dist4 < vPercLength )
+      //pass = false;
     
     if( pass )
       divisionData.push_back( ddata );

@@ -597,8 +597,6 @@ public:
     divData = ModelUtils::determinePossibleDivisionData(
       c, surfaceType, _avoidTrianglesThreshold, _LODThreshold, T );
     
-    std::cout << std::endl;
-    
     // compute the lengths of all division lines and sort them
     // in ascending order
     std::vector<double> lengths;

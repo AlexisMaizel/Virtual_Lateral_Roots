@@ -61,6 +61,12 @@ namespace ModelUtils
   double getSD( const std::vector<double> &vals,
                 const double mu );
   
+  std::set<junction> determineNeedlessJunctions( const cell &c,
+                                                     const MyTissue& T,
+                                                     const std::size_t surfaceType,
+                                                     Point3d &center,
+                                                     const double eps );
+  
   std::size_t getRandomResultOfDistribution( const std::vector<double> &probs );
 }
 
