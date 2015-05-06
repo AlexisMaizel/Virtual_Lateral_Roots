@@ -15,7 +15,7 @@ InitialSituationType: 2 // forced division situation at the beginning; can be 0,
 SmootherCells: false // TODO: if this is true then there are two additional cell positions between two subsequent time steps that are interpolated linearly
 CenterOfMassAfterLOD: true // compute the center of mass after applying a level of detail
 LODThreshold: 1 // threshold for used edge criterion in LOD
-AvoidTrianglesThreshold: 40 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
+AvoidTrianglesThreshold: 45 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
 
 [View]
 StepPerView: 1
@@ -23,16 +23,16 @@ BackgroundColor: 255
 
 [Division]
 DivisionArea: 1100 // 1100 ... 0.025 threshold size of cells before they divide
-DivisionAreaRatio: 0.45 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionAreaRatio: 0.6 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
 DivisionWallRatio: 0.45 // 0.45 divide a cell if a wall of the cell is longer than a certain percentage of the initial length
 UseAlternativeDivisionType: true
-DivisionType: RandomAll // Decussation PerToGrowth Energy RandomAll Random1DC Random2DC ; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
+DivisionType: Energy // Decussation PerToGrowth Energy RandomAll; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
 ProbabilityOfDecussationDivision: 90 // probability for having a decussation division (has to be in [0, 100])
 DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal and periclinal division
-CellColoringType: 0 // cell coloring type: 0 -> cells are colored based on founder cells/lineage trees; 1 -> cells are colored based on layer assignments after each periclinal division; 2 -> cells are colored based on type: interior or boundary
+CellColoringType: 1 // cell coloring type: 0 -> cells are colored based on founder cells/lineage trees; 1 -> cells are colored based on layer assignments after each periclinal division; 2 -> cells are colored based on type: interior or boundary
 FirstDivisionsAreaRatio: 0.001 // first division ratio if forced initial situation is used
 SecondDivisionsAreaRatio: 0.3 // second division ratio if forced initial situation is used
 TimeDelay: 20 // time delay for next division after the six cell stage if forced initial situation is used

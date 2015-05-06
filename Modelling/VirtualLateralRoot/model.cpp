@@ -304,19 +304,24 @@ public:
     
     if( useCombinedAreaRatio )
     {
-      status += QString( "Area divison: %1 \t" ).arg(divisionArea);
-      status += QString( "Area divison ratio: %1 \t" ).arg(divisionAreaRatio);
+      status += QString( "Area div: %1 \t" ).arg(divisionArea);
+      status += QString( "Area div ratio: %1 \t" ).arg(divisionAreaRatio);
     }
     else if( useAreaRatio )
-      status += QString( "Area divison ratio: %1 \t" ).arg(divisionAreaRatio);
+      status += QString( "Area div ratio: %1 \t" ).arg(divisionAreaRatio);
     else
-      status += QString( "Area divison: %1 \t" ).arg(divisionArea);
+      status += QString( "Area div: %1 \t" ).arg(divisionArea);
     
     if( useWallRatio )
-      status += QString( "Wall divison ratio: %1 \t" ).arg(divisionWallRatio);
+      status += QString( "Wall div ratio: %1 \t" ).arg(divisionWallRatio);
     
     if( _divisionType == "Decussation" )
-      status += QString( "Decussation propability: %1" ).arg(probabilityOfDecussationDivision);
+      status += QString( "Dec prop: %1\% \t" ).arg(probabilityOfDecussationDivision);
+    
+    if( _useAlternativeDT )
+      status += QString( "Div Type: %1" ).arg( QString::fromStdString(_divisionType) );
+    else
+      status += QString( "Div Type: ShortestWall" );
     
     setStatusMessage( status );
   }
@@ -966,30 +971,6 @@ public:
           MyTissue::division_data ddata = this->setDivisionPoints( c );
           T.divideCell( c, ddata );
         }
-      }
-      else if( T.C.size() < 4 && _divisionType == "Random1DC" &&
-               c->id > areaRatioStart && _useAlternativeDT )
-      {
-        bool empty = false;
-        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty );
-        // if the division data is empty then just use the default division
-        // rule (e.g. ShortestWall)
-        if( empty )
-          T.divideCell( c );
-        else
-          T.divideCell( c, ddata );
-      }
-      else if( T.C.size() < 8 && _divisionType == "Random2DC" &&
-               c->id > areaRatioStart && _useAlternativeDT )
-      {
-        bool empty = false;
-        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty );
-        // if the division data is empty then just use the default division
-        // rule (e.g. ShortestWall)
-        if( empty )
-          T.divideCell( c );
-        else
-          T.divideCell( c, ddata );
       }
       else if( _divisionType == "Decussation" &&
                c->id > areaRatioStart &&
