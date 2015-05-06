@@ -16,7 +16,7 @@ InitialSituationType: 2 // forced division situation at the beginning; can be 0,
 SmootherCells: false // TODO: if this is true then there are two additional cell positions between two subsequent time steps that are interpolated linearly
 CenterOfMassAfterLOD: true // compute the center of mass after applying a level of detail
 LODThreshold: 1 // threshold for used edge criterion in LOD
-AvoidTrianglesThreshold: 45 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
+AvoidTrianglesThreshold: 48 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
 
 [View]
 StepPerView: 1

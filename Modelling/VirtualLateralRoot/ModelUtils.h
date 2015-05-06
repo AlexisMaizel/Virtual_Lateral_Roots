@@ -14,6 +14,22 @@ namespace ModelUtils
   double determineLongestWallLength( const cell& c,
                                      const MyTissue& T );
   
+  void findAppropriateJunctionPoint( Point3d &p,
+                                   const std::set<junction> &juncs,
+                                   const MyTissue& T,
+                                   const cell& c,
+                                   const bool clockwise,
+                                   const std::size_t surfaceType );
+  
+  bool findPointInJunctionSet( const Point3d &p,
+                             const std::set<junction> &juncs,
+                             const std::size_t surfaceType );
+  
+  bool equalPoints( const Point3d &p1, const junction &j2,
+                  const std::size_t surfaceType );
+  
+  bool equalPoints( const Point3d &p1, const Point3d &p2 );
+  
   DivisionType::type determineDivisionType( const MyTissue::division_data& ddata,
                                             const double angleThreshold );
   
