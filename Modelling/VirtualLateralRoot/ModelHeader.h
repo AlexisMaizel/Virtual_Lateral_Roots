@@ -20,6 +20,7 @@
 #include <math.h>
 #include <fstream>
 #include <limits>
+#include <random>
 
 #include <QTextStream>
 #include <stdio.h>

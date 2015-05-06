@@ -514,15 +514,12 @@ public:
   
   bool setNextDecussationDivision()
   {
-    // here we randomly decide which kind of division the current cell
-    // will do based on a probability value given as a parameter
-    srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    double p = probabilityOfDecussationDivision;
+    std::discrete_distribution<int> d({p, 100.-p});
     
-    // generate a value between 1 and 10
-    int val = rand() % 10 + 1;
-    //std::cout << "val: " << val << std::endl;
-    
-    if( val <= (int)(probabilityOfDecussationDivision*10.) )
+    if(d(gen) == 0)
       return true;
     else
       return false;
@@ -537,16 +534,18 @@ public:
     divData = ModelUtils::determinePossibleDivisionData(
       c, _avoidTrianglesThreshold, _LODThreshold, T );
     
-    srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
-    
     std::cout << "possible Divisions: " << divData.size() << std::endl;
     
     MyTissue::division_data ddata;
     if( divData.size() != 0 )
     {
-      // get a random choice of all possible division data
-      std::size_t choice = rand() % (divData.size()-1);
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_int_distribution<int> d( 0, divData.size()-1 );
       
+      // get a random choice of all possible division data
+      std::size_t choice = d(gen);
+      //std::cout << "c: " << choice << std::endl;
       ddata = divData.at( choice );
       vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
       

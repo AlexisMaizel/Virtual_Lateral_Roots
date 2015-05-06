@@ -6,8 +6,6 @@
   @author Jens Fangerau <jens.fangerau@iwr.uni-heidelberg.de>
 */
 
-#include <random>
-
 const double EPS = 0.000000000001;
 
 namespace ModelUtils
