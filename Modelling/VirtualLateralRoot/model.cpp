@@ -38,7 +38,6 @@ public:
   bool _exportDivisionProperties;
   double probabilityOfDecussationDivision;
   double _angleThreshold;
-  std::size_t surfaceType;
   bool _bezierGrowthSurface;
   double _surfaceScale;
   bool _useAutomaticContourPoints;
@@ -90,7 +89,6 @@ public:
     parms("Main", "SubDivisionLevelOfCells", _lod);
     parms("Main", "ExportLineage", _exportLineage);
     parms("Main", "ExportDivisionProperties", _exportDivisionProperties);
-    parms("Main", "SurfaceType", surfaceType);
     parms("Main", "BezierGrowthSurface", _bezierGrowthSurface);
     parms("Main", "SurfaceScale", _surfaceScale);
     parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
@@ -153,7 +151,7 @@ public:
     registerFile("pal.map");
     registerFile("view.v");
 
-    if( surfaceType == 0 )
+    if( SURFACETYPE == 0 )
       _sType = SurfaceType::BEZIER;
     else
       _sType = SurfaceType::REALDATA;
@@ -191,8 +189,7 @@ public:
     if( _exportLineage )
     {
       ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
-      ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T,
-                                      true, surfaceType );
+      ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
     }
     
     if( _exportDivisionProperties )
@@ -212,7 +209,7 @@ public:
       ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName, dt, 0, true );
         
     // bezier
-    if( surfaceType == 0 )
+    if( SURFACETYPE == 0 )
     {
       _VLRBezierSurface.GrowStep(0);
       
@@ -248,8 +245,7 @@ public:
       {
         ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
         
-        ModelExporter::exportCellWalls( _cellWallsFileName, c,
-                                        T, false, surfaceType );
+        ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
       }
     }
     
@@ -265,12 +261,7 @@ public:
         {
           forall(const junction& j, T.S.neighbors(c))
           {
-            Point3d pos;
-            
-            if( surfaceType == 1 )
-              pos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-            else
-              pos = j->sp.Pos();
+            Point3d pos = j->getPos();
             
             if( pos.i() > max.i() )
               max.i() = pos.i();
@@ -301,7 +292,7 @@ public:
                               arg(T.W.size()).
                               arg(T.C.size());
     
-    if( surfaceType == 1 )
+    if( SURFACETYPE == 1 )
     {
       std::size_t timeStep = _VLRDataPointSurface.getCurTimeStep();
       status += QString( "TS: %1 \t" ).arg(timeStep);
@@ -439,13 +430,7 @@ public:
       std::vector<Point2d> polygon;
       forall(const junction& j, T.S.neighbors(c))
       {
-        Point3d pos;
-        
-        if( surfaceType == 0 )
-          pos = j->sp.Pos();
-        else
-          pos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-        
+        Point3d pos = j->getPos();
         polygon.push_back( Point2d( pos.i(), pos.j() ) );
         center += pos;
       }
@@ -455,9 +440,7 @@ public:
     }
     else
     {
-      center = ModelUtils::getCenterAfterApplyingLODToCell( c, T,
-                                                            surfaceType,
-                                                            area,
+      center = ModelUtils::getCenterAfterApplyingLODToCell( c, T, area,
                                                             _LODThreshold );
     }
   }
@@ -513,22 +496,13 @@ public:
     double xMax = -5000000.;
     forall(const junction& j, T.S.neighbors(c))
     {
-      if( surfaceType == 0 )
-      {
-        if( j->sp.Pos().i() < xMin )
-          xMin = j->sp.Pos().i();
-        
-        if( j->sp.Pos().i() > xMax )
-          xMax = j->sp.Pos().i();
-      }
-      else
-      {
-        if( j->tp.Pos().i() < xMin )
-          xMin = j->tp.Pos().i();
-        
-        if( j->tp.Pos().i() > xMax )
-          xMax = j->tp.Pos().i();
-      }
+      Point3d pos = j->getPos();
+      
+      if( pos.i() < xMin )
+        xMin = pos.i();
+      
+      if( pos.i() >= xMax )
+        xMax = pos.i();
     }
     
     // set min and max values for x
@@ -561,7 +535,7 @@ public:
   {
     std::vector<MyTissue::division_data> divData;
     divData = ModelUtils::determinePossibleDivisionData(
-      c, surfaceType, _avoidTrianglesThreshold, _LODThreshold, T );
+      c, _avoidTrianglesThreshold, _LODThreshold, T );
     
     srand( _surfaceClass.getTime() + _surfaceClass.getCellID() + time(NULL) );
     
@@ -595,7 +569,7 @@ public:
   {
     std::vector<MyTissue::division_data> divData;
     divData = ModelUtils::determinePossibleDivisionData(
-      c, surfaceType, _avoidTrianglesThreshold, _LODThreshold, T );
+      c, _avoidTrianglesThreshold, _LODThreshold, T );
     
     // compute the lengths of all division lines and sort them
     // in ascending order
@@ -707,16 +681,9 @@ public:
     {
       Point3d jpos, jnpos;
       const junction& jn = T.S.nextTo(c, j);
-      if( surfaceType == 0 )
-      {
-        jpos = j->sp.Pos();
-        jnpos = jn->sp.Pos();
-      }
-      else
-      {
-        jpos = Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-        jnpos = Point3d( jn->tp.Pos().i(), jn->tp.Pos().j(), 0. );
-      }
+      jpos = j->getPos();
+      jnpos = jn->getPos();
+      
       Point3d u;
       double s;
       if(geometry::planeLineIntersection(u, s, center, direction, jpos, jnpos) and s >= 0 and s <= 1)
@@ -800,7 +767,7 @@ public:
         double area;
         this->setCellCenter( c, center, area );
         
-        if( surfaceType == 0 )
+        if( SURFACETYPE == 0 )
           _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
         else
           _VLRDataPointSurface.setPos(c->tp, center);
@@ -831,7 +798,7 @@ public:
             center.i() = c->xMin + 1.*xLength/3.;
         }
         
-        if( surfaceType == 0 )
+        if( SURFACETYPE == 0 )
           _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
         else
           _VLRDataPointSurface.setPos(c->tp, center);
@@ -896,7 +863,7 @@ public:
         double area;
         this->setCellCenter( c, center, area );
         
-        if( surfaceType == 0 )
+        if( SURFACETYPE == 0 )
           _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
         else
           _VLRDataPointSurface.setPos(c->tp, center);
@@ -918,7 +885,7 @@ public:
         double area;
         this->setCellCenter( c, center, area );
       
-        if( surfaceType == 0 )
+        if( SURFACETYPE == 0 )
           _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
         else
           _VLRDataPointSurface.setPos(c->tp, center);
@@ -1103,8 +1070,7 @@ public:
     if( _exportLineage && !_lastStep )
     {
       forall(const cell& c, T.C)
-        ModelExporter::exportCellWalls( _cellWallsFileName, c,
-                                        T, false, surfaceType );
+        ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
     }
   }
   
@@ -1123,7 +1089,7 @@ public:
   
   void step_growth()
   {
-    if( surfaceType == 0 )
+    if( SURFACETYPE == 0 )
     {
       _VLRBezierSurface.GrowStep(dt);
       forall(const junction& v, T.W)
@@ -1164,7 +1130,7 @@ public:
               
     std::size_t curTime, maxTime;
     
-    if( surfaceType == 0 )
+    if( SURFACETYPE == 0 )
     {
       curTime = _surfaceClass.getTime();
       maxTime = _surfaceClass.getMaxTime();
@@ -1239,7 +1205,7 @@ public:
     forall(const cell& c, T.C)
     {
       //T.drawBorders = false;
-      if( surfaceType == 0 )
+      if( SURFACETYPE == 0 )
       {
         if( !_bezierGrowthSurface )
           T.cellWallWidth = 0.001;
@@ -1294,10 +1260,7 @@ public:
   // Method needed by the tissue
   Point3d position(const cell& c) const
   { 
-    if( surfaceType == 0 )
-      return c->sp.Pos();
-    else
-      return Point3d( c->tp.Pos().i(), c->tp.Pos().j(), 0. );
+    return c->getPos();
   }
   
   //----------------------------------------------------------------
@@ -1305,10 +1268,7 @@ public:
   // Method needed by the tissue
   Point3d position(const junction& c) const
   {
-    if( surfaceType == 0 )
-      return c->sp.Pos();
-    else
-      return Point3d( c->tp.Pos().i(), c->tp.Pos().j(), 0. );
+    return c->getPos();
   }
 
   //----------------------------------------------------------------
@@ -1316,7 +1276,7 @@ public:
   // Method needed by the tissue
   void setPosition(const cell& c, const Point3d& p)
   {
-    if( surfaceType == 0 )
+    if( SURFACETYPE == 0 )
       _VLRBezierSurface.SetPoint(c->sp, c->sp, p);
     else
       _VLRDataPointSurface.setPos( c->tp, p );
@@ -1327,7 +1287,7 @@ public:
   // Method needed by the tissue
   void setPosition(const junction& j, const Point3d& p)
   { 
-    if( surfaceType == 0 )
+    if( SURFACETYPE == 0 )
       _VLRBezierSurface.SetPoint(j->sp, j->sp, p);
     else
       _VLRDataPointSurface.setPos( j->tp, p );

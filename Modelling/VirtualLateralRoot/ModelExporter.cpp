@@ -94,8 +94,7 @@ void exportTimeAgainstCells( const std::string &filename,
 void exportCellWalls( const std::string &filename,
                       const cell& c,
                       const MyTissue &T,
-                      const bool init,
-                      const std::size_t surfaceType )
+                      const bool init )
 {
   // header
   if( init )
@@ -116,18 +115,9 @@ void exportCellWalls( const std::string &filename,
     else
       out << ",";
   
-    if( surfaceType == 0 )
-    {
-      out << j->sp.Pos().i() << "," 
-          << j->sp.Pos().j() << "," 
-          << j->sp.Pos().k();
-    }
-    else
-    {
-      out << j->tp.Pos().i() << "," 
-          << j->tp.Pos().j() << "," 
-          << 0.;
-    }
+    out << j->getPos().i() << "," 
+        << j->getPos().j() << "," 
+        << j->getPos().k();
   }
   
   out << "\n";

@@ -18,15 +18,12 @@ namespace ModelUtils
                                    const std::set<junction> &juncs,
                                    const MyTissue& T,
                                    const cell& c,
-                                   const bool clockwise,
-                                   const std::size_t surfaceType );
+                                   const bool clockwise );
   
   bool findPointInJunctionSet( const Point3d &p,
-                             const std::set<junction> &juncs,
-                             const std::size_t surfaceType );
+                             const std::set<junction> &juncs );
   
-  bool equalPoints( const Point3d &p1, const junction &j2,
-                  const std::size_t surfaceType );
+  bool equalPoints( const Point3d &p1, const junction &j2 );
   
   bool equalPoints( const Point3d &p1, const Point3d &p2 );
   
@@ -51,9 +48,7 @@ namespace ModelUtils
   double cross( const Point2d &p1, const Point2d &p2, const Point2d &p3 );
   
   Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
-                                           const std::size_t surfaceType,
-                                           double &area,
-                                           const double eps );
+                                           double &area, const double eps );
   
   bool shouldNodeBeErased( const Point3d &nodePos1,
                            const Point3d &nodePos2,
@@ -61,7 +56,6 @@ namespace ModelUtils
   
   std::vector<MyTissue::division_data> determinePossibleDivisionData(
                                       const cell& c,
-                                      const std::size_t surfaceType,
                                       const double epsLength,
                                       const double epsLOD,
                                       const MyTissue& T );
@@ -78,10 +72,9 @@ namespace ModelUtils
                 const double mu );
   
   std::set<junction> determineNeedlessJunctions( const cell &c,
-                                                     const MyTissue& T,
-                                                     const std::size_t surfaceType,
-                                                     Point3d &center,
-                                                     const double eps );
+                                                 const MyTissue& T,
+                                                 Point3d &center,
+                                                 const double eps );
   
   std::size_t getRandomResultOfDistribution( const std::vector<double> &probs );
 }

@@ -39,8 +39,7 @@ namespace ModelExporter
   void exportCellWalls( const std::string &filename,
                         const cell& c,
                         const MyTissue &T,
-                        const bool init,
-                        const std::size_t surfaceType );
+                        const bool init );
 }
 
 #endif // ModelExporter_HH

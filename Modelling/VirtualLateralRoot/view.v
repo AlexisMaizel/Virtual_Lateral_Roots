@@ -7,7 +7,6 @@ InitialCellsOfRealData: none // valid entries are:
 SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
 ExportLineage: true // export lineage information of cells
 ExportDivisionProperties: true // export division information of cells
-SurfaceType: 0 // type of surface: 0 -> bezier surface, 1 -> surface based on triangulation of real data
 BezierGrowthSurface: true // if the surface type is bezier then it can be chosen to choose the generated bezier surface that includes the growth tensor information
 SurfaceScale: 1 // scale factor for surface based on real data points
 UseAutomaticContourPoints: false // use contour points that are generated automatically
@@ -16,7 +15,7 @@ InitialSituationType: 2 // forced division situation at the beginning; can be 0,
 SmootherCells: false // TODO: if this is true then there are two additional cell positions between two subsequent time steps that are interpolated linearly
 CenterOfMassAfterLOD: true // compute the center of mass after applying a level of detail
 LODThreshold: 1 // threshold for used edge criterion in LOD
-AvoidTrianglesThreshold: 48 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
+AvoidTrianglesThreshold: 40 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
 
 [View]
 StepPerView: 1
@@ -30,7 +29,7 @@ UseCombinedAreaRatio: true // use the area ratio and the area threshold to preve
 UseWallRatio: false
 DivisionWallRatio: 0.45 // 0.45 divide a cell if a wall of the cell is longer than a certain percentage of the initial length
 UseAlternativeDivisionType: true
-DivisionType: Energy // Decussation PerToGrowth Energy RandomAll Random1DC Random2DC ; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
+DivisionType: Decussation // Decussation PerToGrowth Energy RandomAll Random1DC Random2DC ; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
 ProbabilityOfDecussationDivision: 0.9 // probability for having a decussation division (has to be in [0, 1])
 DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal and periclinal division
 CellColoringType: 0 // cell coloring type: 0 -> cells are colored based on founder cells/lineage trees; 1 -> cells are colored based on layer assignments after each periclinal division; 2 -> cells are colored based on type: interior or boundary

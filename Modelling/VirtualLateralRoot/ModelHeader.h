@@ -28,6 +28,9 @@
 #include "surface.h"
 #include "RealSurface.h"
 
+// type of surface: 0 -> bezier surface, 1 -> surface based on triangulation of real data
+const unsigned int SURFACETYPE = 0;
+
 static QTextStream out(stdout);
 
 using util::norm;
@@ -48,6 +51,14 @@ struct JunctionContent
   SurfacePoint sp;
   std::size_t id;
   TrianglePoint tp;
+  
+  Point3d getPos() const
+  {
+    if( SURFACETYPE == 0 )
+      return sp.Pos();
+    else
+      return Point3d( tp.Pos().i(), tp.Pos().j(), 0. );
+  }
 };
 
 struct CellContent
@@ -108,6 +119,14 @@ struct CellContent
   // on the deformation behavior of the center of the cell since it is
   // born (e.g. right after a division)
   Point3d principalGrowthDir;
+  
+  Point3d getPos() const
+  {
+    if( SURFACETYPE == 0 )
+      return sp.Pos();
+    else
+      return Point3d( tp.Pos().i(), tp.Pos().j(), 0. );
+  }
 };
 
 struct WallContent
