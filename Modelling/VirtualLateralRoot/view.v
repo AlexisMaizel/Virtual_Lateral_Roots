@@ -5,17 +5,13 @@ InitialCellNumber: 2 // initial cell number designed for VLR: 1, 2, 6 or 8
 InitialCellsOfRealData: none // valid entries are:
 // none, 120830_raw, 121204_raw_2014, 121211_raw, 130508_raw, 130607_raw, Average2, Average4, Average6, Average8
 SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
-ExportLineage: true // export lineage information of cells
-ExportDivisionProperties: true // export division information of cells
 BezierGrowthSurface: true // if the surface type is bezier then it can be chosen to choose the generated bezier surface that includes the growth tensor information
 SurfaceScale: 1 // scale factor for surface based on real data points
 UseAutomaticContourPoints: false // use contour points that are generated automatically
-ForceInitialSituation: true // 
 InitialSituationType: 2 // forced division situation at the beginning; can be 0, 1 or 2 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells
-SmootherCells: false // TODO: if this is true then there are two additional cell positions between two subsequent time steps that are interpolated linearly
 CenterOfMassAfterLOD: true // compute the center of mass after applying a level of detail
 LODThreshold: 1 // threshold for used edge criterion in LOD
-AvoidTrianglesThreshold: 45 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
+AvoidTrianglesThreshold: 25 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
 
 [View]
 StepPerView: 1
@@ -23,7 +19,7 @@ BackgroundColor: 255
 
 [Division]
 DivisionArea: 1100 // 1100 ... 0.025 threshold size of cells before they divide
-DivisionAreaRatio: 0.6 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionAreaRatio: 0.565 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
@@ -39,8 +35,8 @@ TimeDelay: 20 // time delay for next division after the six cell stage if forced
 
 [Tissue]
 DivisionAlgorithm: ShortWall // ClosestWall ShortWall ClosestMid
-CellPinch: 0.75 // real data point: 5.1, default: 0.75 displacement of the position of the newly inserted vertexes 0.155
-CellMaxPinch: 0.1 // 1.5 ... 0.1 ... 0.155 max displacement of the position of the newly inserted vertexes
+CellPinch: 0.0 // real data point: 5.1, default: 0.75 displacement of the position of the newly inserted vertexes 0.155
+CellMaxPinch: 0.0 // 1.5 ... 0.1 ... 0.155 max displacement of the position of the newly inserted vertexes
 CellWallMin: 0.0 // for SW, CW, CM
 StrictCellWallMin: false // for SW, CW, CM
 CellWallSample: 0.0005 // 0.5 // for SW; not sure but influences the angle of a division wall, default 0.005

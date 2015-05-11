@@ -34,12 +34,9 @@ const unsigned int SURFACETYPE = 0;
 
 static QTextStream out(stdout);
 
-using util::norm;
+typedef std::map<std::size_t, std::pair<std::size_t, std::string> > layerMap;
 
-namespace SurfaceType
-{
-  enum type { BEZIER, REALDATA };
-};
+using util::norm;
 
 namespace DivisionType
 {
@@ -102,6 +99,7 @@ struct CellContent
   // layer 3 -> magenta (11)
   // layer 4 -> red (12) etc.
   std::size_t layerValue;
+  std::string divisionSequence;
   // corresponding cell cycle
   std::size_t cellCycle;
   // previous division direction of cell
@@ -134,9 +132,8 @@ struct WallContent
 {
 };
 
+class MyViewer;
 class MyModel;
-
-typedef std::set< std::pair<std::size_t,std::size_t> > idPairSet;
 
 typedef tissue::Tissue<MyModel, CellContent, JunctionContent, WallContent, graph::_EmptyEdgeContent, graph::_EmptyEdgeContent, graph::_EmptyEdgeContent, false> MyTissue;
 

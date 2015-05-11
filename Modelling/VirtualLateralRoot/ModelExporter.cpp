@@ -244,6 +244,158 @@ void exportDivisionDaughterProperties( const std::string &filename,
 
 // ---------------------------------------------------------------------
 
+void exportModelProperties( const std::string &filename,
+                            const std::size_t loopCounter,
+                            const layerMap &firstLayerAppearances,
+                            const std::pair<std::size_t, std::size_t> &divOccurrences,
+                            const bool init )
+{
+  // generate the division sequences automatically
+  std::size_t maxLength = 6;
+  std::vector<std::string> seqVecTemp;
+  std::vector<std::string> totalSeqVec;
+  seqVecTemp.push_back( "0" );
+  totalSeqVec.push_back( "0" );
+  for( std::size_t l = 1; l < maxLength; l++ )
+  {
+    // double entries of seqVecTemp
+    std::size_t entries = seqVecTemp.size();
+    for( std::size_t m = 0; m < entries; m++ )
+      seqVecTemp.push_back( seqVecTemp.at(m) );
+    
+    std::size_t newL = std::pow(2,l);
+    for( std::size_t s = 0; s < newL; s++ )
+    {
+      if( s < (std::size_t)(newL/2.) )
+        seqVecTemp.at(s).insert( 1, "1" );
+      else
+        seqVecTemp.at(s).insert( 1, "2" );
+      
+      totalSeqVec.push_back( seqVecTemp.at(s) );
+    }
+  }
+  
+  std::ofstream out;
+  if( init )
+  {
+    out.open( filename.c_str(), std::ofstream::out );
+    // header
+    out << "'Sample' 'Anticlinal' 'Periclinal' ";
+      
+    for( std::size_t l = 0; l < totalSeqVec.size(); l++ )
+      out << "'" << totalSeqVec.at(l) << "' ";
+
+    out << "\n";
+  }
+  else
+  {
+    out.open( filename.c_str(), std::ofstream::out | std::ofstream::app );  
+  }
+  
+  out << loopCounter << " ";
+  out << divOccurrences.first << " ";
+  out << divOccurrences.second << " ";
+  
+  for( std::size_t l = 0; l < totalSeqVec.size(); l++ )
+  {
+    bool found = false;
+    for( auto iter = firstLayerAppearances.begin();
+         iter != firstLayerAppearances.end(); ++iter )
+    {
+      if( iter->second.second.compare( totalSeqVec.at(l) ) == 0 )
+      {
+        // write the time step of the corresponding sequence
+        out << iter->second.first << " ";
+        found = true;
+        break;
+      }
+    }
+    
+    if( !found )
+      out << "0 ";
+  }
+  out << "\n";
+  out.close();
+}
+
+// ---------------------------------------------------------------------
+
+void exportModelProperties( const std::string &filename,
+                            const std::size_t loopCounter,
+                            const std::map<std::string, std::size_t> &totalLayerCount,
+                            const std::pair<std::size_t, std::size_t> &divOccurrences,
+                            const bool init )
+{
+  // generate the division sequences automatically
+  std::size_t maxLength = 6;
+  std::vector<std::string> seqVecTemp;
+  std::vector<std::string> totalSeqVec;
+  seqVecTemp.push_back( "0" );
+  totalSeqVec.push_back( "0" );
+  for( std::size_t l = 1; l < maxLength; l++ )
+  {
+    // double entries of seqVecTemp
+    std::size_t entries = seqVecTemp.size();
+    for( std::size_t m = 0; m < entries; m++ )
+      seqVecTemp.push_back( seqVecTemp.at(m) );
+    
+    std::size_t newL = std::pow(2,l);
+    for( std::size_t s = 0; s < newL; s++ )
+    {
+      if( s < (std::size_t)(newL/2.) )
+        seqVecTemp.at(s).insert( 1, "1" );
+      else
+        seqVecTemp.at(s).insert( 1, "2" );
+      
+      totalSeqVec.push_back( seqVecTemp.at(s) );
+    }
+  }
+  
+  std::ofstream out;
+  if( init )
+  {
+    out.open( filename.c_str(), std::ofstream::out );
+    // header
+    out << "'Sample' 'Anticlinal' 'Periclinal' ";
+      
+    for( std::size_t l = 0; l < totalSeqVec.size(); l++ )
+      out << "'" << totalSeqVec.at(l) << "' ";
+
+    out << "\n";
+  }
+  else
+  {
+    out.open( filename.c_str(), std::ofstream::out | std::ofstream::app );  
+  }
+  
+  out << loopCounter << " ";
+  out << divOccurrences.first << " ";
+  out << divOccurrences.second << " ";
+  
+  for( std::size_t l = 0; l < totalSeqVec.size(); l++ )
+  {
+    bool found = false;
+    for( auto iter = totalLayerCount.begin();
+         iter != totalLayerCount.end(); ++iter )
+    {
+      if( iter->first.compare( totalSeqVec.at(l) ) == 0 )
+      {
+        // write the time step of the corresponding sequence
+        out << iter->second << " ";
+        found = true;
+        break;
+      }
+    }
+    
+    if( !found )
+      out << "0 ";
+  }
+  out << "\n";
+  out.close();
+}
+
+// ---------------------------------------------------------------------
+
 void exportDivisionProperties( const std::string &filename,
                                const cell& c,
                                const MyTissue::division_data& ddata,

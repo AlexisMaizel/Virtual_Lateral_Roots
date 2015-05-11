@@ -12,9 +12,7 @@
 
 void SurfaceClass::init( const std::size_t lod,
                          const std::string &lineageFileName,
-                         const bool exportLineage,
                          const std::size_t timeSteps,
-                         const SurfaceType::type sType,
                          const bool forceInitialSituation )
 {
   if( _lod == 0 )
@@ -27,8 +25,6 @@ void SurfaceClass::init( const std::size_t lod,
   _time = 1;
   _maxTime = timeSteps;
   _lineageFileName = lineageFileName;
-  _exportLineage = exportLineage;
-  _sType = sType;
   _forceInitialSituation = forceInitialSituation;
 }
 
@@ -605,6 +601,8 @@ void SurfaceClass::generateCell( MyTissue &T,
     }
   }
   
+  //std::cout << "cell" << std::endl;
+  
   cell c;
   c->treeId = treeId;
   c->id = _IDCounter;
@@ -616,6 +614,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   c->divDir = Point3d( 0., 0., 0. );
   c->divType = DivisionType::NONE;
   c->layerValue = 1;
+  c->divisionSequence = "0";
   c->cellCycle = 0;
   T.addCell( c, vs );
   
@@ -666,8 +665,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   
   lateralRoot.SetPoint(c->sp, c->sp, center);
 
-  if( _exportLineage )
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
+  ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
   
   // afterwards increment the id counter
   _IDCounter++;
@@ -797,6 +795,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   c->divDir = Point3d( 0., 0., 0. );
   c->divType = DivisionType::NONE;
   c->layerValue = 1;
+  c->divisionSequence = "0";
   c->cellCycle = 0;
   T.addCell( c, vs );
   
@@ -847,8 +846,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   
   lateralRoot.setPos(c->tp, center);
   
-  if( _exportLineage )
-    ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
+  ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
   
   // afterwards increment the id counter
   _IDCounter++;  
@@ -860,31 +858,12 @@ void SurfaceClass::findNearestPointToMerge( MyTissue &T, junction &js )
 {
   // find nearest cell vertex in the tissue T to be merged with and return
   // reference to junction
-  Point3d curPos;
-  if( _sType == SurfaceType::REALDATA )
-  {
-    Point2d p = js->tp.Pos();
-    curPos = Point3d( p.i(), p.j(), 0. );
-  }
-  else
-    curPos = js->sp.Pos();
-  
+  Point3d curPos = js->getPos();
   forall( const cell& c, T.C )
   {
     forall(const junction& j, T.S.neighbors(c))
     {
-      Point3d pos;
-      if( _sType == SurfaceType::REALDATA )
-      {
-        Point2d p = j->tp.Pos();
-        pos = Point3d( p.i(), p.j(), 0. );
-      }
-      else
-        pos = j->sp.Pos();
-      
-      if( fabs( pos.i() - curPos.i() ) <= EPS &&
-          fabs( pos.j() - curPos.j() ) <= EPS &&
-          fabs( pos.k() - curPos.k() ) <= EPS )
+      if( ModelUtils::equalPoints( j->getPos(), curPos ) )
       {
         js = j;
         return;

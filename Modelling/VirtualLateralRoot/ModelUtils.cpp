@@ -6,7 +6,7 @@
   @author Jens Fangerau <jens.fangerau@iwr.uni-heidelberg.de>
 */
 
-const double EPS = 0.000000000001;
+const double EPS = 0.000000001;
 
 namespace ModelUtils
 {
@@ -611,12 +611,8 @@ std::set<junction> determineNeedlessJunctions( const cell &c,
       {
         forall( const junction& j,T.S.neighbors(c) )
         {
-          Point3d jp = j->getPos();
-          
           // if we have found the corresponding junction position
-          if( fabs( jp.i() - juncs.at(i).i() ) <= EPS &&
-              fabs( jp.j() - juncs.at(i).j() ) <= EPS &&
-              fabs( jp.k() - juncs.at(i).k() ) <= EPS )
+          if( equalPoints( j->getPos(), juncs.at(i) ) )
           {
             //std::cout << jp << std::endl;
             junctions.insert( j );

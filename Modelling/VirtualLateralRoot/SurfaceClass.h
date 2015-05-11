@@ -10,8 +10,6 @@
   @author Jens Fangerau <jens.fangerau@iwr.uni-heidelberg.de>
 */
 
-const double EPS = 0.0001;
-
 class SurfaceClass
 {
 public:
@@ -19,9 +17,7 @@ public:
   
   void init( const std::size_t lod,
              const std::string &lineageFileName,
-             const bool exportLineage,
              const std::size_t timeSteps,
-             const SurfaceType::type sType,
              const bool forceInitialSituation );
   
   void initModelBasedOnBezier( MyTissue &T,
@@ -80,11 +76,7 @@ private:
   
   std::string _lineageFileName;
   
-  bool _exportLineage;
-  
   bool _forceInitialSituation;
-  
-  SurfaceType::type _sType;
 };
 
 #endif // SurfaceClass_H

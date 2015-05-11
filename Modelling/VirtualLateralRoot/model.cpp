@@ -16,10 +16,10 @@ class MyModel : public Model
 {
   Q_OBJECT
 public: 
-  util::Parms parms;
+  util::Parms _parms;
   Surface _VLRBezierSurface;
   RealSurface _VLRDataPointSurface;
-  util::Palette palette;
+  util::Palette _palette;
   MyTissue T;
 #ifndef TimeAgainstCellAnalysis
   double dt;
@@ -34,47 +34,40 @@ public:
   int stepPerView;
   std::size_t _initialCellNumber;
   std::string _initialCellsOfRealData;
-  bool _exportLineage;
-  bool _exportDivisionProperties;
   double probabilityOfDecussationDivision;
   double _angleThreshold;
   bool _bezierGrowthSurface;
   double _surfaceScale;
   bool _useAutomaticContourPoints;
-  
   std::string _lineageFileName;
   std::string _cellWallsFileName;
   std::string _divisionFileName;
-  std::string _timeAgainstCellsFileName;
+  //std::string _timeAgainstCellsFileName;
   std::vector<std::size_t> _layerColorIndex;
   double _cellPinch;
   double _cellMaxPinch;
   std::size_t _cellColoringType;
   std::pair<std::size_t, std::size_t> _divOccurrences;
-  
   SurfaceClass _surfaceClass;
   std::size_t _lod;
-  
   bool _lastStep;
-  
-  SurfaceType::type _sType;
-  
   std::size_t _initialSituationType;
-  
   Point3d _initialBoundary;
-  
   double _firstDivisionsAreaRatio;
   double _secondDivisionsAreaRatio;
   std::size_t _timeDelay;
   std::size_t _timeSixCellStage;
   std::size_t _timeFourCellStage;
-  bool _smootherCells;
   bool _centerOfMassAfterLOD;
   double _LODThreshold;
   double _avoidTrianglesThreshold;
-  
   bool _useAlternativeDT;
   std::string _divisionType;
+  layerMap _firstLayerAppearances;
+  bool _useLoop;
+  std::size_t _amountLoops;
+  std::size_t _loopCounter;
+  std::map<std::string, std::size_t> _totalLayerCount;
   
   //----------------------------------------------------------------
   
@@ -82,46 +75,43 @@ public:
   {
     // read the parameters here
 #ifndef TimeAgainstCellAnalysis
-    parms("Main", "Dt", dt);
+    _parms("Main", "Dt", dt);
 #endif
-    parms("Main", "InitialCellNumber", _initialCellNumber);
-    parms("Main", "InitialCellsOfRealData", _initialCellsOfRealData);
-    parms("Main", "SubDivisionLevelOfCells", _lod);
-    parms("Main", "ExportLineage", _exportLineage);
-    parms("Main", "ExportDivisionProperties", _exportDivisionProperties);
-    parms("Main", "BezierGrowthSurface", _bezierGrowthSurface);
-    parms("Main", "SurfaceScale", _surfaceScale);
-    parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
-    parms("Main", "InitialSituationType", _initialSituationType );
-    parms("Main", "SmootherCells", _smootherCells );
-    parms("Main", "CenterOfMassAfterLOD", _centerOfMassAfterLOD );
-    parms("Main", "LODThreshold", _LODThreshold );
-    parms("Main", "AvoidTrianglesThreshold", _avoidTrianglesThreshold );
+    _parms("Main", "InitialCellNumber", _initialCellNumber);
+    _parms("Main", "InitialCellsOfRealData", _initialCellsOfRealData);
+    _parms("Main", "SubDivisionLevelOfCells", _lod);
+    _parms("Main", "BezierGrowthSurface", _bezierGrowthSurface);
+    _parms("Main", "SurfaceScale", _surfaceScale);
+    _parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
+    _parms("Main", "InitialSituationType", _initialSituationType );
+    _parms("Main", "CenterOfMassAfterLOD", _centerOfMassAfterLOD );
+    _parms("Main", "LODThreshold", _LODThreshold );
+    _parms("Main", "AvoidTrianglesThreshold", _avoidTrianglesThreshold );
 
-    parms("View", "StepPerView", stepPerView);
-    parms("View", "BackgroundColor", bgColor);
+    _parms("View", "StepPerView", stepPerView);
+    _parms("View", "BackgroundColor", bgColor);
 
-    parms( "Division", "DivisionArea", divisionArea);
-    parms( "Division", "DivisionAreaRatio", divisionAreaRatio);
-    parms( "Division", "UseAreaRatio", useAreaRatio);
-    parms( "Division", "UseCombinedAreaRatio", useCombinedAreaRatio);
-    parms( "Division", "UseWallRatio", useWallRatio);
-    parms( "Division", "DivisionWallRatio", divisionWallRatio);
-    parms( "Division", "UseAlternativeDivisionType", _useAlternativeDT );
-    parms( "Division", "DivisionType", _divisionType );
-    parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
-    parms( "Division", "DivisionAngleThreshold", _angleThreshold );
-    parms( "Division", "CellColoringType", _cellColoringType );
+    _parms( "Division", "DivisionArea", divisionArea);
+    _parms( "Division", "DivisionAreaRatio", divisionAreaRatio);
+    _parms( "Division", "UseAreaRatio", useAreaRatio);
+    _parms( "Division", "UseCombinedAreaRatio", useCombinedAreaRatio);
+    _parms( "Division", "UseWallRatio", useWallRatio);
+    _parms( "Division", "DivisionWallRatio", divisionWallRatio);
+    _parms( "Division", "UseAlternativeDivisionType", _useAlternativeDT );
+    _parms( "Division", "DivisionType", _divisionType );
+    _parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
+    _parms( "Division", "DivisionAngleThreshold", _angleThreshold );
+    _parms( "Division", "CellColoringType", _cellColoringType );
     
-    parms( "Division", "FirstDivisionsAreaRatio", _firstDivisionsAreaRatio);
-    parms( "Division", "SecondDivisionsAreaRatio", _secondDivisionsAreaRatio);
-    parms( "Division", "TimeDelay", _timeDelay);
+    _parms( "Division", "FirstDivisionsAreaRatio", _firstDivisionsAreaRatio);
+    _parms( "Division", "SecondDivisionsAreaRatio", _secondDivisionsAreaRatio);
+    _parms( "Division", "TimeDelay", _timeDelay);
 
-    parms( "Tissue", "CellPinch", _cellPinch );
-    parms( "Tissue", "CellMaxPinch", _cellMaxPinch );
+    _parms( "Tissue", "CellPinch", _cellPinch );
+    _parms( "Tissue", "CellMaxPinch", _cellMaxPinch );
     
-    T.readParms(parms, "Tissue");
-    T.readViewParms(parms, "TissueView");
+    T.readParms(_parms, "Tissue");
+    T.readViewParms(_parms, "TissueView");
   }
 
   //----------------------------------------------------------------
@@ -132,7 +122,7 @@ public:
     forall(const std::string& fn, filenames)
     {
       if(fn == "pal.map")
-        palette.reread();
+        _palette.reread();
       else if(fn == "view.v")
         readParms();
     }
@@ -140,21 +130,19 @@ public:
 
   //----------------------------------------------------------------
   
-  MyModel(QObject *parent) : Model(parent), parms("view.v"),
-    _VLRDataPointSurface( parms, "Surface" ),
-    palette("pal.map"), T(palette, this),
+  MyModel(QObject *parent) : Model(parent), _parms("view.v"),
+    _VLRDataPointSurface( _parms, "Surface" ),
+    _palette("pal.map"), T(_palette, this),
     _divOccurrences( std::make_pair( 0, 0 ) ),
-    _lastStep( false )
+    _lastStep( false ),
+    _loopCounter( 1 ),
+    _useLoop( true ),
+    _amountLoops( 50 )
   {
     readParms();
     // Registering the configuration files
     registerFile("pal.map");
     registerFile("view.v");
-
-    if( SURFACETYPE == 0 )
-      _sType = SurfaceType::BEZIER;
-    else
-      _sType = SurfaceType::REALDATA;
     
     std::size_t t = 300;
     if( _initialCellsOfRealData == "130508_raw" )
@@ -164,12 +152,16 @@ public:
     else if( _bezierGrowthSurface && _initialCellsOfRealData == "none" )
       t = 502;
     
-    //std::cout << "LOD: " << _lod << std::endl;
+    // check if correct surface type was chosen
+    if( _bezierGrowthSurface && SURFACETYPE == 1 )
+    {
+      std::cout << "Wrong surface type chosen!!!" << std::endl;
+      return;
+    }
     
-    _surfaceClass.init( _lod, _lineageFileName, _exportLineage,
-                        t, _sType, _initialSituationType != 0 );
+    _surfaceClass.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
     
-    _VLRBezierSurface.init( parms, "Surface",
+    _VLRBezierSurface.init( _parms, "Surface",
                             _bezierGrowthSurface, _initialCellsOfRealData );
     
     // set name strings
@@ -186,27 +178,23 @@ public:
     cell dummy;
     MyTissue::division_data ddummy;
     
-    if( _exportLineage )
-    {
-      ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
-      ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
-    }
+    ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
+    ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
     
-    if( _exportDivisionProperties )
-    {
-      std::pair<std::size_t, std::size_t> pair;
-      ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
-                                                       dummy, dummy,
-                                                       ddummy, 0.,
-                                                       pair, true );
-    }
+    std::pair<std::size_t, std::size_t> pair;
+    ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
+                                                     dummy, dummy,
+                                                     ddummy, 0.,
+                                                     pair, true );
     
+    /*
     _timeAgainstCellsFileName = "/tmp/timeAgainstCells";
     _timeAgainstCellsFileName += _initialCellsOfRealData;
     _timeAgainstCellsFileName += ".csv";
    
     if( dt > start-steps )
       ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName, dt, 0, true );
+    */
         
     // bezier
     if( SURFACETYPE == 0 )
@@ -239,14 +227,122 @@ public:
     }
     
     // export initial cell constellation
-    if( _exportLineage )
+    forall(const cell& c, T.C)
     {
+      ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
+      ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
+    }
+    
+    // determine the initial boundary between two founder cells
+    _initialBoundary = Point3d( 0., 0., 0. );
+    if( _initialSituationType != 0 )
+    {
+      Point3d max = Point3d( -5000., -5000., 0. );
+      // consider the right most position
       forall(const cell& c, T.C)
       {
-        ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
-        
-        ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
+        if( c->id == 1 )
+        {
+          forall(const junction& j, T.S.neighbors(c))
+          {
+            Point3d pos = j->getPos();
+            
+            if( pos.i() > max.i() )
+              max.i() = pos.i();
+            
+            if( pos.j() > max.j() )
+              max.j() = pos.j();
+          }
+          
+          _initialBoundary = max;
+        }
       }
+    }
+    
+    setStatus();
+  }
+  
+  //----------------------------------------------------------------
+  
+  void restartModel()
+  {
+    // reset the tissue to delete all previous cell information
+    T = MyTissue( _palette, this );
+    
+    readParms();
+    // Registering the configuration files
+    registerFile("pal.map");
+    registerFile("view.v");
+    
+    // reset division and layering results
+    _divOccurrences = std::make_pair( 0, 0 );
+    _firstLayerAppearances.clear();
+    
+    std::size_t t = 300;
+    if( _initialCellsOfRealData == "130508_raw" )
+      t = 350;
+    else if( _initialCellsOfRealData.compare( 0, 7, "Average") == 0 )
+      t = 150;
+    else if( _bezierGrowthSurface && _initialCellsOfRealData == "none" )
+      t = 502;
+    
+    _surfaceClass.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
+    
+    _VLRBezierSurface.init( _parms, "Surface",
+                            _bezierGrowthSurface, _initialCellsOfRealData );
+    
+    // set name strings
+    _lineageFileName = "/tmp/model" + _initialCellsOfRealData + ".csv";
+    _cellWallsFileName = "/tmp/modelCellWalls" + _initialCellsOfRealData + ".csv";
+    _divisionFileName = "/tmp/divisionPropertiesModel" + _initialCellsOfRealData + ".csv";
+    
+    cell dummy;
+    MyTissue::division_data ddummy;
+    
+    ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
+    ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
+    
+    std::pair<std::size_t, std::size_t> pair;
+    ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
+                                                     dummy, dummy,
+                                                     ddummy, 0.,
+                                                     pair, true );
+        
+    // bezier
+    if( SURFACETYPE == 0 )
+    {
+      _VLRBezierSurface.GrowStep(0);
+      
+      // special cases of number of cells at the beginning
+      if( _initialCellsOfRealData == "none" )
+        _surfaceClass.initModelBasedOnBezier( T, _initialCellNumber,
+                                              _VLRBezierSurface );
+      // else constellation of founder cells according to real data
+      else
+        _surfaceClass.initLateralRootBasedOnBezier( T, _initialCellsOfRealData,
+                                                    _VLRBezierSurface );
+    }
+    // real data points
+    else
+    {
+      _VLRDataPointSurface.init( _surfaceScale,
+                                 _initialCellsOfRealData,
+                                 _useAutomaticContourPoints );
+      
+      std::vector<TrianglePoint> tps;
+      _VLRDataPointSurface.growStep( 0, tps );
+        
+      _surfaceClass.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
+                                                    _initialCellsOfRealData,
+                                                    _surfaceScale,
+                                                    _useAutomaticContourPoints );
+    }
+    
+    // export initial cell constellation
+    forall(const cell& c, T.C)
+    {
+      ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
+      ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
     }
     
     // determine the initial boundary between two founder cells
@@ -287,41 +383,44 @@ public:
 //     if( time > _surfaceClass.getMaxTime() )
 //       time = _surfaceClass.getMaxTime();
     
-    QString status = QString( "Vertices: %1 \t "
-                              "Cells: %2 \t").
+    QString status = QString( "Vertices: %1\t "
+                              "Cells: %2\t").
                               arg(T.W.size()).
                               arg(T.C.size());
     
     if( SURFACETYPE == 1 )
     {
       std::size_t timeStep = _VLRDataPointSurface.getCurTimeStep();
-      status += QString( "TS: %1 \t" ).arg(timeStep);
+      status += QString( "TS: %1\t" ).arg(timeStep);
     }
     
-    status += QString( "MS: %1 \t" ).arg(time);
-    status += QString( "AD: %1 \t" ).arg(_divOccurrences.first);
-    status += QString( "PD: %1 \t" ).arg(_divOccurrences.second);
+    status += QString( "MS: %1\t" ).arg(time);
+    status += QString( "AD: %1\t" ).arg(_divOccurrences.first);
+    status += QString( "PD: %1\t" ).arg(_divOccurrences.second);
     
     if( useCombinedAreaRatio )
     {
-      status += QString( "Area div: %1 \t" ).arg(divisionArea);
-      status += QString( "Area div ratio: %1 \t" ).arg(divisionAreaRatio);
+      status += QString( "Area div: %1\t" ).arg(divisionArea);
+      status += QString( "Area div ratio: %1\t" ).arg(divisionAreaRatio);
     }
     else if( useAreaRatio )
-      status += QString( "Area div ratio: %1 \t" ).arg(divisionAreaRatio);
+      status += QString( "Area div ratio: %1\t" ).arg(divisionAreaRatio);
     else
-      status += QString( "Area div: %1 \t" ).arg(divisionArea);
+      status += QString( "Area div: %1\t" ).arg(divisionArea);
     
     if( useWallRatio )
-      status += QString( "Wall div ratio: %1 \t" ).arg(divisionWallRatio);
+      status += QString( "Wall div ratio: %1\t" ).arg(divisionWallRatio);
     
     if( _divisionType == "Decussation" )
-      status += QString( "Dec prop: %1\% \t" ).arg(probabilityOfDecussationDivision);
+      status += QString( "Dec prop: %1\%\t" ).arg(probabilityOfDecussationDivision);
     
     if( _useAlternativeDT )
-      status += QString( "Div Type: %1" ).arg( QString::fromStdString(_divisionType) );
+      status += QString( "Div Type: %1\t" ).arg( QString::fromStdString(_divisionType) );
     else
-      status += QString( "Div Type: ShortestWall" );
+      status += QString( "Div Type: ShortestWall\t" );
+    
+    if( _useLoop )
+      status += QString( "Loop count: %1" ).arg(_loopCounter);
     
     setStatusMessage( status );
   }
@@ -374,6 +473,8 @@ public:
     // updateBothLayers is set to false
     // else both daughter cells are assigned a new layer value
     this->setLayerValues( cl, cr, c, divType, true );
+    this->checkLayerAppearance( cl );
+    this->checkLayerAppearance( cr );
     
     // update precursors
     cl->precursors.insert( c->id );
@@ -387,18 +488,26 @@ public:
     }
     
     // export division properties
-    if( _exportDivisionProperties )
-    {
-      ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
-                                                       cl,
-                                                       cr,
-                                                       ddata,
-                                                       _angleThreshold,
-                                                       _divOccurrences,
-                                                       false );
-    }
+    ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
+                                                     cl, cr, ddata,
+                                                     _angleThreshold,
+                                                     _divOccurrences,
+                                                     false );
   }
 
+  //----------------------------------------------------------------
+  
+  void checkLayerAppearance( const cell &c )
+  {
+    auto iter = _firstLayerAppearances.find( c->layerValue );
+    
+    // if the layer was not already inserted, it is definitely the
+    // first one that will be created by a periclinal division
+    if( iter == _firstLayerAppearances.end() )
+      _firstLayerAppearances.insert( std::make_pair(
+      c->layerValue, std::make_pair( c->timeStep, c->divisionSequence ) ) );
+  }
+  
   //----------------------------------------------------------------
   
   void setCellProperties( const cell &c, const cell &parentCell )
@@ -471,6 +580,9 @@ public:
           cl->layerValue = 2*c->layerValue;
           cr->layerValue = 2*c->layerValue+1;
         }
+        
+        cl->divisionSequence = c->divisionSequence + "1";
+        cr->divisionSequence = c->divisionSequence + "2";
       }
       else
       {
@@ -484,12 +596,17 @@ public:
           cr->layerValue = 2*c->layerValue;
           cl->layerValue = 2*c->layerValue+1;
         }
+        
+        cr->divisionSequence = c->divisionSequence + "1";
+        cl->divisionSequence = c->divisionSequence + "2";
       }
     }
     else
     {
       cl->layerValue = c->layerValue;
+      cl->divisionSequence = c->divisionSequence;
       cr->layerValue = c->layerValue;
+      cr->divisionSequence = c->divisionSequence;
     }
   }
   
@@ -539,7 +656,7 @@ public:
     divData = ModelUtils::determinePossibleDivisionData(
       c, _avoidTrianglesThreshold, _LODThreshold, T );
     
-    std::cout << "possible Divisions: " << divData.size() << std::endl;
+    //std::cout << "possible Divisions: " << divData.size() << std::endl;
     
     MyTissue::division_data ddata;
     if( divData.size() != 0 )
@@ -605,7 +722,7 @@ public:
       sumLength += length;
     }
     
-    std::cout << "possible Divisions: " << divData.size() << std::endl;
+    //std::cout << "possible Divisions: " << divData.size() << std::endl;
     //std::cout << "minLength: " << minLength << std::endl;
     //std::cout << "maxLength: " << maxLength << std::endl;
     //std::cout << "sumLength: " << sumLength << std::endl;
@@ -770,12 +887,7 @@ public:
         Point3d center;
         double area;
         this->setCellCenter( c, center, area );
-        
-        if( SURFACETYPE == 0 )
-          _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
-        else
-          _VLRDataPointSurface.setPos(c->tp, center);
-        
+        this->setPosition( c, center );
         c->area = area;
         c->center = center;
         // add the current center position to the set
@@ -801,12 +913,7 @@ public:
           else if( c->id == 2 )
             center.i() = c->xMin + 1.*xLength/3.;
         }
-        
-        if( SURFACETYPE == 0 )
-          _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
-        else
-          _VLRDataPointSurface.setPos(c->tp, center);
-      
+        this->setPosition( c, center );
         c->area = area;
         c->center = center;
         // add the current center position to the set
@@ -866,12 +973,7 @@ public:
         Point3d center;
         double area;
         this->setCellCenter( c, center, area );
-        
-        if( SURFACETYPE == 0 )
-          _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
-        else
-          _VLRDataPointSurface.setPos(c->tp, center);
-        
+        this->setPosition( c, center );
         c->area = area;
         c->center = center;
         // add the current center position to the set
@@ -888,12 +990,7 @@ public:
         Point3d center;
         double area;
         this->setCellCenter( c, center, area );
-      
-        if( SURFACETYPE == 0 )
-          _VLRBezierSurface.SetPoint(c->sp, c->sp, center);
-        else
-          _VLRDataPointSurface.setPos(c->tp, center);
-          
+        this->setPosition( c, center );  
         c->area = area;
         c->center = center;
         // add the current center position to the set
@@ -1047,7 +1144,7 @@ public:
   
   void step_cellWalls()
   {    
-    if( _exportLineage && !_lastStep )
+    if( !_lastStep )
     {
       forall(const cell& c, T.C)
         ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
@@ -1058,7 +1155,7 @@ public:
   
   void step_tracking()
   {
-    if( _exportLineage && !_lastStep )
+    if( !_lastStep )
     {
       forall(const cell& c, T.C)
         ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
@@ -1096,7 +1193,52 @@ public:
   //----------------------------------------------------------------
   
   void step()
-  { 
+  {  
+    if( _useLoop &&
+        _surfaceClass.getTime() > _surfaceClass.getMaxTime() )
+    {
+      // before restart the model, save the model information such
+      // as the division occurrences as well as the layering
+      for( auto iter = _firstLayerAppearances.begin();
+           iter != _firstLayerAppearances.end(); ++iter )
+        std::cout << "Layer: " << iter->first << " t: "
+                  << iter->second.first << " seq: "
+                  << iter->second.second << std::endl;
+      
+      std::cout << "DivOcc: " << _divOccurrences.first << ", "
+                << _divOccurrences.second << std::endl;
+      
+      this->updateLayerCount();
+                
+      for( auto iter = _totalLayerCount.begin();
+           iter != _totalLayerCount.end(); ++iter )
+      {
+        std::cout << "Seq: " << iter->first << " count: "
+                  << iter->second << std::endl;
+      }
+       
+      // first export temporal information of periclinal divisions
+      ModelExporter::exportModelProperties( "/tmp/ModelTimeDivProperties.csv",
+                                            _loopCounter,
+                                            _firstLayerAppearances,
+                                            _divOccurrences,
+                                            _loopCounter == 1 );
+      // then export order of periclinal divisions; especially which one
+      // was first
+      ModelExporter::exportModelProperties( "/tmp/ModelOrderDivProperties.csv",
+                                            _loopCounter,
+                                            _totalLayerCount,
+                                            _divOccurrences,
+                                            _loopCounter == 1 );
+                
+      this->restartModel();
+      if( _loopCounter < _amountLoops )
+        _loopCounter++;
+      else
+        this->stopModel();
+      return;
+    }
+    
     _surfaceClass.incrementTime();
     
     for(int i = 0 ; i < stepPerView ; ++i)
@@ -1123,8 +1265,8 @@ public:
     
     if( curTime == maxTime && !_lastStep )
     {
-      ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName,
-                                              dt, T.C.size(), false );
+      //ModelExporter::exportTimeAgainstCells( _timeAgainstCellsFileName,
+                                              //dt, T.C.size(), false );
       
       _lastStep = true;
       std::cout << "dt: " << dt << std::endl;
@@ -1132,6 +1274,70 @@ public:
     }
   }
 
+  //----------------------------------------------------------------
+  
+  void updateLayerCount()
+  {
+    for( auto iter = _firstLayerAppearances.begin();
+         iter != _firstLayerAppearances.end(); ++iter )
+    {
+      std::string str = iter->second.second;
+      // only consider sequence lengths longer than 2
+      // because before no high order pattern can be observed
+      if( str.length() > 2 )
+      {
+        // skip itself and avoid redundancies
+        auto iter2 = iter;
+        ++iter2;
+        for( ;iter2 != _firstLayerAppearances.end(); ++iter2 )
+        {
+          std::string str2 = iter2->second.second;
+          
+          if( str.length() == str2.length() )
+          {
+            std::string substr = str;
+            substr.erase( str.length()-2, 1 );
+            std::string substr2 = str2;
+            substr2.erase( str2.length()-2, 1 );
+            // if the substrings are identical then compare the
+            // time steps
+            if( substr.compare( substr2 ) == 0 )
+            {
+              // if the first string sequence appeared earlier
+              if( iter->second.first <= iter2->second.first )
+              {
+                auto iter3 = _totalLayerCount.find( str );
+                if( iter3 != _totalLayerCount.end() )
+                  iter3->second++;
+                else
+                  _totalLayerCount.insert( std::make_pair( str, 1 ) );
+                
+                auto iter4 = _totalLayerCount.find( str2 );
+                if( iter4 == _totalLayerCount.end() )
+                  _totalLayerCount.insert( std::make_pair( str2, 0 ) );
+              }
+              else
+              {
+                auto iter3 = _totalLayerCount.find( str2 );
+                if( iter3 != _totalLayerCount.end() )
+                  iter3->second++;
+                else
+                  _totalLayerCount.insert( std::make_pair( str2, 1 ) );
+                
+                auto iter4 = _totalLayerCount.find( str );
+                if( iter4 == _totalLayerCount.end() )
+                  _totalLayerCount.insert( std::make_pair( str, 0 ) );
+              }
+              
+              // break the inner loop when we have made the comparison
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+  
   //----------------------------------------------------------------
   
   Point3d determineLongestPCGrowth( const std::vector<Point3d> &positions )
@@ -1157,7 +1363,7 @@ public:
   
   //----------------------------------------------------------------
   
-  void initDraw(Viewer* viewer)
+  void initDraw( Viewer* viewer )
   {
     viewer->setSceneBoundingBox(Vec(-10.0, -10.0, -1.0), Vec(10.0, 10.0, 1.0));
   }
@@ -1166,7 +1372,7 @@ public:
   
   void preDraw()
   {
-    util::Palette::Color bg = palette.getColor(bgColor);
+    util::Palette::Color bg = _palette.getColor(bgColor);
     glClearColor(bg.r(), bg.g(), bg.b(), 1);
     T.preDraw();
   }
@@ -1180,7 +1386,7 @@ public:
 
   //----------------------------------------------------------------
   
-  void draw(Viewer* viewer)
+  void draw( Viewer* viewer )
   {
     forall(const cell& c, T.C)
     {
@@ -1200,7 +1406,7 @@ public:
       T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.3) );
     }
   }
-
+  
   //----------------------------------------------------------------
   
   // color for inner cells
@@ -1209,21 +1415,21 @@ public:
     switch( _cellColoringType )
     {
       // coloring based on lineage trees/ founder cells
-      case 0: return palette.getColor(c->treeId);
+      case 0: return _palette.getColor(c->treeId);
       // coloring based on layer value
       case 1:
       default:
       if( c->layerValue-1 < _layerColorIndex.size() )
-        return palette.getColor( _layerColorIndex.at(c->layerValue-1) );
+        return _palette.getColor( _layerColorIndex.at(c->layerValue-1) );
       else
-        return palette.getColor( _layerColorIndex.at(_layerColorIndex.size()-1) );
+        return _palette.getColor( _layerColorIndex.at(_layerColorIndex.size()-1) );
       case 2:
         // boundary
         if( T.border( c ) )
-          return palette.getColor(1);
+          return _palette.getColor(1);
         // inner cell
         else
-          return palette.getColor(2);
+          return _palette.getColor(2);
     }
   }
 
@@ -1232,7 +1438,7 @@ public:
   // color for contour of cells
   Colorf contourColor(const cell& c)
   {
-    return palette.getColor(T.contourColor);
+    return _palette.getColor(T.contourColor);
   }
 
   //----------------------------------------------------------------
