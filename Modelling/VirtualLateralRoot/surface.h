@@ -88,6 +88,9 @@ class Surface {
 
 		double GetTime() const;
 
+    conpoi getCurrentControlPoints() const
+    { return surfCurr.getControlPoints(); }
+    
     friend class SurfacePoint;
 
   private:

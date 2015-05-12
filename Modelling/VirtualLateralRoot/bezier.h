@@ -17,6 +17,7 @@
 #include <util/vector.h>
 
 typedef util::Vector<3, double> Point3d;
+typedef std::vector< std::vector<Point3d> > conpoi;
 
 // Size of individual patches 4 x 4
 const unsigned int PATCHPOINTS = 4;
@@ -57,13 +58,16 @@ class Bezier {
     void Print();
     // Get points (debugging)
     float *Points();
+    
+    conpoi getControlPoints() const
+    { return _cpMatrix; }
 
   private:
     int Choose( unsigned int n, unsigned int k );
     float ptsV[MAXPATCHES * MAXPATCHES * PATCHSIZE];
 
     // matrix storing unique control points
-    std::vector< std::vector<Point3d> > _cpMatrix;
+    conpoi _cpMatrix;
     
     // Note this is square root of count of # of patches
     unsigned int count;

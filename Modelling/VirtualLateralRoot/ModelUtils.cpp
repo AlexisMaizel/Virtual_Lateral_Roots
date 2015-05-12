@@ -835,6 +835,25 @@ double getSD( const std::vector<double> &vals,
 
 // ---------------------------------------------------------------------
 
+void drawControlPoint( const Point3d &pos,
+                       const util::Palette::Color &color )
+{
+  double halfLength = 1.5;
+  glNormal3f( 0., 0., 1. );
+  glPolygonMode( GL_FRONT, GL_FILL );
+  glColor4fv( color.c_data() );
+  glPushMatrix();
+  glBegin( GL_QUADS );
+  glVertex3f( pos.i()-halfLength, pos.j()+halfLength, 1. );
+  glVertex3f( pos.i()+halfLength, pos.j()+halfLength, 1. );
+  glVertex3f( pos.i()+halfLength, pos.j()-halfLength, 1. );
+  glVertex3f( pos.i()-halfLength, pos.j()-halfLength, 1. );
+  glEnd();
+  glPopMatrix();
+}
+
+// ---------------------------------------------------------------------
+
 std::size_t getRandomResultOfDistribution( const std::vector<double> &probs )
 {
   std::random_device rd;

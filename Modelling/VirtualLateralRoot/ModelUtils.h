@@ -76,6 +76,9 @@ namespace ModelUtils
                                                  Point3d &center,
                                                  const double eps );
   
+  void drawControlPoint( const Point3d &pos,
+                         const util::Palette::Color &color );
+  
   std::size_t getRandomResultOfDistribution( const std::vector<double> &probs );
 }
 

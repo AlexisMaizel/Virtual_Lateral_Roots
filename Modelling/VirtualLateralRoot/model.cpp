@@ -68,6 +68,7 @@ public:
   std::size_t _amountLoops;
   std::size_t _loopCounter;
   std::map<std::string, std::size_t> _totalLayerCount;
+  bool _drawControlPoints;
   
   //----------------------------------------------------------------
   
@@ -137,7 +138,8 @@ public:
     _lastStep( false ),
     _loopCounter( 1 ),
     _useLoop( true ),
-    _amountLoops( 50 )
+    _amountLoops( 50 ),
+    _drawControlPoints( true )
   {
     readParms();
     // Registering the configuration files
@@ -1404,6 +1406,16 @@ public:
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
       T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.3) );
+    }
+    
+    // draw control points of bezier surface
+    if( _drawControlPoints && SURFACETYPE == 0 )
+    {
+      conpoi cps = _VLRBezierSurface.getCurrentControlPoints();
+      for( auto i = 0; i < cps.size(); i++ )
+        for( auto j = 0; j < cps.at(i).size(); j++ )
+          ModelUtils::drawControlPoint( cps.at(i).at(j),
+                                        _palette.getColor(3) );
     }
   }
   
