@@ -69,6 +69,7 @@ public:
   std::size_t _loopCounter;
   std::map<std::string, std::size_t> _totalLayerCount;
   bool _drawControlPoints;
+  bool _interpolateBezierSurfaces;
   
   //----------------------------------------------------------------
   
@@ -139,7 +140,8 @@ public:
     _loopCounter( 1 ),
     _useLoop( true ),
     _amountLoops( 50 ),
-    _drawControlPoints( true )
+    _drawControlPoints( true ),
+    _interpolateBezierSurfaces( true )
   {
     readParms();
     // Registering the configuration files
@@ -163,8 +165,8 @@ public:
     
     _surfaceClass.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
     
-    _VLRBezierSurface.init( _parms, "Surface",
-                            _bezierGrowthSurface, _initialCellsOfRealData );
+    _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
+                            _interpolateBezierSurfaces, _initialCellsOfRealData );
     
     // set name strings
     _lineageFileName = "/tmp/model" + _initialCellsOfRealData + ".csv";
@@ -290,8 +292,8 @@ public:
     
     _surfaceClass.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
     
-    _VLRBezierSurface.init( _parms, "Surface",
-                            _bezierGrowthSurface, _initialCellsOfRealData );
+    _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
+                            _interpolateBezierSurfaces, _initialCellsOfRealData );
     
     // set name strings
     _lineageFileName = "/tmp/model" + _initialCellsOfRealData + ".csv";

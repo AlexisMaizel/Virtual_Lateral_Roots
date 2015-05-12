@@ -57,11 +57,13 @@ class Surface {
     Surface( util::Parms &parms,
              string section,
              const bool bezierGrowthSurface,
+             const bool interpolateBezierSurfaces,
              const std::string &surfaceName );
     
     void init( util::Parms &parms,
                string section,
                const bool bezierGrowthSurface,
+               const bool interpolateBezierSurfaces,
                const std::string &surfaceName );
     
     ~Surface() {};

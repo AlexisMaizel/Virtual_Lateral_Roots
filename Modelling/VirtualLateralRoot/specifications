@@ -60,6 +60,9 @@ triangulation-Average_auto.txt
 conPoints-Average_auto.txt
 vlr1.s
 vlr2.s
+bezierTensorSurfaceFirst.txt
+bezierTensorSurfaceLast.txt
+bezierHeader.txt
 ignore:
 .*.swp
 model.vve

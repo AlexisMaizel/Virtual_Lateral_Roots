@@ -61,6 +61,9 @@ class Bezier {
     
     conpoi getControlPoints() const
     { return _cpMatrix; }
+    
+    void setCount( const unsigned int cnt )
+    { count = cnt; }
 
   private:
     int Choose( unsigned int n, unsigned int k );

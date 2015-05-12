@@ -838,7 +838,7 @@ double getSD( const std::vector<double> &vals,
 void drawControlPoint( const Point3d &pos,
                        const util::Palette::Color &color )
 {
-  double halfLength = 1.5;
+  double halfLength = 1.;
   glNormal3f( 0., 0., 1. );
   glPolygonMode( GL_FRONT, GL_FILL );
   glColor4fv( color.c_data() );

@@ -427,7 +427,7 @@ void Bezier::LoadGrowthBezier( const std::string bezFile,
 // Copy and scale
 void Bezier::Scale( Bezier &b, double scale )
 {
-  std::vector< std::vector<Point3d> > mat = b._cpMatrix;
+  conpoi mat = b._cpMatrix;
   count = b.count;
   for(std::size_t i = 0; i < _cpMatrix.size(); i++) 
     for(std::size_t j = 0; j < _cpMatrix.at(i).size(); j++)
@@ -445,8 +445,8 @@ void Bezier::Interpolate( Bezier &src1, Bezier &src2,
   count = src1.count;
   
   s = InBounds(s, 0.0, 1.0);
-  std::vector< std::vector<Point3d> > mat1 = src1._cpMatrix;
-  std::vector< std::vector<Point3d> > mat2 = src2._cpMatrix;
+  conpoi mat1 = src1._cpMatrix;
+  conpoi mat2 = src2._cpMatrix;
   
   // initialize control points matrix
   _cpMatrix.resize( mat1.size() );
