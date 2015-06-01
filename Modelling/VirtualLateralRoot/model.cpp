@@ -139,8 +139,8 @@ public:
     _lastStep( false ),
     _loopCounter( 1 ),
     _useLoop( true ),
-    _amountLoops( 50 ),
-    _drawControlPoints( true ),
+    _amountLoops( 100 ),
+    _drawControlPoints( false ),
     _interpolateBezierSurfaces( true )
   {
     readParms();
@@ -154,7 +154,7 @@ public:
     else if( _initialCellsOfRealData.compare( 0, 7, "Average") == 0 )
       t = 150;
     else if( _bezierGrowthSurface && _initialCellsOfRealData == "none" )
-      t = 502;
+      t = 500;
     
     // check if correct surface type was chosen
     if( _bezierGrowthSurface && SURFACETYPE == 1 )
@@ -171,7 +171,25 @@ public:
     // set name strings
     _lineageFileName = "/tmp/model" + _initialCellsOfRealData + ".csv";
     _cellWallsFileName = "/tmp/modelCellWalls" + _initialCellsOfRealData + ".csv";
-    _divisionFileName = "/tmp/divisionPropertiesModel" + _initialCellsOfRealData + ".csv";
+    _divisionFileName = "/tmp/divisionPropertiesModel";
+    
+    switch( _initialSituationType )
+    {
+      case 0: _divisionFileName += "NH"; break;
+      case 1: _divisionFileName += "1DC"; break;
+      case 2: _divisionFileName += "2DC"; break;
+    }
+    if( _useAlternativeDT )
+    {
+      _divisionFileName += _divisionType;
+      if( _divisionType == "Energy" ||
+          _divisionType == "Random" )
+        _divisionFileName += std::to_string( (unsigned int)_avoidTrianglesThreshold );
+    }
+    else
+      _divisionFileName += "ShortestWall";
+    
+    _divisionFileName += ".csv";
     
     // single layer assignment
     //for( std::size_t l = 9; l < 14; l++ )
@@ -281,6 +299,7 @@ public:
     // reset division and layering results
     _divOccurrences = std::make_pair( 0, 0 );
     _firstLayerAppearances.clear();
+    _totalLayerCount.clear();
     
     std::size_t t = 300;
     if( _initialCellsOfRealData == "130508_raw" )
@@ -295,23 +314,6 @@ public:
     _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
                             _interpolateBezierSurfaces, _initialCellsOfRealData );
     
-    // set name strings
-    _lineageFileName = "/tmp/model" + _initialCellsOfRealData + ".csv";
-    _cellWallsFileName = "/tmp/modelCellWalls" + _initialCellsOfRealData + ".csv";
-    _divisionFileName = "/tmp/divisionPropertiesModel" + _initialCellsOfRealData + ".csv";
-    
-    cell dummy;
-    MyTissue::division_data ddummy;
-    
-    ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
-    ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
-    
-    std::pair<std::size_t, std::size_t> pair;
-    ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
-                                                     dummy, dummy,
-                                                     ddummy, 0.,
-                                                     pair, true );
-        
     // bezier
     if( SURFACETYPE == 0 )
     {
@@ -340,13 +342,6 @@ public:
                                                     _initialCellsOfRealData,
                                                     _surfaceScale,
                                                     _useAutomaticContourPoints );
-    }
-    
-    // export initial cell constellation
-    forall(const cell& c, T.C)
-    {
-      ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
-      ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
     }
     
     // determine the initial boundary between two founder cells
@@ -687,6 +682,7 @@ public:
     
     return ddata;
   }
+  
   //----------------------------------------------------------------
   
   MyTissue::division_data getEnergyDivisionData( const cell& c,
@@ -794,6 +790,81 @@ public:
     
     return ddata;
   }
+  
+  //----------------------------------------------------------------
+  
+  MyTissue::division_data getGibbsDivisionData( const cell& c,
+                                                bool &empty )
+  {
+    std::vector<MyTissue::division_data> divData;
+    divData = ModelUtils::determinePossibleDivisionData(
+      c, _avoidTrianglesThreshold, _LODThreshold, T );
+    
+    std::size_t numLines = divData.size();
+//    std::cout << "possible Divisions: " << numLines << std::endl;
+    
+    // fixed parameter from paper determined by experimental results
+    const double beta = 20.6;
+    
+    // compute the lengths of all division lines and sort them
+    // in ascending order
+    std::vector<double> lengths;
+    lengths.resize( numLines );
+    
+    // compute area size and mean cell diameter
+    std::vector<Point2d> polygon;
+    forall(const junction& j, T.S.neighbors(c))
+    {
+      Point3d pos = j->getPos();
+      polygon.push_back( Point2d( pos.i(), pos.j() ) );
+    }
+    double area = geometry::polygonArea( polygon );
+    // mean cell diameter
+    double rho = std::sqrt( area );
+    
+    for( std::size_t l=0; l<numLines; l++ )
+    {
+      Point3d pu = divData.at(l).pu;
+      Point3d pv = divData.at(l).pv;
+      //std::cout << "pu: " << pu << std::endl;
+      //std::cout << "pv: " << pv << std::endl;
+      lengths.at(l) = norm( pu - pv );
+      //std::cout << l << " length: " << lengths.at(l) << std::endl;
+    }
+    
+    MyTissue::division_data ddata;
+    if( numLines != 0 )
+    {
+      double sum = 0.;
+      for( std::size_t l=0; l<numLines; l++ )
+        sum += std::exp( (-1. * beta * lengths.at(l)) / rho );
+      
+      std::vector<double> probValues;
+      probValues.resize( numLines );
+      for( std::size_t l=0; l<numLines; l++ )
+      {
+        probValues.at(l) = 100. * std::exp( (-1. * beta * lengths.at(l)) / rho ) / sum;
+        //std::cout << l << " prob value: " << probValues.at(l) << std::endl;
+      }
+      
+      std::size_t choice = ModelUtils::getRandomResultOfDistribution( probValues );
+      //std::cout << "choice: " << choice << std::endl;
+      ddata = divData.at( choice );
+      vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
+      
+      // apply cell pinching
+      tissue::CellPinchingParams params;
+      params.cellPinch = _cellPinch;
+      params.cellMaxPinch = _cellMaxPinch;
+      tissue::cellPinching( c, T, ddata, params );
+      empty = false;
+    }
+    else
+      empty = true;
+    
+    return ddata;
+  }
+  
   //----------------------------------------------------------------
   
   MyTissue::division_data setDivisionPoints( const cell& c )
@@ -1122,7 +1193,23 @@ public:
         else
           T.divideCell( c, ddata );
       }
-      else if( _divisionType == "RandomAll" &&
+      else if( _divisionType == "Gibbs" &&
+               c->id > areaRatioStart &&
+               _useAlternativeDT )
+      {
+        // the division plane is chosen based on Gibbs measure as described
+        // in the paper of Besson and Dumais, 2011 (Universal rule for the 
+        // symmetric division of plant cells)
+        bool empty = false;
+        MyTissue::division_data ddata = this->getGibbsDivisionData( c, empty );
+        // if the division data is empty then just use the default division
+        // rule (e.g. ShortestWall)
+        if( empty )
+          T.divideCell( c );
+        else
+          T.divideCell( c, ddata );
+      }
+      else if( _divisionType == "Random" &&
                c->id > areaRatioStart &&
                _useAlternativeDT )
       {
@@ -1201,6 +1288,7 @@ public:
     if( _useLoop &&
         _surfaceClass.getTime() > _surfaceClass.getMaxTime() )
     {
+      /*
       // before restart the model, save the model information such
       // as the division occurrences as well as the layering
       for( auto iter = _firstLayerAppearances.begin();
@@ -1211,28 +1299,44 @@ public:
       
       std::cout << "DivOcc: " << _divOccurrences.first << ", "
                 << _divOccurrences.second << std::endl;
+      */
       
       this->updateLayerCount();
-                
+        
+      /*
       for( auto iter = _totalLayerCount.begin();
            iter != _totalLayerCount.end(); ++iter )
       {
         std::cout << "Seq: " << iter->first << " count: "
                   << iter->second << std::endl;
       }
+      */
        
-      // first export temporal information of periclinal divisions
-      ModelExporter::exportModelProperties( "/tmp/ModelTimeDivProperties.csv",
+      // export information of periclinal divisions
+      std::string filename = "/tmp/ModelDivProperties";
+      switch( _initialSituationType )
+      {
+        case 0: filename += "NH"; break;
+        case 1: filename += "1DC"; break;
+        case 2: filename += "2DC"; break;
+      }
+      
+      if( _useAlternativeDT )
+      {
+        filename += _divisionType;
+        if( _divisionType == "Energy" || _divisionType == "Random" )
+          filename += std::to_string( (unsigned int)_avoidTrianglesThreshold );
+      }
+      else
+        filename += "ShortestWall";
+      
+      filename += ".csv";
+      ModelExporter::exportModelProperties( filename,
                                             _loopCounter,
                                             _firstLayerAppearances,
-                                            _divOccurrences,
-                                            _loopCounter == 1 );
-      // then export order of periclinal divisions; especially which one
-      // was first
-      ModelExporter::exportModelProperties( "/tmp/ModelOrderDivProperties.csv",
-                                            _loopCounter,
                                             _totalLayerCount,
                                             _divOccurrences,
+                                            T.C.size(),
                                             _loopCounter == 1 );
                 
       this->restartModel();

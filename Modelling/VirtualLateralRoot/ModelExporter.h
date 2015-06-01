@@ -39,13 +39,9 @@ namespace ModelExporter
   void exportModelProperties( const std::string &filename,
                               const std::size_t loopCounter,
                               const layerMap &firstLayerAppearances,
-                              const std::pair<std::size_t, std::size_t> &divOccurrences,
-                              const bool init );
-  
-  void exportModelProperties( const std::string &filename,
-                              const std::size_t loopCounter,
                               const std::map<std::string, std::size_t> &totalLayerCount,
                               const std::pair<std::size_t, std::size_t> &divOccurrences,
+                              const std::size_t numCells,
                               const bool init );
   
   void exportCellWalls( const std::string &filename,
