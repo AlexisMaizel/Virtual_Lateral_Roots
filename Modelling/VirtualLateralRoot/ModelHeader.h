@@ -34,6 +34,8 @@ const unsigned int SURFACETYPE = 0;
 
 static QTextStream out(stdout);
 
+// for each layer save a pair of its first temporal appearance
+// as well as its division sequence
 typedef std::map<std::size_t, std::pair<std::size_t, std::string> > layerMap;
 
 using util::norm;

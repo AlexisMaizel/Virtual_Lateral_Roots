@@ -250,6 +250,7 @@ void exportModelProperties( const std::string &filename,
                             const std::map<std::string, std::size_t> &totalLayerCount,
                             const std::pair<std::size_t, std::size_t> &divOccurrences,
                             const std::size_t numCells,
+                            const std::size_t numSamples,
                             const bool init )
 {
   // generate the division sequences automatically
@@ -282,6 +283,7 @@ void exportModelProperties( const std::string &filename,
   {
     out.open( filename.c_str(), std::ofstream::out );
     // header
+    out << numSamples << " " << maxLength << "\n";
     out << "'Sample' 'Cells' 'Anticlinal' 'Periclinal' ";
       
     // export the sequences twice, one for the time steps

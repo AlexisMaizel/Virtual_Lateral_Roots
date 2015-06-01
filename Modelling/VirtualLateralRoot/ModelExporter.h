@@ -42,6 +42,7 @@ namespace ModelExporter
                               const std::map<std::string, std::size_t> &totalLayerCount,
                               const std::pair<std::size_t, std::size_t> &divOccurrences,
                               const std::size_t numCells,
+                              const std::size_t numSamples,
                               const bool init );
   
   void exportCellWalls( const std::string &filename,

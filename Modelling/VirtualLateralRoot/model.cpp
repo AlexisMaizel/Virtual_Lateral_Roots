@@ -183,7 +183,8 @@ public:
     {
       _divisionFileName += _divisionType;
       if( _divisionType == "Energy" ||
-          _divisionType == "Random" )
+          _divisionType == "Random" ||
+          _divisionType == "Gibbs" )
         _divisionFileName += std::to_string( (unsigned int)_avoidTrianglesThreshold );
     }
     else
@@ -253,6 +254,8 @@ public:
     {
       ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
       ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
+      
+      this->checkLayerAppearance( c );
     }
     
     // determine the initial boundary between two founder cells
@@ -343,6 +346,9 @@ public:
                                                     _surfaceScale,
                                                     _useAutomaticContourPoints );
     }
+    
+    forall(const cell& c, T.C)
+      this->checkLayerAppearance( c );
     
     // determine the initial boundary between two founder cells
     _initialBoundary = Point3d( 0., 0., 0. );
@@ -1337,6 +1343,7 @@ public:
                                             _totalLayerCount,
                                             _divOccurrences,
                                             T.C.size(),
+                                            _amountLoops,
                                             _loopCounter == 1 );
                 
       this->restartModel();
@@ -1504,14 +1511,14 @@ public:
         if( !_bezierGrowthSurface )
           T.cellWallWidth = 0.001;
         else
-          T.cellWallWidth = 0.1;
+          T.cellWallWidth = 0.15;
       }
       else
         T.cellWallWidth = 0.2;
           
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
-      T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.3) );
+      T.drawCell(c, this->cellColor(c)*0.5, Colorf(this->cellColor(c)) );
     }
     
     // draw control points of bezier surface
