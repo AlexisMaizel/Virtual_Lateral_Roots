@@ -79,6 +79,10 @@ namespace ModelUtils
   void drawControlPoint( const Point3d &pos,
                          const util::Palette::Color &color );
   
+  void drawSphere( const Point3d &pos, double r, std::size_t lats,
+                   std::size_t longs, const util::Palette::Color &color,
+                   GLUquadricObj *quadratic );
+  
   std::size_t getRandomResultOfDistribution( const std::vector<double> &probs );
 }
 

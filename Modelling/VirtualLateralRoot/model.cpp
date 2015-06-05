@@ -70,6 +70,8 @@ public:
   std::map<std::string, std::size_t> _totalLayerCount;
   bool _drawControlPoints;
   bool _interpolateBezierSurfaces;
+  bool _drawSpheres;
+  GLUquadricObj *quadratic;
   
   //----------------------------------------------------------------
   
@@ -138,11 +140,15 @@ public:
     _divOccurrences( std::make_pair( 0, 0 ) ),
     _lastStep( false ),
     _loopCounter( 1 ),
-    _useLoop( true ),
+    _useLoop( false ),
     _amountLoops( 100 ),
     _drawControlPoints( false ),
+    _drawSpheres( true ),
     _interpolateBezierSurfaces( true )
   {
+    quadratic = gluNewQuadric();
+    gluQuadricNormals( quadratic, GLU_SMOOTH );
+    
     readParms();
     // Registering the configuration files
     registerFile("pal.map");
@@ -169,15 +175,27 @@ public:
                             _interpolateBezierSurfaces, _initialCellsOfRealData );
     
     // set name strings
-    _lineageFileName = "/tmp/model" + _initialCellsOfRealData + ".csv";
-    _cellWallsFileName = "/tmp/modelCellWalls" + _initialCellsOfRealData + ".csv";
+    _lineageFileName = "/tmp/model";
+    _cellWallsFileName = "/tmp/modelCellWalls";
     _divisionFileName = "/tmp/divisionPropertiesModel";
     
     switch( _initialSituationType )
     {
-      case 0: _divisionFileName += "NH"; break;
-      case 1: _divisionFileName += "1DC"; break;
-      case 2: _divisionFileName += "2DC"; break;
+      case 0:
+        _divisionFileName += "NH";
+        _lineageFileName += "NH";
+        _cellWallsFileName += "NH";
+        break;
+      case 1:
+        _divisionFileName += "1DC";
+        _lineageFileName += "1DC";
+        _cellWallsFileName += "1DC";
+        break;
+      case 2:
+        _divisionFileName += "2DC";
+        _lineageFileName += "2DC";
+        _cellWallsFileName += "2DC";
+      break;
     }
     if( _useAlternativeDT )
     {
@@ -185,12 +203,23 @@ public:
       if( _divisionType == "Energy" ||
           _divisionType == "Random" ||
           _divisionType == "Gibbs" )
+      {
         _divisionFileName += std::to_string( (unsigned int)_avoidTrianglesThreshold );
+        _lineageFileName += std::to_string( (unsigned int)_avoidTrianglesThreshold );
+        _cellWallsFileName += std::to_string( (unsigned int)_avoidTrianglesThreshold );
+      }
     }
     else
+    {
       _divisionFileName += "ShortestWall";
+      _lineageFileName += "ShortestWall";
+      _cellWallsFileName += "ShortestWall";
+      
+    }
     
     _divisionFileName += ".csv";
+    _lineageFileName += ".csv";
+    _cellWallsFileName += ".csv";
     
     // single layer assignment
     //for( std::size_t l = 9; l < 14; l++ )
@@ -1330,7 +1359,9 @@ public:
       if( _useAlternativeDT )
       {
         filename += _divisionType;
-        if( _divisionType == "Energy" || _divisionType == "Random" )
+        if( _divisionType == "Energy" ||
+            _divisionType == "Random" ||
+            _divisionType == "Gibbs" )
           filename += std::to_string( (unsigned int)_avoidTrianglesThreshold );
       }
       else
@@ -1518,7 +1549,11 @@ public:
           
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
-      T.drawCell(c, this->cellColor(c)*0.5, Colorf(this->cellColor(c)) );
+      if( _drawSpheres )
+        ModelUtils::drawSphere( c->getPos(), 10., 20., 20.,
+                                this->cellColor(c), quadratic );
+      else
+        T.drawCell(c, this->cellColor(c)*0.5, Colorf(this->cellColor(c)) );
     }
     
     // draw control points of bezier surface

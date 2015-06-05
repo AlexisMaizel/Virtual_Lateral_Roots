@@ -854,6 +854,22 @@ void drawControlPoint( const Point3d &pos,
 
 // ---------------------------------------------------------------------
 
+void drawSphere( const Point3d &pos, double r, std::size_t lats,
+                 std::size_t longs, const util::Palette::Color &color,
+                 GLUquadricObj *quadratic )
+{
+  glColor4fv( color.c_data() );
+  glShadeModel( GL_SMOOTH );
+  GLfloat lmodel_ambient[] = { 0.01, 0.01, 0.01, 1.0 };
+  glPushMatrix();
+  glLightModelfv( GL_LIGHT_MODEL_AMBIENT, lmodel_ambient );
+  glTranslatef( pos.i(), pos.j(), 0. );
+  gluSphere( quadratic, r, lats, longs );
+  glPopMatrix();
+} 
+
+ // ---------------------------------------------------------------------
+
 std::size_t getRandomResultOfDistribution( const std::vector<double> &probs )
 {
   std::random_device rd;

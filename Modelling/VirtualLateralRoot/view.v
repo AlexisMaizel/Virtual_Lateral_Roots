@@ -24,7 +24,7 @@ UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
 DivisionWallRatio: 0.45 // 0.45 divide a cell if a wall of the cell is longer than a certain percentage of the initial length
-UseAlternativeDivisionType: true
+UseAlternativeDivisionType: false
 DivisionType: Gibbs // Decussation PerToGrowth Energy Gibbs Random; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
 ProbabilityOfDecussationDivision: 90 // probability for having a decussation division (has to be in [0, 100])
 DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal and periclinal division
