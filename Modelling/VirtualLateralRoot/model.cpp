@@ -73,6 +73,10 @@ public:
   bool _drawSpheres;
   GLUquadricObj *quadratic;
   
+  std::vector<std::vector<double> > _probValues;
+  std::vector<std::vector<double> > _lengths;
+  std::vector<std::size_t> _choices;
+  
   //----------------------------------------------------------------
   
   void readParms()
@@ -143,7 +147,7 @@ public:
     _useLoop( false ),
     _amountLoops( 100 ),
     _drawControlPoints( false ),
-    _drawSpheres( true ),
+    _drawSpheres( false ),
     _interpolateBezierSurfaces( true )
   {
     quadratic = gluNewQuadric();
@@ -887,6 +891,10 @@ public:
       ddata = divData.at( choice );
       vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
       
+      _probValues.push_back( probValues );
+      _lengths.push_back( lengths );
+      _choices.push_back( choice );
+      
       // apply cell pinching
       tissue::CellPinchingParams params;
       params.cellPinch = _cellPinch;
@@ -1385,6 +1393,13 @@ public:
       return;
     }
     
+    if( _surfaceClass.getTime() == _surfaceClass.getMaxTime() )
+    {
+      ModelExporter::exportPropabilityDistribution( 
+      "/tmp/propabilityDistribution.csv",
+      _probValues, _lengths, _choices );
+    }
+    
     _surfaceClass.incrementTime();
     
     for(int i = 0 ; i < stepPerView ; ++i)
@@ -1542,7 +1557,7 @@ public:
         if( !_bezierGrowthSurface )
           T.cellWallWidth = 0.001;
         else
-          T.cellWallWidth = 0.15;
+          T.cellWallWidth = 0.2;
       }
       else
         T.cellWallWidth = 0.2;

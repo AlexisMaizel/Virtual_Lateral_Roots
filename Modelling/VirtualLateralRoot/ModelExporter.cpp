@@ -348,6 +348,38 @@ void exportModelProperties( const std::string &filename,
 
 // ---------------------------------------------------------------------
 
+void exportPropabilityDistribution( const std::string &filename,
+                                    const std::vector<std::vector<double> > &probValues,
+                                    const std::vector<std::vector<double> > &lengths,
+                                    const std::vector<std::size_t> choice )
+{ 
+  std::ofstream out;
+  out.open( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  
+  if( probValues.size() == 0 || lengths.size() == 0 )
+    return;
+  
+  // for each length and probability value
+  for( std::size_t l=0; l<probValues.at(0).size(); l++ )
+  {
+    // for each division event
+    for( std::size_t d=0; d<probValues.size(); d++ )
+    {
+      out << lengths.at(d).at(l) << " "
+          << probValues.at(d).at(l) << " ";
+    }
+    out << "\n";
+  }
+  
+  for( std::size_t c=0; c<choice.size(); c++ )
+    out << choice.at(c) << " " << "-" << " ";
+    
+  out << "\n";
+  out.close();
+}
+
+// ---------------------------------------------------------------------
+
 void exportDivisionProperties( const std::string &filename,
                                const cell& c,
                                const MyTissue::division_data& ddata,

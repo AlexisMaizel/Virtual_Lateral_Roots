@@ -45,6 +45,11 @@ namespace ModelExporter
                               const std::size_t numSamples,
                               const bool init );
   
+  void exportPropabilityDistribution( const std::string &filename,
+                                    const std::vector<std::vector<double> > &probValues,
+                                    const std::vector<std::vector<double> > &lengths,
+                                    const std::vector<std::size_t> choice );
+  
   void exportCellWalls( const std::string &filename,
                         const cell& c,
                         const MyTissue &T,
