@@ -33,7 +33,7 @@ public:
   int bgColor;
   int stepPerView;
   std::size_t _initialCellNumber;
-  std::string _initialCellsOfRealData;
+  std::string _realDataName;
   double probabilityOfDecussationDivision;
   double _angleThreshold;
   bool _bezierGrowthSurface;
@@ -86,18 +86,21 @@ public:
     _parms("Main", "Dt", dt);
 #endif
     _parms("Main", "InitialCellNumber", _initialCellNumber);
-    _parms("Main", "InitialCellsOfRealData", _initialCellsOfRealData);
+    _parms("Main", "RealDataName", _realDataName);
     _parms("Main", "SubDivisionLevelOfCells", _lod);
     _parms("Main", "BezierGrowthSurface", _bezierGrowthSurface);
     _parms("Main", "SurfaceScale", _surfaceScale);
     _parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
     _parms("Main", "InitialSituationType", _initialSituationType );
     _parms("Main", "CenterOfMassAfterLOD", _centerOfMassAfterLOD );
+    _parms("Main", "Loop", _useLoop );
     _parms("Main", "LODThreshold", _LODThreshold );
     _parms("Main", "AvoidTrianglesThreshold", _avoidTrianglesThreshold );
 
     _parms("View", "StepPerView", stepPerView);
     _parms("View", "BackgroundColor", bgColor);
+    _parms("View", "RenderSpheres", _drawSpheres );
+    _parms("View", "RenderControlPoints", _drawControlPoints );
 
     _parms( "Division", "DivisionArea", divisionArea);
     _parms( "Division", "DivisionAreaRatio", divisionAreaRatio);
@@ -144,10 +147,7 @@ public:
     _divOccurrences( std::make_pair( 0, 0 ) ),
     _lastStep( false ),
     _loopCounter( 1 ),
-    _useLoop( false ),
     _amountLoops( 100 ),
-    _drawControlPoints( false ),
-    _drawSpheres( false ),
     _interpolateBezierSurfaces( true )
   {
     quadratic = gluNewQuadric();
@@ -159,11 +159,11 @@ public:
     registerFile("view.v");
     
     std::size_t t = 300;
-    if( _initialCellsOfRealData == "130508_raw" )
+    if( _realDataName == "130508_raw" )
       t = 350;
-    else if( _initialCellsOfRealData.compare( 0, 7, "Average") == 0 )
+    else if( _realDataName.compare( 0, 7, "Average") == 0 )
       t = 150;
-    else if( _bezierGrowthSurface && _initialCellsOfRealData == "none" )
+    else if( _bezierGrowthSurface && _realDataName == "none" )
       t = 500;
     
     // check if correct surface type was chosen
@@ -176,12 +176,19 @@ public:
     _surfaceClass.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
     
     _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
-                            _interpolateBezierSurfaces, _initialCellsOfRealData );
+                            _interpolateBezierSurfaces, _realDataName );
     
     // set name strings
     _lineageFileName = "/tmp/model";
     _cellWallsFileName = "/tmp/modelCellWalls";
     _divisionFileName = "/tmp/divisionPropertiesModel";
+    
+    if( SURFACETYPE == 1 )
+    {
+      _lineageFileName += _realDataName;
+      _cellWallsFileName += _realDataName;
+      _divisionFileName += _realDataName;
+    }
     
     switch( _initialSituationType )
     {
@@ -206,7 +213,7 @@ public:
       _divisionFileName += _divisionType;
       if( _divisionType == "Energy" ||
           _divisionType == "Random" ||
-          _divisionType == "Gibbs" )
+          _divisionType == "Besson-Dumais" )
       {
         _divisionFileName += std::to_string( (unsigned int)_avoidTrianglesThreshold );
         _lineageFileName += std::to_string( (unsigned int)_avoidTrianglesThreshold );
@@ -233,7 +240,6 @@ public:
     
     cell dummy;
     MyTissue::division_data ddummy;
-    
     ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
     ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
     
@@ -245,7 +251,7 @@ public:
     
     /*
     _timeAgainstCellsFileName = "/tmp/timeAgainstCells";
-    _timeAgainstCellsFileName += _initialCellsOfRealData;
+    _timeAgainstCellsFileName += _realDataName;
     _timeAgainstCellsFileName += ".csv";
    
     if( dt > start-steps )
@@ -258,26 +264,26 @@ public:
       _VLRBezierSurface.GrowStep(0);
       
       // special cases of number of cells at the beginning
-      if( _initialCellsOfRealData == "none" )
+      if( _realDataName == "none" )
         _surfaceClass.initModelBasedOnBezier( T, _initialCellNumber,
                                               _VLRBezierSurface );
       // else constellation of founder cells according to real data
       else
-        _surfaceClass.initLateralRootBasedOnBezier( T, _initialCellsOfRealData,
+        _surfaceClass.initLateralRootBasedOnBezier( T, _realDataName,
                                                     _VLRBezierSurface );
     }
     // real data points
     else
     {
       _VLRDataPointSurface.init( _surfaceScale,
-                                 _initialCellsOfRealData,
+                                 _realDataName,
                                  _useAutomaticContourPoints );
       
       std::vector<TrianglePoint> tps;
       _VLRDataPointSurface.growStep( 0, tps );
         
       _surfaceClass.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
-                                                    _initialCellsOfRealData,
+                                                    _realDataName,
                                                     _surfaceScale,
                                                     _useAutomaticContourPoints );
     }
@@ -338,17 +344,24 @@ public:
     _totalLayerCount.clear();
     
     std::size_t t = 300;
-    if( _initialCellsOfRealData == "130508_raw" )
+    if( _realDataName == "130508_raw" )
       t = 350;
-    else if( _initialCellsOfRealData.compare( 0, 7, "Average") == 0 )
+    else if( _realDataName.compare( 0, 7, "Average") == 0 )
       t = 150;
-    else if( _bezierGrowthSurface && _initialCellsOfRealData == "none" )
+    else if( _bezierGrowthSurface && _realDataName == "none" )
       t = 502;
     
     _surfaceClass.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
     
     _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
-                            _interpolateBezierSurfaces, _initialCellsOfRealData );
+                            _interpolateBezierSurfaces, _realDataName );
+    
+    // after each restart, reset the model and cell wall file because
+    // it makes no sense to append these files
+    cell dummy;
+    MyTissue::division_data ddummy;
+    ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
+    ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
     
     // bezier
     if( SURFACETYPE == 0 )
@@ -356,26 +369,27 @@ public:
       _VLRBezierSurface.GrowStep(0);
       
       // special cases of number of cells at the beginning
-      if( _initialCellsOfRealData == "none" )
+      if( _realDataName == "none" )
         _surfaceClass.initModelBasedOnBezier( T, _initialCellNumber,
                                               _VLRBezierSurface );
       // else constellation of founder cells according to real data
       else
-        _surfaceClass.initLateralRootBasedOnBezier( T, _initialCellsOfRealData,
+        _surfaceClass.initLateralRootBasedOnBezier( T, _realDataName,
                                                     _VLRBezierSurface );
     }
     // real data points
     else
     {
+      _VLRDataPointSurface = RealSurface( _parms, "Surface" );
       _VLRDataPointSurface.init( _surfaceScale,
-                                 _initialCellsOfRealData,
+                                 _realDataName,
                                  _useAutomaticContourPoints );
       
       std::vector<TrianglePoint> tps;
       _VLRDataPointSurface.growStep( 0, tps );
         
       _surfaceClass.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
-                                                    _initialCellsOfRealData,
+                                                    _realDataName,
                                                     _surfaceScale,
                                                     _useAutomaticContourPoints );
     }
@@ -832,8 +846,8 @@ public:
   
   //----------------------------------------------------------------
   
-  MyTissue::division_data getGibbsDivisionData( const cell& c,
-                                                bool &empty )
+  MyTissue::division_data getBessonDumaisDivisionData( const cell& c,
+                                                       bool &empty )
   {
     std::vector<MyTissue::division_data> divData;
     divData = ModelUtils::determinePossibleDivisionData(
@@ -1236,7 +1250,7 @@ public:
         else
           T.divideCell( c, ddata );
       }
-      else if( _divisionType == "Gibbs" &&
+      else if( _divisionType == "Besson-Dumais" &&
                c->id > areaRatioStart &&
                _useAlternativeDT )
       {
@@ -1244,7 +1258,7 @@ public:
         // in the paper of Besson and Dumais, 2011 (Universal rule for the 
         // symmetric division of plant cells)
         bool empty = false;
-        MyTissue::division_data ddata = this->getGibbsDivisionData( c, empty );
+        MyTissue::division_data ddata = this->getBessonDumaisDivisionData( c, empty );
         // if the division data is empty then just use the default division
         // rule (e.g. ShortestWall)
         if( empty )
@@ -1327,36 +1341,38 @@ public:
   //----------------------------------------------------------------
   
   void step()
-  {  
-    if( _useLoop &&
-        _surfaceClass.getTime() > _surfaceClass.getMaxTime() )
+  {
+    std::size_t curTime, maxTime;
+    if( SURFACETYPE == 0 )
     {
-      /*
+      curTime = _surfaceClass.getTime();
+      maxTime = _surfaceClass.getMaxTime();
+    }
+    else
+    {
+      curTime = _VLRDataPointSurface.getCurTimeStep();
+      maxTime = _VLRDataPointSurface.getMaxTimeStep() - 1;
+    }
+    
+    if( curTime == maxTime && _avoidTrianglesThreshold <= 0.00001 )
+    {
+      ModelExporter::exportPropabilityDistribution( 
+      "/tmp/propabilityDistribution.csv",
+      _probValues, _lengths, _choices );
+    }
+    
+    if( _useLoop && curTime >= maxTime )
+    {
       // before restart the model, save the model information such
       // as the division occurrences as well as the layering
-      for( auto iter = _firstLayerAppearances.begin();
-           iter != _firstLayerAppearances.end(); ++iter )
-        std::cout << "Layer: " << iter->first << " t: "
-                  << iter->second.first << " seq: "
-                  << iter->second.second << std::endl;
-      
-      std::cout << "DivOcc: " << _divOccurrences.first << ", "
-                << _divOccurrences.second << std::endl;
-      */
-      
       this->updateLayerCount();
-        
-      /*
-      for( auto iter = _totalLayerCount.begin();
-           iter != _totalLayerCount.end(); ++iter )
-      {
-        std::cout << "Seq: " << iter->first << " count: "
-                  << iter->second << std::endl;
-      }
-      */
        
       // export information of periclinal divisions
       std::string filename = "/tmp/ModelDivProperties";
+      
+      if( SURFACETYPE == 1 )
+        filename += _realDataName;
+      
       switch( _initialSituationType )
       {
         case 0: filename += "NH"; break;
@@ -1369,7 +1385,7 @@ public:
         filename += _divisionType;
         if( _divisionType == "Energy" ||
             _divisionType == "Random" ||
-            _divisionType == "Gibbs" )
+            _divisionType == "Besson-Dumais" )
           filename += std::to_string( (unsigned int)_avoidTrianglesThreshold );
       }
       else
@@ -1392,14 +1408,7 @@ public:
         this->stopModel();
       return;
     }
-    
-    if( _surfaceClass.getTime() == _surfaceClass.getMaxTime() )
-    {
-      ModelExporter::exportPropabilityDistribution( 
-      "/tmp/propabilityDistribution.csv",
-      _probValues, _lengths, _choices );
-    }
-    
+        
     _surfaceClass.incrementTime();
     
     for(int i = 0 ; i < stepPerView ; ++i)
@@ -1410,19 +1419,6 @@ public:
       this->step_growth();
     }
     this->setStatus();
-              
-    std::size_t curTime, maxTime;
-    
-    if( SURFACETYPE == 0 )
-    {
-      curTime = _surfaceClass.getTime();
-      maxTime = _surfaceClass.getMaxTime();
-    }
-    else
-    {
-      curTime = _VLRDataPointSurface.getCurTimeStep();
-      maxTime = _VLRDataPointSurface.getMaxTimeStep() - 1;
-    }
     
     if( curTime == maxTime && !_lastStep )
     {
@@ -1430,7 +1426,7 @@ public:
                                               //dt, T.C.size(), false );
       
       _lastStep = true;
-      std::cout << "dt: " << dt << std::endl;
+      //std::cout << "dt: " << dt << std::endl;
       dt -= steps;
     }
   }
@@ -1565,7 +1561,7 @@ public:
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
       if( _drawSpheres )
-        ModelUtils::drawSphere( c->getPos(), 10., 20., 20.,
+        ModelUtils::drawSphere( c->getPos(), 8., 20., 20.,
                                 this->cellColor(c), quadratic );
       else
         T.drawCell(c, this->cellColor(c)*0.5, Colorf(this->cellColor(c)) );
