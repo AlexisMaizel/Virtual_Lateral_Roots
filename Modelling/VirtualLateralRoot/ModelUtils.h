@@ -76,6 +76,9 @@ namespace ModelUtils
                                                  Point3d &center,
                                                  const double eps );
   
+  void drawLine( const Point3d &pos1, const Point3d &pos2,
+                 const util::Palette::Color &color );
+  
   void drawControlPoint( const Point3d &pos,
                          const util::Palette::Color &color );
   

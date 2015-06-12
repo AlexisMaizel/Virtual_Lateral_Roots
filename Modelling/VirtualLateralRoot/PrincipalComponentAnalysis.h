@@ -31,7 +31,8 @@ public:
     Eigen::JacobiSVD<Eigen::MatrixXd> svd( D, Eigen::ComputeThinV );
     
     // eigenvalues
-    Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType singularValues = svd.singularValues();  
+    Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType singularValues = svd.singularValues();
+    
     Eigen::VectorXd ev = Eigen::VectorXd::Zero( m );
     for( std::size_t i = 0; i < singularValues.size(); i++ )
     {
@@ -63,7 +64,7 @@ public:
     std::vector<double> longestPrincipalComponent;
     longestPrincipalComponent.resize(3);
     for( std::size_t i = 0; i < eigenvectors.front().size(); i++ )
-      longestPrincipalComponent.at(i) = eigenvectors.at(i).at(0);
+      longestPrincipalComponent.at(i) = eigenvectors.front().at(i);
     
     return longestPrincipalComponent;
   }

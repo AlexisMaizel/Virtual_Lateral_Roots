@@ -835,6 +835,19 @@ double getSD( const std::vector<double> &vals,
 
 // ---------------------------------------------------------------------
 
+void drawLine( const Point3d &pos1, const Point3d &pos2,
+               const util::Palette::Color &color )
+{
+  glLineWidth(2.5); 
+  glColor4fv( color.c_data() );
+  glBegin( GL_LINES );
+  glVertex3f( pos1.i(), pos1.j(), 2. );
+  glVertex3f( pos2.i(), pos2.j(), 2. );
+  glEnd();
+}
+
+// ---------------------------------------------------------------------
+
 void drawControlPoint( const Point3d &pos,
                        const util::Palette::Color &color )
 {

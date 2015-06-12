@@ -30,7 +30,7 @@
 #include "RealSurface.h"
 
 // type of surface: 0 -> bezier surface, 1 -> surface based on triangulation of real data
-const unsigned int SURFACETYPE = 1;
+const unsigned int SURFACETYPE = 0;
 
 static QTextStream out(stdout);
 

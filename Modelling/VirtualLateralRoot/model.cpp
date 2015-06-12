@@ -71,11 +71,14 @@ public:
   bool _drawControlPoints;
   bool _interpolateBezierSurfaces;
   bool _drawSpheres;
+  bool _drawCenter;
+  bool _drawPCLine;
   GLUquadricObj *quadratic;
   
   std::vector<std::vector<double> > _probValues;
   std::vector<std::vector<double> > _lengths;
   std::vector<std::size_t> _choices;
+  std::vector<std::pair<Point3d, Point3d> > _pcLines;
   
   //----------------------------------------------------------------
   
@@ -101,6 +104,8 @@ public:
     _parms("View", "BackgroundColor", bgColor);
     _parms("View", "RenderSpheres", _drawSpheres );
     _parms("View", "RenderControlPoints", _drawControlPoints );
+    _parms("View", "RenderCellCenter", _drawCenter );
+    _parms("View", "RenderPCLine", _drawPCLine );
 
     _parms( "Division", "DivisionArea", divisionArea);
     _parms( "Division", "DivisionAreaRatio", divisionAreaRatio);
@@ -708,9 +713,10 @@ public:
     divData = ModelUtils::determinePossibleDivisionData(
       c, _avoidTrianglesThreshold, _LODThreshold, T );
     
-    //std::cout << "possible Divisions: " << divData.size() << std::endl;
+//     std::cout << "possible Divisions: " << divData.size() << std::endl;
     
     MyTissue::division_data ddata;
+    unsigned int attempts = 0;
     if( divData.size() != 0 )
     {
       std::random_device rd;
@@ -718,9 +724,22 @@ public:
       std::uniform_int_distribution<int> d( 0, divData.size()-1 );
       
       // get a random choice of all possible division data
-      std::size_t choice = d(gen);
-      //std::cout << "c: " << choice << std::endl;
-      ddata = divData.at( choice );
+      std::size_t choice;
+      
+      // check the two possible area of the daughter cells
+      do
+      {
+        choice = d(gen);
+//         std::cout << "c: " << choice << std::endl;
+        ddata = divData.at( choice );
+        attempts++;
+        
+        if( attempts > 50 )
+          break;
+      }
+      while( !this->checkDivisionArea( c, ddata ) );
+        
+      
       vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
       
       // apply cell pinching
@@ -920,6 +939,62 @@ public:
       empty = true;
     
     return ddata;
+  }
+  
+  //----------------------------------------------------------------
+  
+  bool checkDivisionArea( const cell& c,
+                          const MyTissue::division_data &ddata )
+  {
+    Point3d startPos = ddata.u1->getPos();
+    Point3d endPos = ddata.v1->getPos();
+    std::size_t iStart, iEnd;
+    
+    std::vector<Point3d> polygon;
+    forall(const junction& j, T.S.neighbors(c))
+    {
+      Point3d pos = j->getPos();
+      polygon.push_back( Point3d( pos.i(), pos.j(), 0. ) );
+    }
+    double totalArea = geometry::polygonArea( polygon );
+    
+    // find the start and end positions in the vector
+    // if found both then the positions in between together
+    // with ddata.pu and ddata.pv define one area of the dividing cell
+    for( std::size_t i = 0; i < polygon.size(); i++ )
+    {
+      if( ModelUtils::equalPoints( startPos, polygon.at(i) ) )
+        iStart = i;
+      
+      if( ModelUtils::equalPoints( endPos, polygon.at(i) ) )
+        iEnd = i;
+    }
+    
+    std::vector<Point3d> dCell;
+    dCell.push_back( ddata.pu );
+    dCell.push_back( ddata.pv );
+    if( iStart < iEnd )
+    {
+      for( std::size_t i = iStart+1; i <=iEnd; i++ )
+        dCell.push_back( polygon.at(i) );
+    }
+    else
+    {
+      for( std::size_t i = iEnd+1; i <=iStart; i++ )
+        dCell.push_back( polygon.at(i) );
+    }
+    
+    double area1 = geometry::polygonArea( dCell );
+    double area2 = totalArea - area1;
+    
+    // check how high is the variance between both areas
+    double ratio1 = 100.*area1/totalArea;
+    double ratio2 = 100.*area2/totalArea;
+    
+//     std::cout << "ratio1: " << ratio1 << std::endl;
+//     std::cout << "ratio2: " << ratio2 << std::endl;
+    
+    return (fabs( ratio1 - ratio2 ) <= 5.);
   }
   
   //----------------------------------------------------------------
@@ -1208,7 +1283,10 @@ public:
         // if true then the next division is perpendicular to the last one
         // else the division is collinear to the previous division direction
         if( this->setNextDecussationDivision() )
+        {
+          double noise = this->generateNoiseInRange( -10., 10., 1000 );
           c->angle = fmod( c->angle + 90., 360. );
+        }
         
         MyTissue::division_data ddata = this->setDivisionPoints( c );
         T.divideCell( c, ddata );
@@ -1220,15 +1298,35 @@ public:
         // if true then the next division is perpendicular to the principal
         // component growth of the center deformation since the cell was born
         // determine principal growth direction
-        if( c->centerPos.size() > 1 )
+        if( c->centerPos.size() > 2 )
           c->principalGrowthDir = this->determineLongestPCGrowth( c->centerPos );
         else
           std::cout << "Too few center positions!" << std::endl;
         
         Point3d xaxisDir = Point3d( 1., 0., 0. );
-        c->angle = 180./M_PI * acos( c->principalGrowthDir*xaxisDir ) + 90.;
+        double noise = this->generateNoiseInRange( -10., 10., 1000 );
+        c->angle = 180./M_PI * acos( c->principalGrowthDir*xaxisDir );
+        if( this->determineSlope( c->principalGrowthDir ) > 0 )
+        {
+          // only add the property that it is perpendicular to the PCA dir
+          c->angle += 90. + noise;
+        }
+        else
+        {
+          // add the property AND handle the missing degrees for having a negative slope
+          if( c->principalGrowthDir.i() > 0 )
+            c->angle = 180. - c->angle;
+          
+          c->angle += 90. + noise;
+        }
         // update the division angle
         MyTissue::division_data ddata = this->setDivisionPoints( c );
+        
+        // store the line positions for later drawing
+        Point3d midDiv = (ddata.pu+ddata.pv)/2.;
+        _pcLines.push_back( std::make_pair( midDiv - 5.*c->principalGrowthDir,
+                                            midDiv + 5.*c->principalGrowthDir ) );
+        
         T.divideCell( c, ddata );
       }
       else if( _divisionType == "Energy" &&
@@ -1286,6 +1384,33 @@ public:
     }
 
     return !to_divide.empty();
+  }
+  
+  //----------------------------------------------------------------
+  
+  double determineSlope( const Point3d &dir )
+  {
+    Point3d p1 = dir;
+    Point3d p2 = 2.*dir;
+    return ( (p2.j() - p1.j())/(p2.i()-p1.i()) );
+  }
+  
+  //----------------------------------------------------------------
+  
+  double generateNoiseInRange( const double start,
+                               const double end,
+                               const unsigned int steps )
+  {
+    std::vector<double> values;
+    double stepSize = fabs( end - start )/steps;
+    
+    for( double v = start; v < end+stepSize; v+=stepSize )
+      values.push_back( v );
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> d( 0, values.size()-1 );
+    return values.at( d(gen) );
   }
   
   //----------------------------------------------------------------
@@ -1501,19 +1626,18 @@ public:
   {
     Point3d principalGrowthDir;
     
-    Eigen::MatrixXd points( positions.size(), 3 );
+    Eigen::MatrixXd points( positions.size(), 2 );
     
     for( std::size_t r=0;r<positions.size();r++ )
     {
       points( r, 0 ) = positions.at(r).i();
       points( r, 1 ) = positions.at(r).j();
-      points( r, 2 ) = positions.at(r).k();
     }
       
     //std::cout << "Matrix: " << points << std::endl;
     std::vector<double> lpc = PCA::compute( points );
     principalGrowthDir = Point3d( lpc.at(0), lpc.at(1), lpc.at(2) );
-    std::cout << "LPC: " << principalGrowthDir << std::endl;
+    //std::cout << "LPC: " << principalGrowthDir << std::endl;
     
     return principalGrowthDir;
   }
@@ -1553,10 +1677,10 @@ public:
         if( !_bezierGrowthSurface )
           T.cellWallWidth = 0.001;
         else
-          T.cellWallWidth = 0.2;
+          T.cellWallWidth = 0.3;
       }
       else
-        T.cellWallWidth = 0.2;
+        T.cellWallWidth = 0.3;
           
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
@@ -1564,7 +1688,21 @@ public:
         ModelUtils::drawSphere( c->getPos(), 8., 20., 20.,
                                 this->cellColor(c), quadratic );
       else
-        T.drawCell(c, this->cellColor(c)*0.5, Colorf(this->cellColor(c)) );
+        T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.65) );
+      
+      if( _drawCenter )
+        ModelUtils::drawControlPoint( c->center, _palette.getColor(3) );
+      
+      if( _drawPCLine &&
+          _divisionType == "PerToGrowth" &&
+          c->centerPos.size() > 2 )
+      {
+        for( std::size_t j = 0; j < c->centerPos.size(); j++ )
+          ModelUtils::drawControlPoint( c->centerPos.at(j), _palette.getColor(7) );
+        
+        for( std::size_t l = 0; l < _pcLines.size(); l++ )
+          ModelUtils::drawLine( _pcLines.at(l).first, _pcLines.at(l).second, _palette.getColor(3) );
+      }
     }
     
     // draw control points of bezier surface
