@@ -93,6 +93,9 @@ class Surface {
     conpoi getCurrentControlPoints() const
     { return surfCurr.getControlPoints(); }
     
+    void applyControlpointsVariation( Bezier &surface,
+                                      const bool focusTop );
+    
     friend class SurfacePoint;
 
   private:

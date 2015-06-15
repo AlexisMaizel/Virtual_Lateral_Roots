@@ -152,7 +152,7 @@ public:
     _divOccurrences( std::make_pair( 0, 0 ) ),
     _lastStep( false ),
     _loopCounter( 1 ),
-    _amountLoops( 100 ),
+    _amountLoops( 20 ),
     _interpolateBezierSurfaces( true )
   {
     quadratic = gluNewQuadric();
@@ -216,9 +216,7 @@ public:
     if( _useAlternativeDT )
     {
       _divisionFileName += _divisionType;
-      if( _divisionType == "Energy" ||
-          _divisionType == "Random" ||
-          _divisionType == "Besson-Dumais" )
+      if( _divisionType != "Besson-Dumais" )
       {
         _divisionFileName += std::to_string( (unsigned int)_avoidTrianglesThreshold );
         _lineageFileName += std::to_string( (unsigned int)_avoidTrianglesThreshold );
@@ -707,7 +705,8 @@ public:
   //----------------------------------------------------------------
   
   MyTissue::division_data getRandomDivisionData( const cell& c,
-                                                 bool &empty )
+                                                 bool &empty,
+                                                 const bool equalArea )
   {
     std::vector<MyTissue::division_data> divData;
     divData = ModelUtils::determinePossibleDivisionData(
@@ -726,19 +725,26 @@ public:
       // get a random choice of all possible division data
       std::size_t choice;
       
-      // check the two possible area of the daughter cells
-      do
+      if( equalArea )
+      {
+        // check the two possible area of the daughter cells
+        do
+        {
+          choice = d(gen);
+  //         std::cout << "c: " << choice << std::endl;
+          ddata = divData.at( choice );
+          attempts++;
+          
+          if( attempts > 50 )
+            break;
+        }
+        while( !this->checkDivisionArea( c, ddata ) );
+      }
+      else
       {
         choice = d(gen);
-//         std::cout << "c: " << choice << std::endl;
         ddata = divData.at( choice );
-        attempts++;
-        
-        if( attempts > 50 )
-          break;
       }
-      while( !this->checkDivisionArea( c, ddata ) );
-        
       
       vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
       
@@ -1285,7 +1291,7 @@ public:
         if( this->setNextDecussationDivision() )
         {
           double noise = this->generateNoiseInRange( -10., 10., 1000 );
-          c->angle = fmod( c->angle + 90., 360. );
+          c->angle = fmod( c->angle + 90., 360. ) + noise;
         }
         
         MyTissue::division_data ddata = this->setDivisionPoints( c );
@@ -1364,14 +1370,28 @@ public:
         else
           T.divideCell( c, ddata );
       }
-      else if( _divisionType == "Random" &&
+      else if( _divisionType == "RandomEqualAreas" &&
                c->id > areaRatioStart &&
                _useAlternativeDT )
       {
         // if true then all division planes are determined randomly preserving
-        // almost symmetric cells with same area sizes
+        // cells with almost same area sizes
         bool empty = false;
-        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty );
+        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty, true );
+        // if the division data is empty then just use the default division
+        // rule (e.g. ShortestWall)
+        if( empty )
+          T.divideCell( c );
+        else
+          T.divideCell( c, ddata );
+      }
+      else if( _divisionType == "Random" &&
+               c->id > areaRatioStart &&
+               _useAlternativeDT )
+      {
+        // if true then all division planes are determined randomly
+        bool empty = false;
+        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty, false );
         // if the division data is empty then just use the default division
         // rule (e.g. ShortestWall)
         if( empty )
@@ -1508,9 +1528,7 @@ public:
       if( _useAlternativeDT )
       {
         filename += _divisionType;
-        if( _divisionType == "Energy" ||
-            _divisionType == "Random" ||
-            _divisionType == "Besson-Dumais" )
+        if( _divisionType != "Besson-Dumais" )
           filename += std::to_string( (unsigned int)_avoidTrianglesThreshold );
       }
       else
@@ -1688,7 +1706,10 @@ public:
         ModelUtils::drawSphere( c->getPos(), 8., 20., 20.,
                                 this->cellColor(c), quadratic );
       else
-        T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.65) );
+      {
+        T.drawCell(c, this->cellColor(c)*0.55, Colorf(this->cellColor(c)) );
+        //T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.65) );
+      }
       
       if( _drawCenter )
         ModelUtils::drawControlPoint( c->center, _palette.getColor(3) );

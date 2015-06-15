@@ -477,6 +477,37 @@ void Bezier::Print()
 
 //----------------------------------------------------------------
 
+void Bezier::focusCPs( const bool focusTop )
+{
+  double factor = 2./3.;
+  std::size_t numInner = _cpMatrix.size()-2;
+  
+  // only process the inner control points
+  for(std::size_t i = 1; i < _cpMatrix.size()-1; i++)
+  {
+    for(std::size_t j = 1; j < _cpMatrix.at(i).size()-1; j++)
+    {
+      Point3d top = _cpMatrix.back().at(j);
+      Point3d bottom = _cpMatrix.front().at(j);
+      double dist = fabs( top.j() - bottom.j() );
+  
+      // if focus on top then change the cps in such a way that
+      // the upper cps are located in a band with bandwidth dist*(1.-factor)
+      if( focusTop )
+        bottom.j() += dist*factor;
+      // if focus on bottom then change the cps in such a way that
+      // the lower cps are located in a band with bandwidth dist*(1.-factor)
+      else
+        top.j() -= dist*factor;
+      
+      double s = (double)j/(double)(numInner);
+      _cpMatrix.at(i).at(j).j() = (1.-s) * bottom.j() + s * top.j();
+    }
+  }  
+}
+
+//----------------------------------------------------------------
+
 // Given u,v in parametric space, return x,y,z
 Point3d Bezier::EvalCoord( double u, double v )
 {

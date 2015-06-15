@@ -64,6 +64,8 @@ class Bezier {
     
     void setCount( const unsigned int cnt )
     { count = cnt; }
+    
+    void focusCPs( const bool focusTop );
 
   private:
     int Choose( unsigned int n, unsigned int k );

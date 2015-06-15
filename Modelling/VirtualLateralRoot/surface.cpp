@@ -137,6 +137,10 @@ void Surface::init( util::Parms &parms,
       surface[0].LoadGrowthBezier( first, _numPatches, _numControlPoints );
       surface[_numSurfaces-1].LoadGrowthBezier( last, _numPatches, _numControlPoints );
       
+      // uncomment this line if you want to highly support or impair
+      // the occurrence of the high order pattern of periclinal divisions
+      //this->applyControlpointsVariation( surface[_numSurfaces-1], true );
+      
       for( std::size_t i = 1; i < _numSurfaces-1; i++ )
       {
         double s = (double)i/(double)(_numSurfaces-1);
@@ -160,6 +164,18 @@ void Surface::determineSurfaceHeaderProperties( const std::string bezFile )
   bIn >> _numSurfaces;
   bIn >> _numPatches;
   bIn >> _numControlPoints;
+}
+
+//----------------------------------------------------------------
+
+void Surface::applyControlpointsVariation( Bezier &surface,
+                                           const bool focusTop )
+{
+  // if focusTop == true, the upper control points except the
+  // lowest ones are "growing" much faster towards the dome tip
+  // else the most upper control points are "growing" towards
+  // the dome tip while the lower ones "grow" much slower
+  surface.focusCPs( focusTop );
 }
 
 //----------------------------------------------------------------
