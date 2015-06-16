@@ -82,9 +82,18 @@ namespace ModelUtils
   void drawControlPoint( const Point3d &pos,
                          const util::Palette::Color &color );
   
+  void drawBezierSurface( const conpoi &cps,
+                          const util::Palette::Color &color );
+  
   void drawSphere( const Point3d &pos, double r, std::size_t lats,
                    std::size_t longs, const util::Palette::Color &color,
                    GLUquadricObj *quadratic );
+  
+  Point3d computeBezierPoint( const conpoi &cps,
+                              const double u,
+                              const double v );
+  
+  int binom( unsigned int n, unsigned int k );
   
   std::size_t getRandomResultOfDistribution( const std::vector<double> &probs );
 }

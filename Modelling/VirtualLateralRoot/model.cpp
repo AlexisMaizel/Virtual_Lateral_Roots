@@ -69,6 +69,7 @@ public:
   std::size_t _loopCounter;
   std::map<std::string, std::size_t> _totalLayerCount;
   bool _drawControlPoints;
+  bool _drawBezierSurface;
   bool _interpolateBezierSurfaces;
   bool _drawSpheres;
   bool _drawCenter;
@@ -104,6 +105,7 @@ public:
     _parms("View", "BackgroundColor", bgColor);
     _parms("View", "RenderSpheres", _drawSpheres );
     _parms("View", "RenderControlPoints", _drawControlPoints );
+    _parms("View", "RenderBezierSurface", _drawBezierSurface );
     _parms("View", "RenderCellCenter", _drawCenter );
     _parms("View", "RenderPCLine", _drawPCLine );
 
@@ -152,7 +154,7 @@ public:
     _divOccurrences( std::make_pair( 0, 0 ) ),
     _lastStep( false ),
     _loopCounter( 1 ),
-    _amountLoops( 20 ),
+    _amountLoops( 50 ),
     _interpolateBezierSurfaces( true )
   {
     quadratic = gluNewQuadric();
@@ -1707,7 +1709,7 @@ public:
                                 this->cellColor(c), quadratic );
       else
       {
-        T.drawCell(c, this->cellColor(c)*0.55, Colorf(this->cellColor(c)) );
+        T.drawCell(c, this->cellColor(c)*0.45, Colorf(this->cellColor(c)) );
         //T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.65) );
       }
       
@@ -1727,13 +1729,19 @@ public:
     }
     
     // draw control points of bezier surface
-    if( _drawControlPoints && SURFACETYPE == 0 )
+    if( SURFACETYPE == 0 )
     {
       conpoi cps = _VLRBezierSurface.getCurrentControlPoints();
-      for( auto i = 0; i < cps.size(); i++ )
-        for( auto j = 0; j < cps.at(i).size(); j++ )
-          ModelUtils::drawControlPoint( cps.at(i).at(j),
-                                        _palette.getColor(3) );
+      if( _drawControlPoints )
+      {
+        for( auto i = 0; i < cps.size(); i++ )
+          for( auto j = 0; j < cps.at(i).size(); j++ )
+            ModelUtils::drawControlPoint( cps.at(i).at(j),
+                                          _palette.getColor(3) );
+      }
+      
+      if( _drawBezierSurface )
+        ModelUtils::drawBezierSurface( cps, _palette.getColor(0) );
     }
   }
   

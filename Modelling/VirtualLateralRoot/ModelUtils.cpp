@@ -867,6 +867,39 @@ void drawControlPoint( const Point3d &pos,
 
 // ---------------------------------------------------------------------
 
+void drawBezierSurface( const conpoi &cps,
+                        const util::Palette::Color &color )
+{
+  glLineWidth(1.5); 
+  glColor4fv( color.c_data() );
+  glShadeModel( GL_SMOOTH );
+  double steps = 0.05;
+  
+  for( double u = 0.; u < 1.+steps; u+=steps )
+  {
+    glBegin( GL_LINE_STRIP );
+    for( double v = 0.; v < 1.+steps; v+=steps )
+    {
+      Point3d pos = computeBezierPoint( cps, u, v );
+      glVertex3f( pos.i(), pos.j(), 0.9 );
+    }
+    glEnd();
+  }
+  
+  for( double v = 0.; v < 1.+steps; v+=steps )
+  {
+    glBegin( GL_LINE_STRIP );
+    for( double u = 0.; u < 1.+steps; u+=steps )
+    {
+      Point3d pos = computeBezierPoint( cps, u, v );
+      glVertex3f( pos.i(), pos.j(), 0.9 );
+    }
+    glEnd();
+  }
+}
+
+// ---------------------------------------------------------------------
+
 void drawSphere( const Point3d &pos, double r, std::size_t lats,
                  std::size_t longs, const util::Palette::Color &color,
                  GLUquadricObj *quadratic )
@@ -881,6 +914,54 @@ void drawSphere( const Point3d &pos, double r, std::size_t lats,
   glPopMatrix();
 } 
 
+// ---------------------------------------------------------------------
+
+Point3d computeBezierPoint( const conpoi &cps,
+                            const double u,
+                            const double v )
+{
+  Point3d pos( 0., 0., 0. );
+  for(std::size_t i = 0; i < cps.size(); i++) 
+    for(std::size_t j = 0; j < cps.at(i).size(); j++)
+    {
+      double s = (double)binom(cps.size() - 1, i) * pow(v, i) * 
+                 pow(1.0 - v, (int)(cps.size() - 1 - i)) *
+                 (double)binom(cps.at(i).size() - 1, j) * pow(u, j) * 
+                 pow(1.0 - u, (int)(cps.at(i).size() - 1 - j));
+                 
+      pos += s * cps.at(i).at(j);
+    }
+
+  return pos;
+}
+
+ // ---------------------------------------------------------------------
+
+int binom( unsigned int n, unsigned int k )
+{
+  static bool first = true;
+  const std::size_t size = 7;
+  static int choose[size][size];
+
+  if(n > size || k > n)
+    return(0);
+
+  // If first time in, fill the table
+  if(first)
+  {
+    first = false;
+    for(unsigned int j = 0; j < size; j++)
+      for(unsigned int i = j; i < size; i++)
+        if(j == 0 || j == i)
+          choose[i][j] = 1;
+        else 
+          choose[i][j] = choose[i-1][j] + choose[i-1][j-1];
+  }
+
+  // Just grab value from the table
+  return(choose[n][k]);
+}
+ 
  // ---------------------------------------------------------------------
 
 std::size_t getRandomResultOfDistribution( const std::vector<double> &probs )

@@ -8,7 +8,7 @@ SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additiona
 BezierGrowthSurface: true // if the surface type is bezier then it can be chosen to choose the generated bezier surface that includes the growth tensor information
 SurfaceScale: 1 // scale factor for surface based on real data points
 UseAutomaticContourPoints: false // use contour points that are generated automatically
-InitialSituationType: 0 // forced division situation at the beginning; can be 0, 1 or 2 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells
+InitialSituationType: 2 // forced division situation at the beginning; can be 0, 1 or 2 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells
 CenterOfMassAfterLOD: true // compute the center of mass after applying a level of detail
 Loop: false
 LODThreshold: 1 // threshold for used edge criterion in LOD
@@ -19,6 +19,7 @@ StepPerView: 1
 BackgroundColor: 255
 RenderSpheres: false
 RenderControlPoints: false
+RenderBezierSurface: false
 RenderCellCenter: false
 RenderPCLine: false // only when PerToGrowth as division type is used
 
