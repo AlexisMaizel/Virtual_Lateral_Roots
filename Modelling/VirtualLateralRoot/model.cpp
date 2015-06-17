@@ -76,6 +76,8 @@ public:
   bool _drawPCLine;
   GLUquadricObj *quadratic;
   
+  double _equalAreaRatio;
+  
   std::vector<std::vector<double> > _probValues;
   std::vector<std::vector<double> > _lengths;
   std::vector<std::size_t> _choices;
@@ -111,6 +113,7 @@ public:
 
     _parms( "Division", "DivisionArea", divisionArea);
     _parms( "Division", "DivisionAreaRatio", divisionAreaRatio);
+    _parms( "Division", "EqualAreaRatio", _equalAreaRatio);
     _parms( "Division", "UseAreaRatio", useAreaRatio);
     _parms( "Division", "UseCombinedAreaRatio", useCombinedAreaRatio);
     _parms( "Division", "UseWallRatio", useWallRatio);
@@ -154,7 +157,7 @@ public:
     _divOccurrences( std::make_pair( 0, 0 ) ),
     _lastStep( false ),
     _loopCounter( 1 ),
-    _amountLoops( 50 ),
+    _amountLoops( 100 ),
     _interpolateBezierSurfaces( true )
   {
     quadratic = gluNewQuadric();
@@ -927,9 +930,32 @@ public:
         //std::cout << l << " prob value: " << probValues.at(l) << std::endl;
       }
       
+      unsigned int attempts = 0;
       std::size_t choice = ModelUtils::getRandomResultOfDistribution( probValues );
       //std::cout << "choice: " << choice << std::endl;
       ddata = divData.at( choice );
+      
+//       if( true )
+//       {
+//         // check the two possible area of the daughter cells
+//         do
+//         {
+//           choice = ModelUtils::getRandomResultOfDistribution( probValues );
+//   //         std::cout << "c: " << choice << std::endl;
+//           ddata = divData.at( choice );
+//           attempts++;
+//           
+//           if( attempts > 50 )
+//             break;
+//         }
+//         while( !this->checkDivisionArea( c, ddata ) );
+//       }
+//       else
+//       {
+//         choice = ModelUtils::getRandomResultOfDistribution( probValues );
+//         ddata = divData.at( choice );
+//       }
+      
       vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
       
       _probValues.push_back( probValues );
@@ -979,15 +1005,22 @@ public:
     }
     
     std::vector<Point3d> dCell;
-    dCell.push_back( ddata.pu );
-    dCell.push_back( ddata.pv );
+    // "left" daughter cell
     if( iStart < iEnd )
     {
+      // push the division line points
+      // in reverse order
+      dCell.push_back( ddata.pv );
+      dCell.push_back( ddata.pu );
       for( std::size_t i = iStart+1; i <=iEnd; i++ )
         dCell.push_back( polygon.at(i) );
     }
+    // "right" daughter cell
     else
     {
+      // push the division line points
+      dCell.push_back( ddata.pu );
+      dCell.push_back( ddata.pv );
       for( std::size_t i = iEnd+1; i <=iStart; i++ )
         dCell.push_back( polygon.at(i) );
     }
@@ -995,14 +1028,18 @@ public:
     double area1 = geometry::polygonArea( dCell );
     double area2 = totalArea - area1;
     
+//     std::cout << "totalArea: " << totalArea << std::endl;
+//     std::cout << "area1: " << area1 << std::endl;
+//     std::cout << "area2: " << area2 << std::endl;
+    
     // check how high is the variance between both areas
     double ratio1 = 100.*area1/totalArea;
     double ratio2 = 100.*area2/totalArea;
     
-//     std::cout << "ratio1: " << ratio1 << std::endl;
-//     std::cout << "ratio2: " << ratio2 << std::endl;
+    std::cout << "ratio1: " << ratio1 << std::endl;
+    std::cout << "ratio2: " << ratio2 << std::endl;
     
-    return (fabs( ratio1 - ratio2 ) <= 5.);
+    return (fabs( ratio1 - ratio2 ) <= _equalAreaRatio);
   }
   
   //----------------------------------------------------------------
