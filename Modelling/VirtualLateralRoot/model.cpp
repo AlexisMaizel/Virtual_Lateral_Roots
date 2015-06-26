@@ -571,6 +571,8 @@ public:
     this->setLayerValues( cl, cr, c, divType, true );
     this->checkLayerAppearance( cl );
     this->checkLayerAppearance( cr );
+    //this->applyLevelOfDetailToCell( cl );
+    //this->applyLevelOfDetailToCell( cr );
     
     // update precursors
     cl->precursors.insert( c->id );
@@ -593,82 +595,33 @@ public:
 
   //----------------------------------------------------------------
   
-//   void applyLevelOfDetailToCell( const cell &c )
-//   {
-//     Point3d center = Point3d( 0., 0., 0. );
-//     std::set<junction> juncs = ModelUtils::determineNeedlessJunctions(
-//       c, T, center, _LODThreshold );
-//    
-//     // TODO
-//     if( juncs.size() != 4 )
-//       return;
-//     
-//     for( std::size_t w = 0; w < juncs.size() * _lod; w++ )
-//     {
-//       unsigned int uiw = (unsigned int)(w/_lod);
-//       double cellLength;
-//       double curLength = (double)w/(double)_lod - (double)uiw;
-//       double u,v;
-//       double mu,mv;
-//       switch(uiw)
-//       {
-//         case 0:
-//           u = start.first;
-//           v = start.second + curLength*length.second;
-//           if( addJunctionToWall == 0 )
-//           {
-//             mu = start.first;
-//             mv = start.second + length.second/2. + curLength*length.second;
-//           }
-//           break;
-//         case 1:
-//           u = start.first + curLength*length.first;
-//           v = start.second + length.second;
-//           if( addJunctionToWall == 1 )
-//           {
-//             mu = start.first + length.first/2. + curLength*length.first;
-//             mv = start.second + length.second;
-//           }
-//           break;
-//         case 2:
-//           u = start.first + length.first;
-//           v = start.second + length.second - curLength*length.second;
-//           if( addJunctionToWall == 2 )
-//           {
-//             mu = start.first + length.first;
-//             mv = start.second + length.second/2. - curLength*length.second;
-//           }
-//           break;
-//         case 3:
-//           u = start.first + length.first - curLength*length.first;
-//           v = start.second;
-//           if( addJunctionToWall == 3 )
-//           {
-//             mu = start.first + length.first/2. - curLength*length.first;
-//             mv = start.second;
-//           }
-//           break;
-//         default: u = v = 0.; break;
-//       }
-//       
-//       junction j;
-//       j->id = _jIDCounter;
-//       lateralRoot.InitPoint( j->sp, u, v );
-//       this->findNearestPointToMerge( T, j );
-//       vs.push_back(j);
-//       _jIDCounter++;
-//       
-//       if( uiw == addJunctionToWall )
-//       {
-//         junction j;
-//         j->id = _jIDCounter;
-//         lateralRoot.InitPoint( j->sp, mu, mv );
-//         this->findNearestPointToMerge( T, j );
-//         vs.push_back(j);
-//         _jIDCounter++;
-//       }
-//     }
-//   }
+  void applyLevelOfDetailToCell( const cell &c )
+  {
+    std::vector<junction> juncs;
+    forall(const junction& j, T.S.neighbors(c))
+      juncs.push_back( j );
+    
+    if( juncs.size() > _lod * 4 )
+      return;
+    
+    for( auto j = 0; j < juncs.size(); j++ )
+    {
+      junction newJ;
+      
+      if( j == juncs.size() - 1 )
+      {
+        Point3d pos = ( juncs.at(j)->getPos() + juncs.at(0)->getPos() )/2.;
+        _VLRBezierSurface.SetPoint( newJ->sp, newJ->sp, pos );
+        T.splitWall( juncs.at(j), juncs.at(0), newJ );
+      }
+      else
+      {
+        Point3d pos = ( juncs.at(j)->getPos() + juncs.at(j+1)->getPos() )/2.;
+        _VLRBezierSurface.SetPoint( newJ->sp, newJ->sp, pos );
+        T.splitWall( juncs.at(j), juncs.at(j+1), newJ );
+      }
+    } 
+  }
   
   //----------------------------------------------------------------
   

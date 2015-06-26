@@ -127,6 +127,26 @@ DivisionType::type determineDivisionType( const MyTissue::division_data& ddata,
 
 // ---------------------------------------------------------------------
 
+void findNearestPointToMerge( MyTissue &T, junction &js )
+{
+  // find nearest cell vertex in the tissue T to be merged with and return
+  // reference to junction
+  Point3d curPos = js->getPos();
+  forall( const cell& c, T.C )
+  {
+    forall(const junction& j, T.S.neighbors(c))
+    {
+      if( ModelUtils::equalPoints( j->getPos(), curPos ) )
+      {
+        js = j;
+        return;
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------
+
 double getDivisionAngle( const MyTissue::division_data& ddata )
 {
   // get pair of points of division wall

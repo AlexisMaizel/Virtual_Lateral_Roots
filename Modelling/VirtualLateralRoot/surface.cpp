@@ -228,8 +228,6 @@ bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
   double count = 0;
   double du, dv;
   
-  std::cout << std::endl;
-  std::cout << std::endl;
   while( fabs(lastd - norm(cp - p.pos)) > DX * 2. && count++ < MAXSEARCHSTEPS )
   {
     // Save previous distance

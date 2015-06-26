@@ -597,7 +597,7 @@ void SurfaceClass::generateCell( MyTissue &T,
     junction j;
     j->id = _jIDCounter;
     lateralRoot.InitPoint( j->sp, u, v );
-    this->findNearestPointToMerge( T, j );
+    ModelUtils::findNearestPointToMerge( T, j );
     vs.push_back(j);
     _jIDCounter++;
     
@@ -606,7 +606,7 @@ void SurfaceClass::generateCell( MyTissue &T,
       junction j;
       j->id = _jIDCounter;
       lateralRoot.InitPoint( j->sp, mu, mv );
-      this->findNearestPointToMerge( T, j );
+      ModelUtils::findNearestPointToMerge( T, j );
       vs.push_back(j);
       _jIDCounter++;
     }
@@ -766,7 +766,7 @@ void SurfaceClass::generateCell( MyTissue &T,
       junction j;
       j->id = _jIDCounter;
       lateralRoot.setPos( j->tp, curPos );
-      this->findNearestPointToMerge( T, j );
+      ModelUtils::findNearestPointToMerge( T, j );
       vs.push_back(j);
       _jIDCounter++;
       
@@ -776,7 +776,7 @@ void SurfaceClass::generateCell( MyTissue &T,
         junction j;
         j->id = _jIDCounter;
         lateralRoot.setPos( j->tp, cPos );
-        this->findNearestPointToMerge( T, j );
+        ModelUtils::findNearestPointToMerge( T, j );
         vs.push_back(j);
         _jIDCounter++;
       }
@@ -790,7 +790,7 @@ void SurfaceClass::generateCell( MyTissue &T,
       junction j;
       j->id = _jIDCounter;
       lateralRoot.setPos( j->tp, curPos );
-      this->findNearestPointToMerge( T, j );
+      ModelUtils::findNearestPointToMerge( T, j );
       vs.push_back(j);
       _jIDCounter++;
     }
@@ -863,26 +863,6 @@ void SurfaceClass::generateCell( MyTissue &T,
   
   // afterwards increment the id counter
   _IDCounter++;  
-}
-
-// ---------------------------------------------------------------------
-
-void SurfaceClass::findNearestPointToMerge( MyTissue &T, junction &js )
-{
-  // find nearest cell vertex in the tissue T to be merged with and return
-  // reference to junction
-  Point3d curPos = js->getPos();
-  forall( const cell& c, T.C )
-  {
-    forall(const junction& j, T.S.neighbors(c))
-    {
-      if( ModelUtils::equalPoints( j->getPos(), curPos ) )
-      {
-        js = j;
-        return;
-      }
-    }
-  }
 }
 
 // ---------------------------------------------------------------------

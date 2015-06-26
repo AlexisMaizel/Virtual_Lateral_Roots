@@ -31,6 +31,8 @@ namespace ModelUtils
   bool findPointInJunctionSet( const Point3d &p,
                              const std::set<junction> &juncs );
   
+  void findNearestPointToMerge( MyTissue &T, junction &js );
+  
   bool equalPoints( const Point3d &p1, const junction &j2 );
   
   bool equalPoints( const Point3d &p1, const Point3d &p2 );

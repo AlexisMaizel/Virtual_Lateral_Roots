@@ -4,7 +4,7 @@ Growth: .1  // not considered in code
 InitialCellNumber: 2 // initial cell number designed for VLR: 1, 2, 6 or 8
 RealDataName: none // valid entries are:
 // none, 120830_raw, 121204_raw_2014, 121211_raw, 130508_raw, 130607_raw, Average2, Average4, Average6, Average8
-SubDivisionLevelOfCells: 10 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
+SubDivisionLevelOfCells: 4 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
 BezierGrowthSurface: true // if the surface type is bezier then it can be chosen to choose the generated bezier surface that includes the growth tensor information
 SurfaceScale: 1 // scale factor for surface based on real data points
 UseAutomaticContourPoints: false // use contour points that are generated automatically
