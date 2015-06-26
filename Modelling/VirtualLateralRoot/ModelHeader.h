@@ -134,6 +134,14 @@ struct WallContent
 {
 };
 
+struct lessXPos
+{
+  bool operator()(const Point3d &p1, const Point3d &p2) const
+  {
+    return( p1.i() <= p2.i() );
+  }
+};
+
 class MyViewer;
 class MyModel;
 

@@ -66,6 +66,8 @@ class Bezier {
     { count = cnt; }
     
     void focusCPs( const bool focusTop );
+    
+    void applyGrowthOnlyInHeight( const Bezier &surfaceE );
 
   private:
     int Choose( unsigned int n, unsigned int k );

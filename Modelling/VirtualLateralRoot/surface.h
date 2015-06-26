@@ -9,16 +9,7 @@
 #include "bezier.h"
 //#include "BezierSurface.h"
 
-using std::string;
-
-const int SAMPLES = 10000;	// Sample count for function/contours
-
-const int ARCLENGTH = 0;	// Growth types
-const int CONTOUR = 1;
-
 const double PI = 3.14159265358979323846;
-const double PIx2 = PI + PI;   // 2 PI
-
 const double DX = .0000001;//.0000001;
 const double MAXSEARCHSTEPS = 1000;
 const int MAXSURF = 1000;
@@ -58,17 +49,21 @@ class Surface {
              string section,
              const bool bezierGrowthSurface,
              const bool interpolateBezierSurfaces,
+             const bool onlyGrowthInHeight,
              const std::string &surfaceName );
     
     void init( util::Parms &parms,
                string section,
                const bool bezierGrowthSurface,
                const bool interpolateBezierSurfaces,
+               const bool onlyGrowthInHeight,
                const std::string &surfaceName );
     
     ~Surface() {};
 
     void determineSurfaceHeaderProperties( const std::string bezFile );
+    
+    void applyGrowthOnlyInHeight( Bezier &surfaceS, const Bezier &surfaceE );
     
     // Create zero point
     void Zero(SurfacePoint &p);

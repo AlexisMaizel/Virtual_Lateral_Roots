@@ -477,6 +477,22 @@ void Bezier::Print()
 
 //----------------------------------------------------------------
 
+void Bezier::applyGrowthOnlyInHeight( const Bezier &surfaceE )
+{
+  conpoi sur = surfaceE.getControlPoints();
+  for(std::size_t i = 0; i < _cpMatrix.size(); i++)
+  {
+    for(std::size_t j = 0; j < _cpMatrix.at(i).size(); j++)
+    {
+      // copy all x positions from the last time step
+      _cpMatrix.at(i).at(j).i() = sur.at(i).at(j).i();
+      _cpMatrix.at(i).at(j).j() = sur.at(0).at(j).j() + (double)i*5.;
+    }
+  }
+}
+
+//----------------------------------------------------------------
+
 void Bezier::focusCPs( const bool focusTop )
 {
   double factor = 2./3.;

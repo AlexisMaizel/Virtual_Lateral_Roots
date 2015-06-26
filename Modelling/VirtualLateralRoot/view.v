@@ -4,20 +4,25 @@ Growth: .1  // not considered in code
 InitialCellNumber: 2 // initial cell number designed for VLR: 1, 2, 6 or 8
 RealDataName: none // valid entries are:
 // none, 120830_raw, 121204_raw_2014, 121211_raw, 130508_raw, 130607_raw, Average2, Average4, Average6, Average8
-SubDivisionLevelOfCells: 1 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
+SubDivisionLevelOfCells: 10 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
 BezierGrowthSurface: true // if the surface type is bezier then it can be chosen to choose the generated bezier surface that includes the growth tensor information
 SurfaceScale: 1 // scale factor for surface based on real data points
 UseAutomaticContourPoints: false // use contour points that are generated automatically
-InitialSituationType: 0 // forced division situation at the beginning; can be 0, 1 or 2 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells
+InitialSituationType: 2 // forced division situation at the beginning; can be 0, 1 or 2 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells
 CenterOfMassAfterLOD: true // compute the center of mass after applying a level of detail
 Loop: false
 LODThreshold: 1 // threshold for used edge criterion in LOD
-AvoidTrianglesThreshold: 15 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
+AvoidTrianglesThreshold: 0 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
+LoadLastModel: false // if true load the last created model for which this variable was set to false -> this is required to rerun models that are generated with randomized parameters
+OnlyGrowthInHeight: true // the idealized bezier surface changes in width and height -> setting this parameter to true results in a bezier surface only increasing in height
 
 [View]
 StepPerView: 1
 BackgroundColor: 255
+RenderCells: true
+RenderJunctions: true
 RenderSpheres: false
+RenderLayerCurves: false
 RenderControlPoints: false
 RenderBezierSurface: false
 RenderCellCenter: false
@@ -25,14 +30,14 @@ RenderPCLine: false // only when PerToGrowth as division type is used
 
 [Division]
 DivisionArea: 1100 // 1100 ... 0.025 threshold size of cells before they divide
-DivisionAreaRatio: 0.4674 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
-EqualAreaRatio: 5.
+DivisionAreaRatio: 0.468 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+EqualAreaRatio: 1.
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
 UseWallRatio: false
 DivisionWallRatio: 0.45 // 0.45 divide a cell if a wall of the cell is longer than a certain percentage of the initial length
 UseAlternativeDivisionType: true
-DivisionType: RandomEqualAreas // Decussation PerToGrowth Energy Besson-Dumais Random RandomEqualAreas; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
+DivisionType: Besson-Dumais // Decussation PerToGrowth Energy Besson-Dumais Random RandomEqualAreas; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
 ProbabilityOfDecussationDivision: 100 // probability for having a decussation division (has to be in [0, 100])
 DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal and periclinal division
 CellColoringType: 1 // cell coloring type: 0 -> cells are colored based on founder cells/lineage trees; 1 -> cells are colored based on layer assignments after each periclinal division; 2 -> cells are colored based on type: interior or boundary

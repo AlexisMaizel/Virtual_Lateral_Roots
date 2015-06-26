@@ -789,6 +789,199 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
 
 // ---------------------------------------------------------------------
 
+std::vector<MyTissue::division_data> determinePossibleDivisionDataAndPreserveEqualArea(
+                                      const cell& c,
+                                      const double epsLength,
+                                      const double epsLOD,
+                                      const MyTissue& T,
+                                      const double equalAreaRatio )
+{
+  std::vector<MyTissue::division_data> divisionData;
+  
+  //std::cout << std::endl;
+  
+  // we perform a LOD to the current cell such that for three colinear junctions
+  // the inner one is not considered because then the method to avoid triangles
+  // will not work any more
+  Point3d center = Point3d( 0., 0., 0. );
+  std::set<junction> juncs = ModelUtils::determineNeedlessJunctions(
+    c, T, center, epsLOD );
+  
+  //std::cout << "orig size: " << T.S.neighbors(c).size() << std::endl;
+  //std::cout << "size: " << juncs.size() << std::endl;
+  
+  double deltaAngle = 0.5;
+  for( double angle = 0.; angle < 180.; angle += deltaAngle )
+  {
+    // points for storing cell wall information
+    Point3d u1,u2,v1,v2;
+    MyTissue::division_data ddata;
+    //const Point3d& center = c->center;
+    double a = M_PI/180. * angle;
+    Point3d direction = Point3d(-sin(a), cos(a), 0);
+    
+    // for each cell wall
+    forall( const junction& j,T.S.neighbors(c) )
+    {
+      Point3d jpos, jnpos;
+      const junction& jn = T.S.nextTo(c, j);
+      jpos = j->getPos();
+      jnpos = jn->getPos();
+      
+      Point3d u;
+      double s;
+      // compute intersection between line [jpos, jnpos] and the plane with
+      // position center and normal direction; the result is stored in u and
+      // s: Position of the intersection on the line in [0,1].
+      if(geometry::planeLineIntersection(u, s, center, direction, jpos, jnpos) and s >= 0 and s <= 1)
+      {
+        if((jpos - center)*direction > 0)
+        {
+          ddata.v1 = j;
+          ddata.pv = u;
+          v1 = jpos;
+          v2 = jnpos;
+        }
+        else if((jpos - center)*direction < 0)
+        {
+          ddata.u1 = j;
+          ddata.pu = u;
+          u1 = jpos;
+          u2 = jnpos;
+        }
+        
+        if(ddata.u1 and ddata.v1)
+          break;
+      }
+    }
+    
+    // check if the distance between ddata.pv and v1 or v2 is smaller than
+    // some eps OR if distance between ddata.pu and u1 or u2 is smaller than eps
+    bool pass = true;//ModelUtils::checkDivisionArea( c, ddata, T, equalAreaRatio );
+    
+    // compute junction lengths depending on the simplified cell structure
+    // after applying a level of detail such that our approach in avoiding
+    // triangle-shaped cells are guaranteed
+    // u1 -> right of pu -> ccw
+    // u2 -> left of pu -> cw
+    // v1 -> right of pv -> ccw
+    // v2 -> left of pv -> cw
+    findAppropriateJunctionPoint( u1, juncs, T, c, false );
+    findAppropriateJunctionPoint( u2, juncs, T, c, true );
+    findAppropriateJunctionPoint( v1, juncs, T, c, false );
+    findAppropriateJunctionPoint( v2, juncs, T, c, true );
+    
+    double uJunctionLength = norm( u2 - u1 );
+    double vJunctionLength = norm( v2 - v1 );
+    double dist1 = norm( ddata.pu - u1 );
+    double dist2 = norm( ddata.pu - u2 );
+    double dist3 = norm( ddata.pv - v1 );
+    double dist4 = norm( ddata.pv - v2 );
+    
+    // compute the percentage of length that is set by the user
+    double uPercLength = (uJunctionLength*epsLength)/100.;
+    double vPercLength = (vJunctionLength*epsLength)/100.;
+    
+    /*
+    std::cout << "uJunctionLength: " << uJunctionLength << std::endl;
+    std::cout << "vJunctionLength: " << vJunctionLength << std::endl;
+    std::cout << "uPercLength: " << uPercLength << std::endl;
+    std::cout << "vPercLength: " << vPercLength << std::endl;
+    std::cout << "dist1: " << dist1 << std::endl;
+    std::cout << "dist2: " << dist2 << std::endl;
+    std::cout << "dist3: " << dist3 << std::endl;
+    std::cout << "dist4: " << dist4 << std::endl;
+    std::cout << "pu: " << ddata.pu << std::endl;
+    std::cout << "pv: " << ddata.pv << std::endl;
+    std::cout << "u1: " << u1 << " u2: " << u2 << std::endl;
+    std::cout << "v1: " << v1 << " v2: " << v2 << std::endl;
+    */
+    
+    if( dist1 < uPercLength || dist2 < uPercLength ||
+        dist3 < vPercLength || dist4 < vPercLength )
+      pass = false;
+    
+    if( pass )
+      divisionData.push_back( ddata );
+    
+    //std::cout << "pass: " << pass << std::endl;
+  }
+  
+  return divisionData;
+}
+
+// ---------------------------------------------------------------------
+
+bool checkDivisionArea( const cell& c,
+                        const MyTissue::division_data &ddata,
+                        const MyTissue& T,
+                        const double equalAreaRatio )
+{
+  Point3d startPos = ddata.u1->getPos();
+  Point3d endPos = ddata.v1->getPos();
+  std::size_t iStart, iEnd;
+  
+  std::vector<Point3d> polygon;
+  forall(const junction& j, T.S.neighbors(c))
+  {
+    Point3d pos = j->getPos();
+    polygon.push_back( Point3d( pos.i(), pos.j(), 0. ) );
+  }
+  double totalArea = geometry::polygonArea( polygon );
+  
+  // find the start and end positions in the vector
+  // if found both then the positions in between together
+  // with ddata.pu and ddata.pv define one area of the dividing cell
+  for( std::size_t i = 0; i < polygon.size(); i++ )
+  {
+    if( ModelUtils::equalPoints( startPos, polygon.at(i) ) )
+      iStart = i;
+    
+    if( ModelUtils::equalPoints( endPos, polygon.at(i) ) )
+      iEnd = i;
+  }
+  
+  std::vector<Point3d> dCell;
+  // "left" daughter cell
+  if( iStart < iEnd )
+  {
+    // push the division line points
+    // in reverse order
+    dCell.push_back( ddata.pv );
+    dCell.push_back( ddata.pu );
+    for( std::size_t i = iStart+1; i <=iEnd; i++ )
+      dCell.push_back( polygon.at(i) );
+  }
+  // "right" daughter cell
+  else
+  {
+    // push the division line points
+    dCell.push_back( ddata.pu );
+    dCell.push_back( ddata.pv );
+    for( std::size_t i = iEnd+1; i <=iStart; i++ )
+      dCell.push_back( polygon.at(i) );
+  }
+  
+  double area1 = geometry::polygonArea( dCell );
+  double area2 = totalArea - area1;
+  
+//     std::cout << "totalArea: " << totalArea << std::endl;
+//     std::cout << "area1: " << area1 << std::endl;
+//     std::cout << "area2: " << area2 << std::endl;
+  
+  // check how high is the variance between both areas
+  double ratio1 = 100.*area1/totalArea;
+  double ratio2 = 100.*area2/totalArea;
+  
+  //std::cout << "ratio1: " << ratio1 << std::endl;
+  //std::cout << "ratio2: " << ratio2 << std::endl;
+  std::cout << "diffRatio: " << fabs( ratio1 - ratio2 ) << std::endl;
+  
+  return (fabs( ratio1 - ratio2 ) <= equalAreaRatio);
+}
+
+// ---------------------------------------------------------------------
+
 double determineDivisionAngle( const MyTissue::division_data& ddata )
 {
   // get pair of points of division wall
@@ -835,10 +1028,71 @@ double getSD( const std::vector<double> &vals,
 
 // ---------------------------------------------------------------------
 
-void drawLine( const Point3d &pos1, const Point3d &pos2,
-               const util::Palette::Color &color )
+void drawBezierCurve( const std::set<Point3d, lessXPos> &cps,
+                      const util::Palette::Color &color,
+                      GLUquadricObj *quadratic )
 {
-  glLineWidth(2.5); 
+//   auto iter = cps.begin();
+//   Point3d firstPos = *iter;
+//   iter++;
+//   for( ; iter != cps.end(); iter++ )
+//   {
+//     ModelUtils::drawLine( firstPos, *iter, color, 3.5 );
+//     firstPos = *iter;
+//   }
+  
+  std::vector<Point3d> positions;
+  for( auto iter = cps.begin(); iter != cps.end(); iter++ )
+    positions.push_back( *iter );
+  
+  Point3d firstPos = ModelUtils::computeBezierPoint( positions, 0. );
+  double deltaT = 0.02;
+  for( double t = deltaT; t < 1.+deltaT; t += deltaT )
+  {
+    Point3d pos = ModelUtils::computeBezierPoint( positions, t );
+    //ModelUtils::drawLine( firstPos, pos, color, 3.5 );
+    ModelUtils::drawCylinder( firstPos, pos, color, quadratic, 1.5, 20, 20 );
+    firstPos = pos;
+  }
+}
+
+// ---------------------------------------------------------------------
+
+void drawCylinder( const Point3d &pos1, const Point3d &pos2,
+                   const util::Palette::Color &color,
+                   GLUquadricObj *quadratic,
+                   const double r, std::size_t slices,
+                   std::size_t stacks )
+{
+  glColor4fv( color.c_data() );
+  glShadeModel( GL_SMOOTH );
+  GLfloat lmodel_ambient[] = { 0.01, 0.01, 0.01, 1.0 };
+  glPushMatrix();
+  glLightModelfv( GL_LIGHT_MODEL_AMBIENT, lmodel_ambient );
+  Point3d mid = (pos2 + pos1)/2.;
+  glTranslatef( mid.i(), mid.j(), mid.k() );
+  glRotatef( 90., 1., 0., 0. );
+  Point3d xaxisDir = Point3d( 1., 0., 0. );
+  Point3d dir = pos2 - pos1;
+  dir.normalize();
+  double angle = 180./M_PI * acos( dir*xaxisDir );
+  if( ModelUtils::determineSlope( dir ) < 0 )
+    angle = 90. - angle;
+  else
+    angle += 90.;
+  
+  glRotatef( angle, 0., 1., 0. );
+  gluCylinder( quadratic, r, r, 1.1*norm(pos2-pos1), slices, stacks );
+  glPopMatrix();
+}
+
+// ---------------------------------------------------------------------
+
+void drawLine( const Point3d &pos1, const Point3d &pos2,
+               const util::Palette::Color &color,
+               const double lineWidth )
+{
+  glLineWidth( lineWidth ); 
   glColor4fv( color.c_data() );
   glBegin( GL_LINES );
   glVertex3f( pos1.i(), pos1.j(), 2. );
@@ -870,7 +1124,7 @@ void drawControlPoint( const Point3d &pos,
 void drawBezierSurface( const conpoi &cps,
                         const util::Palette::Color &color )
 {
-  glLineWidth(1.5); 
+  glLineWidth(1.); 
   glColor4fv( color.c_data() );
   glShadeModel( GL_SMOOTH );
   double steps = 0.05;
@@ -916,6 +1170,23 @@ void drawSphere( const Point3d &pos, double r, std::size_t lats,
 
 // ---------------------------------------------------------------------
 
+Point3d computeBezierPoint( const vector<Point3d> &cps,
+                            const double t )
+{
+  Point3d pos( 0., 0., 0. );
+  for(std::size_t i = 0; i < cps.size(); i++) 
+  {
+    double s = (double)binomR(cps.size() - 1, i) * pow(t, i) * 
+                pow(1. - t, (int)(cps.size() - 1 - i));
+                
+    pos += s * cps.at(i);
+  }
+
+  return pos;
+}
+
+// ---------------------------------------------------------------------
+
 Point3d computeBezierPoint( const conpoi &cps,
                             const double u,
                             const double v )
@@ -935,7 +1206,7 @@ Point3d computeBezierPoint( const conpoi &cps,
   return pos;
 }
 
- // ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
 
 int binom( unsigned int n, unsigned int k )
 {
@@ -961,8 +1232,114 @@ int binom( unsigned int n, unsigned int k )
   // Just grab value from the table
   return(choose[n][k]);
 }
- 
- // ---------------------------------------------------------------------
+
+// ---------------------------------------------------------------------
+
+int binomR( unsigned int n, unsigned int k )
+{
+  if( n == k || k == 0 )
+    return 1;
+  else
+    return( binomR( n-1, k-1 ) + binomR( n-1, k ) );
+}
+
+//----------------------------------------------------------------
+
+void splitNonAdjacentCells( std::set<cell, differentCell> curve,
+                            const MyTissue& T,
+                            std::vector< std::set<cell, differentCell> > &curves )
+{ 
+  if( curve.size() < 2 )
+    return;
+
+  for( auto sIter : curve )
+  {
+    std::set<cell, differentCell> cs;
+    cs.insert( sIter );
+    forall( const cell& c, T.C.neighbors( sIter ) )
+    {
+      auto findIter = curve.find( c );
+      if( findIter != curve.end() )
+        cs.insert( c );
+    }
+    
+    curves.push_back( cs );
+  }
+  
+  unsigned int counter = 1;
+  while( true )
+  {
+    bool mergeComplete = true;
+    
+    auto cI = curves.begin();
+    while( cI != curves.end() )
+    {
+      auto aI = cI++;
+      
+      if( cI == curves.end() )
+        break;
+      
+      auto bI = cI;
+      
+      for( auto co = 0; co < counter; co++ )
+      {
+        // if the sizes are not the same then the sets are adjacent
+        // to each other
+        if( !ModelUtils::emptyIntersection( *aI, *bI ) )
+        {
+          aI->insert( bI->begin(), bI->end() );
+          curves.erase( bI );
+          mergeComplete *= false;
+        }
+        else
+          mergeComplete *= true;
+        
+        if( bI == curves.end() )
+          break;
+        
+        bI++;
+        
+        if( bI == curves.end() )
+          break;
+      }
+    }
+
+    if( mergeComplete )
+      counter++;
+    
+    if( mergeComplete && counter > curves.size() )
+      break;
+  }
+}
+
+//----------------------------------------------------------------
+
+bool emptyIntersection( const std::set<cell, differentCell> &s1,
+                        const std::set<cell, differentCell> &s2 )
+{
+  auto i = s1.begin();
+  auto j = s2.begin();
+  
+  while( i != s1.end() && j != s2.end() )
+  {
+    if( (*i)->id < (*j)->id ) ++i;
+    else if( (*j)->id < (*i)->id ) ++j;
+    else return false;
+  }
+  
+  return true;
+}
+
+//----------------------------------------------------------------
+
+double determineSlope( const Point3d &dir )
+{
+  Point3d p1 = dir;
+  Point3d p2 = 2.*dir;
+  return ( (p2.j() - p1.j())/(p2.i()-p1.i()) );
+}
+
+// ---------------------------------------------------------------------
 
 std::size_t getRandomResultOfDistribution( const std::vector<double> &probs )
 {

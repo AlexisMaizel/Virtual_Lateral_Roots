@@ -10,7 +10,7 @@ include $(shell vveinterpreter --makefile)
 # Add extra compilation options here
 CXXFLAGS+= -w -std=c++11
 # Add extra libraries here
-LIBS+=
+LIBS+= -lftgl
 # Add extra linking options here
 #    for compiling the model as a library (.vve)
 LD_SO_FLAGS+=

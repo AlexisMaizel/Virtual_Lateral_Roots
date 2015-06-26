@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <iomanip> 
 
 #include <cstdio>
 #include <cmath>
@@ -51,10 +52,12 @@ Surface::Surface( util::Parms &parms,
                   string section,
                   const bool bezierGrowthSurface,
                   const bool interpolateBezierSurfaces,
+                  const bool onlyGrowthInHeight,
                   const std::string &surfaceName )
 {
   this->init( parms, section, bezierGrowthSurface,
-              interpolateBezierSurfaces, surfaceName );
+              interpolateBezierSurfaces, onlyGrowthInHeight,
+              surfaceName );
 }
 
 //----------------------------------------------------------------
@@ -63,6 +66,7 @@ void Surface::init( util::Parms &parms,
                     string section,
                     const bool bezierGrowthSurface,
                     const bool interpolateBezierSurfaces,
+                    const bool onlyGrowthInHeight,
                     const std::string &surfaceName )
 {
   string surffile;
@@ -141,6 +145,9 @@ void Surface::init( util::Parms &parms,
       // the occurrence of the high order pattern of periclinal divisions
       //this->applyControlpointsVariation( surface[_numSurfaces-1], true );
       
+      if( onlyGrowthInHeight )
+        this->applyGrowthOnlyInHeight( surface[0], surface[_numSurfaces-1] );
+      
       for( std::size_t i = 1; i < _numSurfaces-1; i++ )
       {
         double s = (double)i/(double)(_numSurfaces-1);
@@ -149,6 +156,13 @@ void Surface::init( util::Parms &parms,
       }
     }
   }
+}
+
+//----------------------------------------------------------------
+
+void Surface::applyGrowthOnlyInHeight( Bezier &surfaceS, const Bezier &surfaceE )
+{
+  surfaceS.applyGrowthOnlyInHeight( surfaceE );
 }
 
 //----------------------------------------------------------------
@@ -213,8 +227,10 @@ bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
   double lastd = -(DX * 1000);
   double count = 0;
   double du, dv;
-
-  while(fabs(lastd - norm(cp - p.pos)) > DX * 2 && count++ < MAXSEARCHSTEPS)
+  
+  std::cout << std::endl;
+  std::cout << std::endl;
+  while( fabs(lastd - norm(cp - p.pos)) > DX * 2. && count++ < MAXSEARCHSTEPS )
   {
     // Save previous distance
     lastd = norm(cp - p.pos);
@@ -227,12 +243,26 @@ bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
     CalcPos(u2);
     du = (norm(cp - u1.pos) - norm(cp - u2.pos))/fabs(u1.u - u2.u);
     
+    // make sure that the du values are in [0, 1] or [-1, 0] such that the line
+    // minimization will not alternate between parametric values of 0 (left most)
+    // and 1 (right most) because then the estimated parametric coordinates are
+    // not computed correctly
+    unsigned int numDigitsBeforeComma = std::to_string( abs( (int)(du) ) ).size();
+    du /= (double)( pow( 10, numDigitsBeforeComma-1 ) );
+    
     SurfacePoint v1 = p, v2 = p;
     v1.v -= DX;
     v2.v += DX;
     CalcPos(v1);
     CalcPos(v2);
     dv = (norm(cp - v1.pos) - norm(cp - v2.pos))/fabs(v1.v - v2.v);
+    
+    // make sure that the dv values are in [0, 1] or [-1, 0] such that the line
+    // minimization will not alternate between parametric values of 0 (bottom most)
+    // and 1 (top most) because then the estimated parametric coordinates are
+    // not computed correctly
+    numDigitsBeforeComma = std::to_string( abs( (int)(dv) ) ).size();
+    dv /= (double)( pow( 10, numDigitsBeforeComma-1 ) );
     
     // Do line minimization
     double step = .01;

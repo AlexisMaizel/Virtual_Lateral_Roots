@@ -648,7 +648,6 @@ void SurfaceClass::generateCell( MyTissue &T,
   
   c->xMin = xMin;
   c->xMax = xMax;
-  c->center = center;
   c->divType = DivisionType::NONE;
   c->centerPos.push_back( center );
   c->initialArea = geometry::polygonArea(polygon);
@@ -673,6 +672,8 @@ void SurfaceClass::generateCell( MyTissue &T,
     else if( c->id == 2 )
       center.i() = c->xMin + 1.*xLength/3.; 
   }
+  
+  c->center = center;
   
   lateralRoot.SetPoint(c->sp, c->sp, center);
 
@@ -829,7 +830,6 @@ void SurfaceClass::generateCell( MyTissue &T,
 
   c->xMin = xMin;
   c->xMax = xMax;
-  c->center = center;
   c->divType = DivisionType::NONE;
   c->centerPos.push_back( center );
   c->initialArea = geometry::polygonArea(polygon);
@@ -854,6 +854,8 @@ void SurfaceClass::generateCell( MyTissue &T,
     else if( c->id == 2 )
       center.i() = xMin + 1.*xLength/3.; 
   }
+  
+  c->center = center;
   
   lateralRoot.setPos(c->tp, center);
   

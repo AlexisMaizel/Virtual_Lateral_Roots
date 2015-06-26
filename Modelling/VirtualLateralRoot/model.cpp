@@ -12,6 +12,14 @@ const double steps = 0.0005;
 static double dt = start;
 #endif
 
+// struct differentCell
+// {
+//   bool operator()(const cell &c1, const cell &c2) const
+//   {
+//     return( c1->id < c2->id );
+//   }
+// };
+
 class MyModel : public Model 
 {
   Q_OBJECT
@@ -72,9 +80,16 @@ public:
   bool _drawBezierSurface;
   bool _interpolateBezierSurfaces;
   bool _drawSpheres;
+  bool _drawLayerCurves;
   bool _drawCenter;
   bool _drawPCLine;
+  bool _drawCells;
+  bool _drawJunctions;
+  bool _loadLastModel;
+  bool _onlyGrowthInHeight;
   GLUquadricObj *quadratic;
+  std::vector<std::size_t> _randomChoices;
+  std::size_t _choiceCounter;
   
   double _equalAreaRatio;
   
@@ -102,10 +117,15 @@ public:
     _parms("Main", "Loop", _useLoop );
     _parms("Main", "LODThreshold", _LODThreshold );
     _parms("Main", "AvoidTrianglesThreshold", _avoidTrianglesThreshold );
-
+    _parms("Main", "LoadLastModel", _loadLastModel );
+    _parms("Main", "OnlyGrowthInHeight", _onlyGrowthInHeight );
+    
     _parms("View", "StepPerView", stepPerView);
     _parms("View", "BackgroundColor", bgColor);
+    _parms("View", "RenderCells", _drawCells );
+    _parms("View", "RenderJunctions", _drawJunctions );
     _parms("View", "RenderSpheres", _drawSpheres );
+    _parms("View", "RenderLayerCurves", _drawLayerCurves );
     _parms("View", "RenderControlPoints", _drawControlPoints );
     _parms("View", "RenderBezierSurface", _drawBezierSurface );
     _parms("View", "RenderCellCenter", _drawCenter );
@@ -158,7 +178,8 @@ public:
     _lastStep( false ),
     _loopCounter( 1 ),
     _amountLoops( 100 ),
-    _interpolateBezierSurfaces( true )
+    _interpolateBezierSurfaces( true ),
+    _choiceCounter( 0 )
   {
     quadratic = gluNewQuadric();
     gluQuadricNormals( quadratic, GLU_SMOOTH );
@@ -167,6 +188,12 @@ public:
     // Registering the configuration files
     registerFile("pal.map");
     registerFile("view.v");
+    
+    _randomChoices.clear();
+    
+    // read the properties of the saved data model
+    if( _loadLastModel )
+      this->readDataProperties( "/tmp/modelDataProp.csv" );
     
     std::size_t t = 300;
     if( _realDataName == "130508_raw" )
@@ -186,7 +213,8 @@ public:
     _surfaceClass.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
     
     _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
-                            _interpolateBezierSurfaces, _realDataName );
+                            _interpolateBezierSurfaces,
+                            _onlyGrowthInHeight, _realDataName );
     
     // set name strings
     _lineageFileName = "/tmp/model";
@@ -350,6 +378,13 @@ public:
     _divOccurrences = std::make_pair( 0, 0 );
     _firstLayerAppearances.clear();
     _totalLayerCount.clear();
+    _randomChoices.clear();
+    _choiceCounter = 0;
+    _lastStep = false;
+    
+    // read the properties of the saved data model
+    if( _loadLastModel )
+      this->readDataProperties( "/tmp/modelDataProp.csv" );
     
     std::size_t t = 300;
     if( _realDataName == "130508_raw" )
@@ -362,7 +397,8 @@ public:
     _surfaceClass.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
     
     _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
-                            _interpolateBezierSurfaces, _realDataName );
+                            _interpolateBezierSurfaces,
+                            _onlyGrowthInHeight, _realDataName );
     
     // after each restart, reset the model and cell wall file because
     // it makes no sense to append these files
@@ -557,6 +593,85 @@ public:
 
   //----------------------------------------------------------------
   
+//   void applyLevelOfDetailToCell( const cell &c )
+//   {
+//     Point3d center = Point3d( 0., 0., 0. );
+//     std::set<junction> juncs = ModelUtils::determineNeedlessJunctions(
+//       c, T, center, _LODThreshold );
+//    
+//     // TODO
+//     if( juncs.size() != 4 )
+//       return;
+//     
+//     for( std::size_t w = 0; w < juncs.size() * _lod; w++ )
+//     {
+//       unsigned int uiw = (unsigned int)(w/_lod);
+//       double cellLength;
+//       double curLength = (double)w/(double)_lod - (double)uiw;
+//       double u,v;
+//       double mu,mv;
+//       switch(uiw)
+//       {
+//         case 0:
+//           u = start.first;
+//           v = start.second + curLength*length.second;
+//           if( addJunctionToWall == 0 )
+//           {
+//             mu = start.first;
+//             mv = start.second + length.second/2. + curLength*length.second;
+//           }
+//           break;
+//         case 1:
+//           u = start.first + curLength*length.first;
+//           v = start.second + length.second;
+//           if( addJunctionToWall == 1 )
+//           {
+//             mu = start.first + length.first/2. + curLength*length.first;
+//             mv = start.second + length.second;
+//           }
+//           break;
+//         case 2:
+//           u = start.first + length.first;
+//           v = start.second + length.second - curLength*length.second;
+//           if( addJunctionToWall == 2 )
+//           {
+//             mu = start.first + length.first;
+//             mv = start.second + length.second/2. - curLength*length.second;
+//           }
+//           break;
+//         case 3:
+//           u = start.first + length.first - curLength*length.first;
+//           v = start.second;
+//           if( addJunctionToWall == 3 )
+//           {
+//             mu = start.first + length.first/2. - curLength*length.first;
+//             mv = start.second;
+//           }
+//           break;
+//         default: u = v = 0.; break;
+//       }
+//       
+//       junction j;
+//       j->id = _jIDCounter;
+//       lateralRoot.InitPoint( j->sp, u, v );
+//       this->findNearestPointToMerge( T, j );
+//       vs.push_back(j);
+//       _jIDCounter++;
+//       
+//       if( uiw == addJunctionToWall )
+//       {
+//         junction j;
+//         j->id = _jIDCounter;
+//         lateralRoot.InitPoint( j->sp, mu, mv );
+//         this->findNearestPointToMerge( T, j );
+//         vs.push_back(j);
+//         _jIDCounter++;
+//       }
+//     }
+//   }
+  
+  //----------------------------------------------------------------
+  
   void checkLayerAppearance( const cell &c )
   {
     auto iter = _firstLayerAppearances.find( c->layerValue );
@@ -743,12 +858,25 @@ public:
           if( attempts > 50 )
             break;
         }
-        while( !this->checkDivisionArea( c, ddata ) );
+        while( !ModelUtils::checkDivisionArea( c, ddata, T, _equalAreaRatio ) );
       }
       else
       {
         choice = d(gen);
         ddata = divData.at( choice );
+      }
+      
+      // store choice for later usage
+      if( !_loadLastModel )
+        _randomChoices.push_back( choice );
+      else
+      {
+        if( _choiceCounter < _randomChoices.size() )
+        {
+          choice = _randomChoices.at(_choiceCounter);
+          ddata = divData.at( choice );
+          _choiceCounter++;
+        }
       }
       
       vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
@@ -857,6 +985,20 @@ public:
       }
       
       std::size_t choice = ModelUtils::getRandomResultOfDistribution( probValues );
+      
+      // store choice for later usage
+      if( !_loadLastModel )
+        _randomChoices.push_back( choice );
+      else
+      {
+        if( _choiceCounter < _randomChoices.size() )
+        {
+          choice = _randomChoices.at(_choiceCounter);
+          ddata = divData.at( choice );
+          _choiceCounter++;
+        }
+      }
+      
       //std::cout << "choice: " << choice << std::endl;
       ddata = divData.at( choice );
       vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
@@ -880,11 +1022,11 @@ public:
                                                        bool &empty )
   {
     std::vector<MyTissue::division_data> divData;
-    divData = ModelUtils::determinePossibleDivisionData(
-      c, _avoidTrianglesThreshold, _LODThreshold, T );
+    divData = ModelUtils::determinePossibleDivisionDataAndPreserveEqualArea(
+      c, _avoidTrianglesThreshold, _LODThreshold, T, _equalAreaRatio );
     
     std::size_t numLines = divData.size();
-//    std::cout << "possible Divisions: " << numLines << std::endl;
+    //std::cout << "possible Divisions: " << numLines << std::endl;
     
     // fixed parameter from paper determined by experimental results
     const double beta = 20.6;
@@ -928,12 +1070,16 @@ public:
       {
         probValues.at(l) = 100. * std::exp( (-1. * beta * lengths.at(l)) / rho ) / sum;
         //std::cout << l << " prob value: " << probValues.at(l) << std::endl;
+        //ddata = divData.at( l );
+        //ModelUtils::checkDivisionArea( c, ddata, T, _equalAreaRatio );
       }
       
-      unsigned int attempts = 0;
+      //unsigned int attempts = 0;
       std::size_t choice = ModelUtils::getRandomResultOfDistribution( probValues );
       //std::cout << "choice: " << choice << std::endl;
-      ddata = divData.at( choice );
+      //std::cout << " selected prob value: " << probValues.at(choice) << std::endl;
+      //ddata = divData.at( choice );
+      //ModelUtils::checkDivisionArea( c, ddata, T, _equalAreaRatio );
       
 //       if( true )
 //       {
@@ -948,13 +1094,27 @@ public:
 //           if( attempts > 50 )
 //             break;
 //         }
-//         while( !this->checkDivisionArea( c, ddata ) );
+//         while( !ModelUtils::checkDivisionArea( c, ddata, T, _equalAreaRatio ) );
 //       }
 //       else
 //       {
 //         choice = ModelUtils::getRandomResultOfDistribution( probValues );
 //         ddata = divData.at( choice );
 //       }
+      
+      // store choice for later usage
+      if( !_loadLastModel )
+        _randomChoices.push_back( choice );
+      else
+      {
+        if( _choiceCounter < _randomChoices.size() )
+        {
+          choice = _randomChoices.at(_choiceCounter);
+          _choiceCounter++;
+        }
+      }
+      
+      ddata = divData.at( choice );
       
       vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
       
@@ -973,73 +1133,6 @@ public:
       empty = true;
     
     return ddata;
-  }
-  
-  //----------------------------------------------------------------
-  
-  bool checkDivisionArea( const cell& c,
-                          const MyTissue::division_data &ddata )
-  {
-    Point3d startPos = ddata.u1->getPos();
-    Point3d endPos = ddata.v1->getPos();
-    std::size_t iStart, iEnd;
-    
-    std::vector<Point3d> polygon;
-    forall(const junction& j, T.S.neighbors(c))
-    {
-      Point3d pos = j->getPos();
-      polygon.push_back( Point3d( pos.i(), pos.j(), 0. ) );
-    }
-    double totalArea = geometry::polygonArea( polygon );
-    
-    // find the start and end positions in the vector
-    // if found both then the positions in between together
-    // with ddata.pu and ddata.pv define one area of the dividing cell
-    for( std::size_t i = 0; i < polygon.size(); i++ )
-    {
-      if( ModelUtils::equalPoints( startPos, polygon.at(i) ) )
-        iStart = i;
-      
-      if( ModelUtils::equalPoints( endPos, polygon.at(i) ) )
-        iEnd = i;
-    }
-    
-    std::vector<Point3d> dCell;
-    // "left" daughter cell
-    if( iStart < iEnd )
-    {
-      // push the division line points
-      // in reverse order
-      dCell.push_back( ddata.pv );
-      dCell.push_back( ddata.pu );
-      for( std::size_t i = iStart+1; i <=iEnd; i++ )
-        dCell.push_back( polygon.at(i) );
-    }
-    // "right" daughter cell
-    else
-    {
-      // push the division line points
-      dCell.push_back( ddata.pu );
-      dCell.push_back( ddata.pv );
-      for( std::size_t i = iEnd+1; i <=iStart; i++ )
-        dCell.push_back( polygon.at(i) );
-    }
-    
-    double area1 = geometry::polygonArea( dCell );
-    double area2 = totalArea - area1;
-    
-//     std::cout << "totalArea: " << totalArea << std::endl;
-//     std::cout << "area1: " << area1 << std::endl;
-//     std::cout << "area2: " << area2 << std::endl;
-    
-    // check how high is the variance between both areas
-    double ratio1 = 100.*area1/totalArea;
-    double ratio2 = 100.*area2/totalArea;
-    
-    std::cout << "ratio1: " << ratio1 << std::endl;
-    std::cout << "ratio2: " << ratio2 << std::endl;
-    
-    return (fabs( ratio1 - ratio2 ) <= _equalAreaRatio);
   }
   
   //----------------------------------------------------------------
@@ -1351,7 +1444,7 @@ public:
         Point3d xaxisDir = Point3d( 1., 0., 0. );
         double noise = this->generateNoiseInRange( -10., 10., 1000 );
         c->angle = 180./M_PI * acos( c->principalGrowthDir*xaxisDir );
-        if( this->determineSlope( c->principalGrowthDir ) > 0 )
+        if( ModelUtils::determineSlope( c->principalGrowthDir ) > 0 )
         {
           // only add the property that it is perpendicular to the PCA dir
           c->angle += 90. + noise;
@@ -1447,15 +1540,6 @@ public:
   
   //----------------------------------------------------------------
   
-  double determineSlope( const Point3d &dir )
-  {
-    Point3d p1 = dir;
-    Point3d p2 = 2.*dir;
-    return ( (p2.j() - p1.j())/(p2.i()-p1.i()) );
-  }
-  
-  //----------------------------------------------------------------
-  
   double generateNoiseInRange( const double start,
                                const double end,
                                const unsigned int steps )
@@ -1544,6 +1628,9 @@ public:
       "/tmp/propabilityDistribution.csv",
       _probValues, _lengths, _choices );
     }
+    
+    if( curTime == maxTime + 2 && !_loadLastModel )
+      this->exportDataProperties( "/tmp/modelDataProp.csv" );
     
     if( _useLoop && curTime >= maxTime )
     {
@@ -1744,7 +1831,9 @@ public:
       if( _drawSpheres )
         ModelUtils::drawSphere( c->getPos(), 8., 20., 20.,
                                 this->cellColor(c), quadratic );
-      else
+        
+        
+      if( _drawCells )
       {
         T.drawCell(c, this->cellColor(c)*0.45, Colorf(this->cellColor(c)) );
         //T.drawCell(c, this->cellColor(c), Colorf(this->cellColor(c)*0.65) );
@@ -1762,6 +1851,86 @@ public:
         
         for( std::size_t l = 0; l < _pcLines.size(); l++ )
           ModelUtils::drawLine( _pcLines.at(l).first, _pcLines.at(l).second, _palette.getColor(3) );
+      }
+    }
+    
+    if( _drawJunctions )
+    {
+      forall(const junction& j, T.W)
+      {
+        ModelUtils::drawControlPoint( j->getPos(),
+                                      _palette.getColor(2) );
+      }
+    }
+    
+    if( _drawLayerCurves )
+    {
+      std::map<unsigned int, std::set<Point3d, lessXPos> > cellPos;
+      std::map<unsigned int, std::set<cell, differentCell> > cellMap;
+      std::map<unsigned int, util::Palette::Color> colors;
+      
+      bool oneLinePerLayer = false;
+      
+      forall(const cell& c, T.C)
+      {
+        unsigned int layer = c->layerValue-1;
+        Point3d cp = c->center;
+        cp.k() = layer;
+        auto iter = cellPos.find( layer );
+        if( iter != cellPos.end() )
+        {
+          iter->second.insert( cp );
+          auto mIter = cellMap.find( layer );
+          mIter->second.insert( c );
+        }
+        else
+        {
+          // first insert color of cell layer
+          util::Palette::Color color;
+          if( layer < _layerColorIndex.size() )
+            color = _palette.getColor( _layerColorIndex.at(layer) );
+          else
+            color = _palette.getColor( _layerColorIndex.at(_layerColorIndex.size()-1) );
+        
+          colors.insert( std::make_pair( layer, color ) );
+          
+          // then initialize set of cell positions for new layer
+          std::set<Point3d, lessXPos> cellp;
+          std::set<cell, differentCell> ce;
+          cellp.insert( cp );
+          ce.insert( c );
+          cellPos.insert( std::make_pair( layer, cellp ) );
+          cellMap.insert( std::make_pair( layer, ce ) );
+        }
+      }
+        
+      if( oneLinePerLayer )
+      { 
+        // at last draw the curves
+        for( auto iter = cellPos.begin(); iter != cellPos.end(); iter++ )
+          ModelUtils::drawBezierCurve( iter->second, colors.at(iter->first), quadratic );
+      }
+      else
+      {
+        for( auto l : cellMap )
+        {
+          unsigned int layer = l.first;
+          std::vector< std::set<cell, differentCell> > curves;
+          //std::cout << "Layer " << layer << std::endl;
+          ModelUtils::splitNonAdjacentCells( l.second, T, curves );
+          for( auto i : curves )
+          {
+            std::set<Point3d, lessXPos> sortedXPos;
+            for( auto s : i )
+            {
+              Point3d cp = s->center;
+              cp.k() = layer;
+              sortedXPos.insert( cp );
+            }
+            
+            ModelUtils::drawBezierCurve( sortedXPos, colors.at(layer), quadratic );
+          }
+        }
       }
     }
     
@@ -1868,6 +2037,83 @@ public:
   
   // Method needed by the tissue
   Point3d normal(const cell& ) const { return Point3d(0,0,1); }
+  
+  //----------------------------------------------------------------
+
+  void exportDataProperties( const std::string &filename )
+  {
+    std::ofstream out( filename.c_str(), std::ofstream::out );
+    
+    // export model properties
+    out << _lod << "\n";
+    out << _initialSituationType << "\n";
+    out << _LODThreshold << "\n";
+    out << _avoidTrianglesThreshold << "\n";
+    out << divisionArea << "\n";
+    out << divisionAreaRatio << "\n";
+    out << _equalAreaRatio << "\n";
+    out << useAreaRatio << "\n";
+    out << useCombinedAreaRatio << "\n";
+    out << useWallRatio << "\n";
+    out << divisionWallRatio << "\n";
+    out << _useAlternativeDT << "\n";
+    out << _divisionType << "\n";
+    out << probabilityOfDecussationDivision << "\n";
+    out << _angleThreshold << "\n";
+    out << _firstDivisionsAreaRatio << "\n";
+    out << _secondDivisionsAreaRatio << "\n";
+    out << _timeDelay << "\n";
+    out << _cellPinch << "\n";
+    out << _cellMaxPinch << "\n";
+    out << _interpolateBezierSurfaces << "\n";
+    out << _randomChoices.size() << " ";
+    
+    for( std::size_t c = 0; c < _randomChoices.size(); c++ )
+      out << _randomChoices.at(c) << " ";
+    
+    out << "\n";
+    
+    out.close();
+  }
+  
+  //----------------------------------------------------------------
+
+  void readDataProperties( const std::string &filename )
+  {
+    std::ifstream in( filename.c_str(), std::ofstream::in );
+    
+    // export model properties
+    in >> _lod
+       >> _initialSituationType
+       >> _LODThreshold
+       >> _avoidTrianglesThreshold
+       >> divisionArea
+       >> divisionAreaRatio
+       >> _equalAreaRatio
+       >> useAreaRatio
+       >> useCombinedAreaRatio
+       >> useWallRatio
+       >> divisionWallRatio
+       >> _useAlternativeDT
+       >> _divisionType
+       >> probabilityOfDecussationDivision
+       >> _angleThreshold
+       >> _firstDivisionsAreaRatio
+       >> _secondDivisionsAreaRatio
+       >> _timeDelay
+       >> _cellPinch
+       >> _cellMaxPinch
+       >> _interpolateBezierSurfaces;
+       
+    std::size_t size;
+    in >> size;
+    _randomChoices.resize( size );
+    
+    for( std::size_t c = 0; c < _randomChoices.size(); c++ )
+      in >> _randomChoices.at(c);
+    
+    in.close();
+  }
 };
 
 #include "model.moc"
