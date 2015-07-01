@@ -43,22 +43,22 @@ void SurfaceClass::initModelBasedOnBezier( MyTissue &T,
                         lCounter, lateralRoot ); 
     break;
     case 2:
-    for( std::size_t c=0; c < 2; c++, lCounter++ )
-    {
-      this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
-                          std::make_pair( 0.5, 1. ),
-                          lCounter, lateralRoot );
-    }
+//     for( std::size_t c=0; c < 2; c++, lCounter++ )
+//     {
+//       this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
+//                           std::make_pair( 0.5, 1. ),
+//                           lCounter, lateralRoot );
+//     }
     
-//     this->generateCell( T, std::make_pair( 0., 0. ),
-//                           std::make_pair( 1./4., 1. ),
-//                           lCounter, lateralRoot );
-//     
-//     lCounter++;
-//     
-//     this->generateCell( T, std::make_pair( 1./4., 0. ),
-//                           std::make_pair( 3./4., 1. ),
-//                           lCounter, lateralRoot );
+    this->generateCell( T, std::make_pair( 0., 0. ),
+                          std::make_pair( 1./4., 1. ),
+                          lCounter, lateralRoot );
+    
+    lCounter++;
+    
+    this->generateCell( T, std::make_pair( 1./4., 0. ),
+                          std::make_pair( 3./4., 1. ),
+                          lCounter, lateralRoot );
     
     break;
     case 6:

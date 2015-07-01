@@ -11,7 +11,7 @@ const double EPS = 0.000000001;
 namespace ModelUtils
 {
   
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 double determineLongestWallLength( const cell& c,
                                    const MyTissue& T )
@@ -33,7 +33,7 @@ double determineLongestWallLength( const cell& c,
   return maxLength;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 void findAppropriateJunctionPoint( Point3d &p,
                                    const std::set<junction> &juncs,
@@ -63,7 +63,7 @@ void findAppropriateJunctionPoint( Point3d &p,
   p = temp;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 bool findPointInJunctionSet( const Point3d &p,
                              const std::set<junction> &juncs )
@@ -77,7 +77,7 @@ bool findPointInJunctionSet( const Point3d &p,
   return false;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 bool equalPoints( const Point3d &p1, const junction &j2 )
 {
@@ -85,7 +85,7 @@ bool equalPoints( const Point3d &p1, const junction &j2 )
   return equalPoints( p1, p2 );
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 bool equalPoints( const Point3d &p1, const Point3d &p2 )
 {
@@ -97,7 +97,7 @@ bool equalPoints( const Point3d &p1, const Point3d &p2 )
     return false;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 DivisionType::type determineDivisionType( const MyTissue::division_data& ddata,
                                           const double angleThreshold )
@@ -125,7 +125,35 @@ DivisionType::type determineDivisionType( const MyTissue::division_data& ddata,
     return DivisionType::PERICLINAL;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
+
+void appendCellSituationType( std::string &fileName,
+                              const std::size_t sitType )
+{
+  switch( sitType )
+  {
+    case 0: fileName += "NH"; break;
+    case 1: fileName += "1DC"; break;
+    case 2: fileName += "2DC"; break;
+    case 3: fileName += "2DCBase"; break;
+  }
+}
+
+//----------------------------------------------------------------
+
+void appendCellSituationType( QString &fileName,
+                              const std::size_t sitType )
+{
+  switch( sitType )
+  {
+    case 0: fileName += "NH"; break;
+    case 1: fileName += "1DC"; break;
+    case 2: fileName += "2DC"; break;
+    case 3: fileName += "2DCBase"; break;
+  }
+}
+
+//----------------------------------------------------------------
 
 void findNearestPointToMerge( MyTissue &T, junction &js )
 {
@@ -145,7 +173,7 @@ void findNearestPointToMerge( MyTissue &T, junction &js )
   }
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 double getDivisionAngle( const MyTissue::division_data& ddata )
 {
@@ -188,7 +216,7 @@ double getDivisionAngle( const MyTissue::division_data& ddata )
   }
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 std::vector<Point2d> determineConvexHull( const cell &c, const MyTissue& T )
 {
@@ -231,7 +259,7 @@ std::vector<Point2d> determineConvexHull( const cell &c, const MyTissue& T )
   return H;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 bool pointInHull( const Point2d &p, const std::vector<Point2d> &hull )
 {
@@ -269,7 +297,7 @@ bool pointInHull( const Point2d &p, const std::vector<Point2d> &hull )
     return false;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 bool doIntersect( const Point2d &p1, const Point2d &q1,
                   const Point2d &p2, const Point2d &q2 )
@@ -299,7 +327,7 @@ bool doIntersect( const Point2d &p1, const Point2d &q1,
   return false; // Doesn't fall in any of the above cases
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 bool onSegment( const Point2d &p1, const Point2d &p2, const Point2d &p3 )
 {
@@ -310,7 +338,7 @@ bool onSegment( const Point2d &p1, const Point2d &p2, const Point2d &p3 )
   return false;  
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 int orientation( const Point2d &p1, const Point2d &p2, const Point2d &p3 )
 {
@@ -322,14 +350,14 @@ int orientation( const Point2d &p1, const Point2d &p2, const Point2d &p3 )
   return (val > 0)? 1: 2; // clock or counterclock wise
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 double cross( const Point2d &p1, const Point2d &p2, const Point2d &p3 )
 {
   return (p2.i() - p1.i()) * (p3.j() - p1.j()) - (p2.j() - p1.j()) * (p3.i() - p1.i());
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 bool xSort( const Point2d &p1, const Point2d &p2 )
 {
@@ -339,7 +367,7 @@ bool xSort( const Point2d &p1, const Point2d &p2 )
     return ( p1.j() <= p2.j() );
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 std::vector<Point3d> loadContourPoints( const std::string &fileName,
                                         const double surfaceScale )
@@ -361,7 +389,7 @@ std::vector<Point3d> loadContourPoints( const std::string &fileName,
   return conPoints;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
                                          double &area,
@@ -498,7 +526,7 @@ Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
   return center;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 std::set<junction> determineNeedlessJunctions( const cell &c,
                                                const MyTissue& T,
@@ -685,7 +713,7 @@ bool shouldNodeBeErased( const Point3d &nodePos1,
     return false;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 std::vector<MyTissue::division_data> determinePossibleDivisionData(
                                       const cell& c,
@@ -807,7 +835,7 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
   return divisionData;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 std::vector<MyTissue::division_data> determinePossibleDivisionDataAndPreserveEqualArea(
                                       const cell& c,
@@ -930,7 +958,7 @@ std::vector<MyTissue::division_data> determinePossibleDivisionDataAndPreserveEqu
   return divisionData;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 bool checkDivisionArea( const cell& c,
                         const MyTissue::division_data &ddata,
@@ -1000,7 +1028,7 @@ bool checkDivisionArea( const cell& c,
   return (fabs( ratio1 - ratio2 ) <= equalAreaRatio);
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 double determineDivisionAngle( const MyTissue::division_data& ddata )
 {
@@ -1021,7 +1049,7 @@ double determineDivisionAngle( const MyTissue::division_data& ddata )
   return ( 180./M_PI * acos( dir*xaxisDir ) );
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 double getNormalDistribution( const double x,
                               const double mu,
@@ -1032,7 +1060,7 @@ double getNormalDistribution( const double x,
   return a * e;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 double getSD( const std::vector<double> &vals,
               const double mu )
@@ -1046,149 +1074,7 @@ double getSD( const std::vector<double> &vals,
   return std::sqrt(sum);
 }
 
-// ---------------------------------------------------------------------
-
-void drawBezierCurve( const std::set<Point3d, lessXPos> &cps,
-                      const util::Palette::Color &color,
-                      GLUquadricObj *quadratic )
-{
-//   auto iter = cps.begin();
-//   Point3d firstPos = *iter;
-//   iter++;
-//   for( ; iter != cps.end(); iter++ )
-//   {
-//     ModelUtils::drawLine( firstPos, *iter, color, 3.5 );
-//     firstPos = *iter;
-//   }
-  
-  std::vector<Point3d> positions;
-  for( auto iter = cps.begin(); iter != cps.end(); iter++ )
-    positions.push_back( *iter );
-  
-  Point3d firstPos = ModelUtils::computeBezierPoint( positions, 0. );
-  double deltaT = 0.02;
-  for( double t = deltaT; t < 1.+deltaT; t += deltaT )
-  {
-    Point3d pos = ModelUtils::computeBezierPoint( positions, t );
-    //ModelUtils::drawLine( firstPos, pos, color, 3.5 );
-    ModelUtils::drawCylinder( firstPos, pos, color, quadratic, 1.5, 20, 20 );
-    firstPos = pos;
-  }
-}
-
-// ---------------------------------------------------------------------
-
-void drawCylinder( const Point3d &pos1, const Point3d &pos2,
-                   const util::Palette::Color &color,
-                   GLUquadricObj *quadratic,
-                   const double r, std::size_t slices,
-                   std::size_t stacks )
-{
-  glColor4fv( color.c_data() );
-  glShadeModel( GL_SMOOTH );
-  GLfloat lmodel_ambient[] = { 0.01, 0.01, 0.01, 1.0 };
-  glPushMatrix();
-  glLightModelfv( GL_LIGHT_MODEL_AMBIENT, lmodel_ambient );
-  Point3d mid = (pos2 + pos1)/2.;
-  glTranslatef( mid.i(), mid.j(), mid.k() );
-  glRotatef( 90., 1., 0., 0. );
-  Point3d xaxisDir = Point3d( 1., 0., 0. );
-  Point3d dir = pos2 - pos1;
-  dir.normalize();
-  double angle = 180./M_PI * acos( dir*xaxisDir );
-  if( ModelUtils::determineSlope( dir ) < 0 )
-    angle = 90. - angle;
-  else
-    angle += 90.;
-  
-  glRotatef( angle, 0., 1., 0. );
-  gluCylinder( quadratic, r, r, 1.1*norm(pos2-pos1), slices, stacks );
-  glPopMatrix();
-}
-
-// ---------------------------------------------------------------------
-
-void drawLine( const Point3d &pos1, const Point3d &pos2,
-               const util::Palette::Color &color,
-               const double lineWidth )
-{
-  glLineWidth( lineWidth ); 
-  glColor4fv( color.c_data() );
-  glBegin( GL_LINES );
-  glVertex3f( pos1.i(), pos1.j(), 2. );
-  glVertex3f( pos2.i(), pos2.j(), 2. );
-  glEnd();
-}
-
-// ---------------------------------------------------------------------
-
-void drawControlPoint( const Point3d &pos,
-                       const util::Palette::Color &color )
-{
-  double halfLength = 1.;
-  glNormal3f( 0., 0., 1. );
-  glPolygonMode( GL_FRONT, GL_FILL );
-  glColor4fv( color.c_data() );
-  glPushMatrix();
-  glBegin( GL_QUADS );
-  glVertex3f( pos.i()-halfLength, pos.j()+halfLength, 1. );
-  glVertex3f( pos.i()+halfLength, pos.j()+halfLength, 1. );
-  glVertex3f( pos.i()+halfLength, pos.j()-halfLength, 1. );
-  glVertex3f( pos.i()-halfLength, pos.j()-halfLength, 1. );
-  glEnd();
-  glPopMatrix();
-}
-
-// ---------------------------------------------------------------------
-
-void drawBezierSurface( const conpoi &cps,
-                        const util::Palette::Color &color )
-{
-  glLineWidth(1.); 
-  glColor4fv( color.c_data() );
-  glShadeModel( GL_SMOOTH );
-  double steps = 0.05;
-  
-  for( double u = 0.; u < 1.+steps; u+=steps )
-  {
-    glBegin( GL_LINE_STRIP );
-    for( double v = 0.; v < 1.+steps; v+=steps )
-    {
-      Point3d pos = computeBezierPoint( cps, u, v );
-      glVertex3f( pos.i(), pos.j(), 0.9 );
-    }
-    glEnd();
-  }
-  
-  for( double v = 0.; v < 1.+steps; v+=steps )
-  {
-    glBegin( GL_LINE_STRIP );
-    for( double u = 0.; u < 1.+steps; u+=steps )
-    {
-      Point3d pos = computeBezierPoint( cps, u, v );
-      glVertex3f( pos.i(), pos.j(), 0.9 );
-    }
-    glEnd();
-  }
-}
-
-// ---------------------------------------------------------------------
-
-void drawSphere( const Point3d &pos, double r, std::size_t lats,
-                 std::size_t longs, const util::Palette::Color &color,
-                 GLUquadricObj *quadratic )
-{
-  glColor4fv( color.c_data() );
-  glShadeModel( GL_SMOOTH );
-  GLfloat lmodel_ambient[] = { 0.01, 0.01, 0.01, 1.0 };
-  glPushMatrix();
-  glLightModelfv( GL_LIGHT_MODEL_AMBIENT, lmodel_ambient );
-  glTranslatef( pos.i(), pos.j(), 0. );
-  gluSphere( quadratic, r, lats, longs );
-  glPopMatrix();
-} 
-
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 Point3d computeBezierPoint( const vector<Point3d> &cps,
                             const double t )
@@ -1205,7 +1091,7 @@ Point3d computeBezierPoint( const vector<Point3d> &cps,
   return pos;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 Point3d computeBezierPoint( const conpoi &cps,
                             const double u,
@@ -1226,7 +1112,7 @@ Point3d computeBezierPoint( const conpoi &cps,
   return pos;
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 int binom( unsigned int n, unsigned int k )
 {
@@ -1253,7 +1139,7 @@ int binom( unsigned int n, unsigned int k )
   return(choose[n][k]);
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 int binomR( unsigned int n, unsigned int k )
 {
@@ -1359,7 +1245,7 @@ double determineSlope( const Point3d &dir )
   return ( (p2.j() - p1.j())/(p2.i()-p1.i()) );
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 std::size_t getRandomResultOfDistribution( const std::vector<double> &probs )
 {
@@ -1369,6 +1255,6 @@ std::size_t getRandomResultOfDistribution( const std::vector<double> &probs )
   return d(gen);
 }
 
-// ---------------------------------------------------------------------
+//----------------------------------------------------------------
 
 }

@@ -28,8 +28,14 @@ namespace ModelUtils
                                    const cell& c,
                                    const bool clockwise );
   
+  void appendCellSituationType( std::string &fileName,
+                                const std::size_t sitType );
+  
+  void appendCellSituationType( QString &fileName,
+                                const std::size_t sitType );
+  
   bool findPointInJunctionSet( const Point3d &p,
-                             const std::set<junction> &juncs );
+                               const std::set<junction> &juncs );
   
   void findNearestPointToMerge( MyTissue &T, junction &js );
   
@@ -98,34 +104,10 @@ namespace ModelUtils
                                                  Point3d &center,
                                                  const double eps );
   
-  void drawBezierCurve( const std::set<Point3d, lessXPos> &cps,
-                        const util::Palette::Color &color,
-                        GLUquadricObj *quadratic );
-  
-  void drawLine( const Point3d &pos1, const Point3d &pos2,
-                 const util::Palette::Color &color,
-                 const double lineWidth = 2.5 );
-  
-  void drawCylinder( const Point3d &pos1, const Point3d &pos2,
-                     const util::Palette::Color &color,
-                     GLUquadricObj *quadratic,
-                     const double r, std::size_t slices,
-                     std::size_t stacks );
-  
-  void drawControlPoint( const Point3d &pos,
-                         const util::Palette::Color &color );
-  
-  void drawBezierSurface( const conpoi &cps,
-                          const util::Palette::Color &color );
-  
   void splitNonAdjacentCells( std::set<cell, differentCell> curve,
                               const MyTissue& T,
                               std::vector< std::set<cell, differentCell> > &curves );
-  
-  void drawSphere( const Point3d &pos, double r, std::size_t lats,
-                   std::size_t longs, const util::Palette::Color &color,
-                   GLUquadricObj *quadratic );
-  
+
   Point3d computeBezierPoint( const conpoi &cps,
                               const double u,
                               const double v );

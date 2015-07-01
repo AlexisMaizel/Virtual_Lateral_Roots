@@ -3,6 +3,8 @@ ModelExporter.cpp
 ModelExporter.h
 ModelUtils.cpp
 ModelUtils.h
+GraphicsClass.cpp
+GraphicsClass.h
 PrincipalComponentAnalysis.h
 SurfaceClass.cpp
 SurfaceClass.h
@@ -63,6 +65,7 @@ vlr2.s
 bezierTensorSurfaceFirst.txt
 bezierTensorSurfaceLast.txt
 bezierHeader.txt
+processModelImages
 ignore:
 .*.swp
 model.vve
@@ -84,7 +87,7 @@ VVE:
 
 Files:
 	all:
-		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h BezierSurface.cpp BezierSurface.h SurfacePoints.cpp SurfacePoints.h RealSurface.cpp RealSurface.h specifications SurfaceClass.cpp SurfaceClass.h PrincipalComponentAnalysis.h
+		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h GraphicsClass.cpp GraphicsClass.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h BezierSurface.cpp BezierSurface.h SurfacePoints.cpp SurfacePoints.h RealSurface.cpp RealSurface.h specifications SurfaceClass.cpp SurfaceClass.h PrincipalComponentAnalysis.h
 	program:
 		EDIT model.cpp
 	parameters:

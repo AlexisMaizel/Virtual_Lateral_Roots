@@ -1,6 +1,7 @@
 #include "ModelHeader.h"
 #include "ModelExporter.h"
 #include "ModelUtils.h"
+#include "GraphicsClass.h"
 #include "SurfaceClass.h"
 #include "PrincipalComponentAnalysis.h"
 
@@ -11,14 +12,6 @@ const double steps = 0.0005;
 #ifdef TimeAgainstCellAnalysis
 static double dt = start;
 #endif
-
-// struct differentCell
-// {
-//   bool operator()(const cell &c1, const cell &c2) const
-//   {
-//     return( c1->id < c2->id );
-//   }
-// };
 
 class MyModel : public Model 
 {
@@ -93,6 +86,10 @@ public:
   
   double _equalAreaRatio;
   
+  bool _renderMovies;
+  unsigned int _renderMoviesIndex;
+  QString _imagesFilename;
+  
   std::vector<std::vector<double> > _probValues;
   std::vector<std::vector<double> > _lengths;
   std::vector<std::size_t> _choices;
@@ -119,6 +116,7 @@ public:
     _parms("Main", "AvoidTrianglesThreshold", _avoidTrianglesThreshold );
     _parms("Main", "LoadLastModel", _loadLastModel );
     _parms("Main", "OnlyGrowthInHeight", _onlyGrowthInHeight );
+    _parms("Main", "RenderMovies", _renderMovies );
     
     _parms("View", "StepPerView", stepPerView);
     _parms("View", "BackgroundColor", bgColor);
@@ -179,7 +177,9 @@ public:
     _loopCounter( 1 ),
     _amountLoops( 100 ),
     _interpolateBezierSurfaces( true ),
-    _choiceCounter( 0 )
+    _choiceCounter( 0 ),
+    _renderMoviesIndex( 0 ),
+    _imagesFilename( "/tmp/images/m-" )
   {
     quadratic = gluNewQuadric();
     gluQuadricNormals( quadratic, GLU_SMOOTH );
@@ -193,7 +193,29 @@ public:
     
     // read the properties of the saved data model
     if( _loadLastModel )
-      this->readDataProperties( "/tmp/modelDataProp.csv" );
+    {
+      std::string fileName = "/tmp/modelDataProp";
+      ModelUtils::appendCellSituationType( fileName, _initialSituationType );
+      fileName += ".csv";
+      this->readDataProperties( fileName );
+    }
+    
+    // if movies should be rendered, create in total 9 movies for NH, 2DC, and 2DCBase
+    // for a visualization by cells, spheres, layercurves
+    if( _renderMovies )
+    {
+      if( !_loadLastModel )
+      {
+        std::cerr << "Movies can only be rendered if the data was stored before!" << std::endl;
+        return;
+      }
+        
+      // start with NH
+      _initialSituationType = 0;
+      _drawCells = true;
+      _drawSpheres = false;
+      _drawLayerCurves = false;
+    }
     
     std::size_t t = 300;
     if( _realDataName == "130508_raw" )
@@ -228,24 +250,10 @@ public:
       _divisionFileName += _realDataName;
     }
     
-    switch( _initialSituationType )
-    {
-      case 0:
-        _divisionFileName += "NH";
-        _lineageFileName += "NH";
-        _cellWallsFileName += "NH";
-        break;
-      case 1:
-        _divisionFileName += "1DC";
-        _lineageFileName += "1DC";
-        _cellWallsFileName += "1DC";
-        break;
-      case 2:
-        _divisionFileName += "2DC";
-        _lineageFileName += "2DC";
-        _cellWallsFileName += "2DC";
-      break;
-    }
+    ModelUtils::appendCellSituationType( _divisionFileName, _initialSituationType );
+    ModelUtils::appendCellSituationType( _lineageFileName, _initialSituationType );
+    ModelUtils::appendCellSituationType( _cellWallsFileName, _initialSituationType );
+    
     if( _useAlternativeDT )
     {
       _divisionFileName += _divisionType;
@@ -360,6 +368,56 @@ public:
     }
     
     setStatus();
+    this->renderImage();
+  }
+
+  //----------------------------------------------------------------
+  
+  void renderImage()
+  {
+    if( _renderMovies )
+    {
+      unsigned int step = _surfaceClass.getTime()-1;
+      QString file = _imagesFilename;
+      
+      // handle hard wired situations
+      switch( _renderMoviesIndex )
+      {
+        case 0:
+        case 1:
+        case 2:
+          file += "NH_";
+        break;
+        case 3:
+        case 4:
+        case 5:
+          file += "2DC_";
+        break;
+        case 6:
+        case 7:
+        case 8:
+          file += "2DCBase_";
+        break;
+      }
+      
+      if( _renderMoviesIndex%3 == 0 )
+        file += "C";
+      else if( _renderMoviesIndex%3 == 1 )
+        file += "S";
+      else
+        file += "L";
+      
+      if( step < 10 )
+        file += "000";
+      else if( step < 100 )
+        file += "00";
+      else
+        file += "0";
+      
+      file += QString( std::to_string(step).c_str() );
+      file += ".jpg";
+      this->screenshot( file, true );
+    }  
   }
   
   //----------------------------------------------------------------
@@ -370,6 +428,9 @@ public:
     T = MyTissue( _palette, this );
     
     readParms();
+    
+    this->setMovieParameters();
+
     // Registering the configuration files
     registerFile("pal.map");
     registerFile("view.v");
@@ -384,7 +445,12 @@ public:
     
     // read the properties of the saved data model
     if( _loadLastModel )
-      this->readDataProperties( "/tmp/modelDataProp.csv" );
+    {
+      std::string fileName = "/tmp/modelDataProp";
+      ModelUtils::appendCellSituationType( fileName, _initialSituationType );
+      fileName += ".csv";
+      this->readDataProperties( fileName );
+    }
     
     std::size_t t = 300;
     if( _realDataName == "130508_raw" )
@@ -468,8 +534,120 @@ public:
     }
     
     setStatus();
+    this->renderImage();
   }
+
+  //----------------------------------------------------------------
   
+  void setMovieParameters()
+  {
+    // if movies should be created then set
+    // the corresponding parameters
+    if( _renderMovies )
+    {
+      // continue with the other settings depending on
+      // the parameter of _renderMoviesIndex
+      // Cell vis
+      if( _renderMoviesIndex%3 == 0 )
+      {
+        _drawCells = true;
+        _drawSpheres = false;
+        _drawLayerCurves = false;
+        // if the same model results should be rendered with another
+        // color model for example then just set _loadLastModel to true
+        // here
+        _loadLastModel = false;
+      }
+      // sphere vis
+      else if( _renderMoviesIndex%3 == 1 )
+      {
+        _drawCells = false;
+        _drawSpheres = true;
+        _drawLayerCurves = false;
+        _loadLastModel = true;
+      }
+      // layer line vis
+      else
+      {
+        _drawCells = false;
+        _drawSpheres = false;
+        _drawLayerCurves = true;
+        _loadLastModel = true;
+      }
+      
+      // handle hard wired situations
+      switch( _renderMoviesIndex )
+      {
+        case 0:
+        case 1:
+        case 2:
+          _initialSituationType = 0;
+        break;
+        case 3:
+        case 4:
+        case 5:
+          _initialSituationType = 2;
+        break;
+        case 6:
+        case 7:
+        case 8:
+          _initialSituationType = 3;
+        break;
+      }
+      
+      this->setAreaRatios();
+    }
+  }
+ 
+  //----------------------------------------------------------------
+ 
+  void setAreaRatios()
+  {
+    switch( _initialSituationType )
+    {
+      case 0:
+        if( _divisionType == "Besson-Dumais" )
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.32;
+          else
+            divisionAreaRatio = 0.455;//0.468;
+        }
+        else if( _divisionType == "Random" )
+          divisionAreaRatio = 0.4674;
+        else if( _divisionType == "RandomEqualAreas" )
+          divisionAreaRatio = 0.4674;
+        else if( _divisionType == "Decussation" )
+          divisionAreaRatio = 0.462;
+        else if( _divisionType == "PerToGrowth" )
+          divisionAreaRatio = 0.462;
+      break;
+      case 2:
+      case 3:
+        if( _divisionType == "Besson-Dumais" )
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.45;
+          else
+            divisionAreaRatio = 0.6;//0.71;
+        }
+        else if( _divisionType == "Random" )
+          divisionAreaRatio = 0.735;
+        else if( _divisionType == "RandomEqualAreas" )
+          divisionAreaRatio = 0.735;
+        else if( _divisionType == "Decussation" )
+          divisionAreaRatio = 0.73;
+        else if( _divisionType == "PerToGrowth" )
+          divisionAreaRatio = 0.71;
+      break;
+    }
+    
+    if( _divisionType == "Random" || _divisionType == "RandomEqualAreas" )
+      _avoidTrianglesThreshold = 15.;
+    else
+      _avoidTrianglesThreshold = 0.;
+  }
+ 
   //----------------------------------------------------------------
   
   void setStatus()
@@ -496,7 +674,10 @@ public:
     
     if( useCombinedAreaRatio )
     {
-      status += QString( "Area div: %1\t" ).arg(divisionArea);
+      QString type = "Type: ";
+      ModelUtils::appendCellSituationType( type, _initialSituationType );
+      type += "\t";
+      status += QString( type );
       status += QString( "Area div ratio: %1\t" ).arg(divisionAreaRatio);
     }
     else if( useAreaRatio )
@@ -1160,7 +1341,8 @@ public:
         wait = true;
     }
     
-    if( T.C.size() == 6 && _initialSituationType == 2 )
+    if( T.C.size() == 6 &&
+        ( _initialSituationType == 2 || _initialSituationType == 3 ) )
     {
       std::size_t curTime = _surfaceClass.getTime();
       if( curTime - _timeSixCellStage > _timeDelay )
@@ -1367,6 +1549,22 @@ public:
           T.divideCell( c, ddata );
         }
       }
+      // set the division properties for the second division
+      // anticlinal division resulting in six cells
+      // **********************************
+      // *         *  *  *  *  *          *
+      // *         *  *  *  *  *          *
+      // *         *  *  *  *  *          *
+      // **********************************
+      else if( T.C.size() > 3 && T.C.size() < 6 && _initialSituationType == 3 )
+      {
+        if( c->innerCell )
+        {
+          c->angle = 90.;
+          MyTissue::division_data ddata = this->setDivisionPoints( c );
+          T.divideCell( c, ddata );
+        }
+      }
       else if( _divisionType == "Decussation" &&
                c->id > areaRatioStart &&
                _useAlternativeDT )
@@ -1374,7 +1572,7 @@ public:
         // if true then the next division is perpendicular to the last one
         // else the division is collinear to the previous division direction
         if( this->setNextDecussationDivision() )
-        {
+        {          
           double noise = this->generateNoiseInRange( -10., 10., 1000 );
           c->angle = fmod( c->angle + 90., 360. ) + noise;
         }
@@ -1503,10 +1701,26 @@ public:
     for( double v = start; v < end+stepSize; v+=stepSize )
       values.push_back( v );
     
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> d( 0, values.size()-1 );
-    return values.at( d(gen) );
+    // store choice for later usage
+    std::size_t choice;
+    if( !_loadLastModel )
+    {
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_int_distribution<int> d( 0, values.size()-1 );
+      choice = d(gen);
+      _randomChoices.push_back( choice );
+    }
+    else
+    {
+      if( _choiceCounter < _randomChoices.size() )
+      {
+        choice = _randomChoices.at(_choiceCounter);
+        _choiceCounter++;
+      }
+    }
+    
+    return values.at( choice );
   }
   
   //----------------------------------------------------------------
@@ -1583,7 +1797,14 @@ public:
     }
     
     if( curTime == maxTime + 2 && !_loadLastModel )
-      this->exportDataProperties( "/tmp/modelDataProp.csv" );
+    {
+      std::string fileName = "/tmp/modelDataProp";
+      ModelUtils::appendCellSituationType( fileName, _initialSituationType );
+      fileName += ".csv";
+      this->exportDataProperties( fileName );
+    }
+    
+    this->renderImage();
     
     if( _useLoop && curTime >= maxTime )
     {
@@ -1597,12 +1818,7 @@ public:
       if( SURFACETYPE == 1 )
         filename += _realDataName;
       
-      switch( _initialSituationType )
-      {
-        case 0: filename += "NH"; break;
-        case 1: filename += "1DC"; break;
-        case 2: filename += "2DC"; break;
-      }
+      ModelUtils::appendCellSituationType( filename, _initialSituationType );
       
       if( _useAlternativeDT )
       {
@@ -1630,7 +1846,26 @@ public:
         this->stopModel();
       return;
     }
-        
+    
+    if( _renderMovies && curTime >= maxTime )
+    {
+      if( _renderMoviesIndex < 8 )
+        _renderMoviesIndex++;
+      else
+        this->stopModel();
+      
+      if( !_loadLastModel )
+      {
+        std::string fileName = "/tmp/modelDataProp";
+        ModelUtils::appendCellSituationType( fileName, _initialSituationType );
+        fileName += ".csv";
+        this->exportDataProperties( fileName );
+      }
+      
+      this->restartModel();
+      return;
+    }
+     
     _surfaceClass.incrementTime();
     
     for(int i = 0 ; i < stepPerView ; ++i)
@@ -1782,7 +2017,7 @@ public:
       //T.cellWallMin = 0.0001;
       //T.strictCellWallMin = true;
       if( _drawSpheres )
-        ModelUtils::drawSphere( c->getPos(), 8., 20., 20.,
+        GraphicsClass::drawSphere( c->getPos(), 8., 20., 20.,
                                 this->cellColor(c), quadratic );
         
         
@@ -1793,17 +2028,17 @@ public:
       }
       
       if( _drawCenter )
-        ModelUtils::drawControlPoint( c->center, _palette.getColor(3) );
+        GraphicsClass::drawControlPoint( c->center, _palette.getColor(3) );
       
       if( _drawPCLine &&
           _divisionType == "PerToGrowth" &&
           c->centerPos.size() > 2 )
       {
         for( std::size_t j = 0; j < c->centerPos.size(); j++ )
-          ModelUtils::drawControlPoint( c->centerPos.at(j), _palette.getColor(7) );
+          GraphicsClass::drawControlPoint( c->centerPos.at(j), _palette.getColor(7) );
         
         for( std::size_t l = 0; l < _pcLines.size(); l++ )
-          ModelUtils::drawLine( _pcLines.at(l).first, _pcLines.at(l).second, _palette.getColor(3) );
+          GraphicsClass::drawLine( _pcLines.at(l).first, _pcLines.at(l).second, _palette.getColor(3) );
       }
     }
     
@@ -1811,7 +2046,7 @@ public:
     {
       forall(const junction& j, T.W)
       {
-        ModelUtils::drawControlPoint( j->getPos(),
+        GraphicsClass::drawControlPoint( j->getPos(),
                                       _palette.getColor(2) );
       }
     }
@@ -1837,16 +2072,7 @@ public:
           mIter->second.insert( c );
         }
         else
-        {
-          // first insert color of cell layer
-          util::Palette::Color color;
-          if( layer < _layerColorIndex.size() )
-            color = _palette.getColor( _layerColorIndex.at(layer) );
-          else
-            color = _palette.getColor( _layerColorIndex.at(_layerColorIndex.size()-1) );
-        
-          colors.insert( std::make_pair( layer, color ) );
-          
+        {          
           // then initialize set of cell positions for new layer
           std::set<Point3d, lessXPos> cellp;
           std::set<cell, differentCell> ce;
@@ -1855,13 +2081,22 @@ public:
           cellPos.insert( std::make_pair( layer, cellp ) );
           cellMap.insert( std::make_pair( layer, ce ) );
         }
+        
+        auto cIter = colors.find( layer );
+        if( cIter == colors.end() )
+        {
+          // first insert color of cell layer
+          util::Palette::Color color;
+          color = _palette.getColor( _layerColorIndex.at(layer%_layerColorIndex.size()) );
+          colors.insert( std::make_pair( layer, color ) ); 
+        }
       }
         
       if( oneLinePerLayer )
       { 
         // at last draw the curves
         for( auto iter = cellPos.begin(); iter != cellPos.end(); iter++ )
-          ModelUtils::drawBezierCurve( iter->second, colors.at(iter->first), quadratic );
+          GraphicsClass::drawBezierCurve( iter->second, colors.at(iter->first), quadratic );
       }
       else
       {
@@ -1881,7 +2116,7 @@ public:
               sortedXPos.insert( cp );
             }
             
-            ModelUtils::drawBezierCurve( sortedXPos, colors.at(layer), quadratic );
+            GraphicsClass::drawBezierCurve( sortedXPos, colors.at(layer), quadratic );
           }
         }
       }
@@ -1895,12 +2130,12 @@ public:
       {
         for( auto i = 0; i < cps.size(); i++ )
           for( auto j = 0; j < cps.at(i).size(); j++ )
-            ModelUtils::drawControlPoint( cps.at(i).at(j),
+            GraphicsClass::drawControlPoint( cps.at(i).at(j),
                                           _palette.getColor(3) );
       }
       
       if( _drawBezierSurface )
-        ModelUtils::drawBezierSurface( cps, _palette.getColor(0) );
+        GraphicsClass::drawBezierSurface( cps, _palette.getColor(0) );
     }
   }
   
@@ -1916,10 +2151,8 @@ public:
       // coloring based on layer value
       case 1:
       default:
-      if( c->layerValue-1 < _layerColorIndex.size() )
-        return _palette.getColor( _layerColorIndex.at(c->layerValue-1) );
-      else
-        return _palette.getColor( _layerColorIndex.at(_layerColorIndex.size()-1) );
+        return _palette.getColor(
+          _layerColorIndex.at((c->layerValue-1)%_layerColorIndex.size()) );
       case 2:
         // boundary
         if( T.border( c ) )
