@@ -28,5 +28,5 @@ else
     angle = 0;
   end
 end
-rad = degtorad(angle);
+rad = degTorad(angle);
 rotMat = createRotationOz(rad);

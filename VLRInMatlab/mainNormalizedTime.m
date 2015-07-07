@@ -22,7 +22,7 @@ renderTermType = 3;
 termTypeStr = { 'B' 'T' 'All' };
 % render average lines or not
 renderAverage = 1;
-renderAveragePerTimeStep = 1;
+renderAveragePerTimeStep = 0;
 renderAllLines = 0;
 % take the average over the data set or over the time
 averageOverData = 1;
@@ -31,9 +31,9 @@ renderDivisions = 0;
 % render contour of cells
 renderContour = 1;
 % startIndex
-startI = 19;
+startI = 1;
 % endIndex
-endI = 20;
+endI = 5;
 % min and max index
 minI = 1;
 maxI = 20;
@@ -42,11 +42,6 @@ maxI = 20;
 deltaI = 1;
 % draw delaunay tri?
 drawDelaunay = 1;
-% if set to one then only a single time step
-% is rendered given by startT
-exportType = 2;
-% vector of data strings
-exportTypeStr = { 'SingleFigure' 'AsImages' };
 % render only master file?
 renderMasterFile = 1;
 % render principal components
@@ -63,7 +58,7 @@ visualizationType = { 'Ellipsoids' 'Ellipses' };
 visType = 2;
 % offset for cell ranges
 epsilon = 3;
-lineRenderType = 4;
+lineRenderType = 3;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2: render all three major lines of elongation of the ellipsoids in 3D
@@ -111,68 +106,56 @@ cameratoolbar( 'SetCoordSys', 'none' );
 % show camera toolbar by default
 cameratoolbar( 'Show' );
 
+% hide axis ticks and labels
+set(gca,'xtick',[],'ytick',[])
+
 grid off;
-xlabel('X');
-ylabel('Y');
-zlabel('Z');
+% xlabel('X');
+% ylabel('Y');
+% zlabel('Z');
 camproj( 'orthographic' );
 
 % apply preprocessing step of data
 [ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
   prepareData( dataStr, startData, endData, numData, visualizationType( 1, visType ), renderMasterFile, cView, 0, 0 );
 
-if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
-  % surface instance
-  S = [];
-  % projected surface instance
-  PS = [];
-elseif strcmp( visualizationType( 1, visType ), 'Ellipses' )
-  % semi axes instances
-  MIN = [];
-  MID = [];
-  MAX = [];
-  % ellipse instance
-  ELLIP = [];
-  ELLIPPATCH = [];
-end
-
-if renderAverage == 1
-  % contour instance
-  CONTOUR = [];
-  % average line instance
-  L = [];
-  LP = [];
-  LN = [];
-  SD = [];
-  DIV = [];
-  SDD = [];
-  SDP = [];
-  SDN = [];
-end
-
+% surface instance
+S = [];
+% projected surface instance
+PS = [];
+% semi axes instances
+MIN = [];
+MID = [];
+MAX = [];
+% ellipse instance
+ELLIP = [];
+ELLIPPATCH = [];
+% contour instance
+CONTOUR = [];
+% average line instance
+L = [];
+LP = [];
+LN = [];
+SD = [];
+DIV = [];
+SDD = [];
+SDP = [];
+SDN = [];
 % render contributions for B and T term related to the sum of both
-if renderContributions == 1
-  BC = [];
-  TC = [];
-  BM = [];
-  TM = [];
-  COLORBAR1 = [];
-  COLORBAR2 = [];
-  COLORBAR3 = [];
-end
-
-if renderPrincipalComponents == 1
-  % PC instance
-  P = [];
-end
+BC = [];
+TC = [];
+BM = [];
+TM = [];
+COLORBAR1 = [];
+COLORBAR2 = [];
+COLORBAR3 = [];
+% PC instance
+P = [];
 
 % path to image output
-imageDir = strcat( 'images/AllData/' );
-
+imageDir = strcat( 'images/Deformation/' );
 % create directory if required
-if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
-  mkdir( char(imageDir) );
-end
+mkdir( char(imageDir) );
 
 % output format of values
 format longG
@@ -269,90 +252,30 @@ while curI < endI-deltaI+1
     tileGridM = cell( rows*columns, 1 );
   end
   
-  if strcmp( visualizationType( 1, visType ), 'Ellipsoids' )
-    if ishandle( S )
-      set( S, 'Visible', 'off' );
-    end
-    if ishandle( PS )
-      set( PS, 'Visible', 'off' );
-    end
-  elseif strcmp( visualizationType( 1, visType ), 'Ellipses' )
-    if ishandle( MAX )
-      set( MAX, 'Visible', 'off' );
-    end
-    if ishandle( MID )
-      set( MID, 'Visible', 'off' );
-    end
-    if ishandle( MIN )
-      set( MIN, 'Visible', 'off' );
-    end
-    if ishandle( ELLIP )
-      set( ELLIP, 'Visible', 'off' );
-    end
-    if ishandle( ELLIPPATCH )
-      set( ELLIPPATCH, 'Visible', 'off' );
-    end
-  end
-  
-  if renderAverage == 1
-    if ishandle( L )
-      set( L, 'Visible', 'off' );
-    end
-    if ishandle( LP )
-      set( LP, 'Visible', 'off' );
-    end
-    if ishandle( LN )
-      set( LN, 'Visible', 'off' );
-    end
-    if ishandle( DIV )
-      set( DIV, 'Visible', 'off' );
-    end
-    if ishandle( SD )
-      set( SD, 'Visible', 'off' );
-    end
-    if ishandle( SDD )
-      set( SDD, 'Visible', 'off' );
-    end
-    if ishandle( SDP )
-      set( SDP, 'Visible', 'off' );
-    end
-    if ishandle( SDN )
-      set( SDN, 'Visible', 'off' );
-    end
-    if ishandle( CONTOUR )
-      set( CONTOUR, 'Visible', 'off' );
-    end
-  end
-  
-  if renderContributions == 1
-    if ishandle( BC )
-      set( BC, 'Visible', 'off' );
-    end
-    if ishandle( TC )
-      set( TC, 'Visible', 'off' );
-    end
-    if ishandle( BM )
-      set( BM, 'Visible', 'off' );
-    end
-    if ishandle( TM )
-      set( TM, 'Visible', 'off' );
-    end
-    if ishandle( COLORBAR1 )
-      set( COLORBAR1, 'Visible', 'off' );
-    end
-    if ishandle( COLORBAR2 )
-      set( COLORBAR2, 'Visible', 'off' );
-    end
-    if ishandle( COLORBAR3 )
-      set( COLORBAR3, 'Visible', 'off' );
-    end
-  end
-  
-  if renderPrincipalComponents == 1
-    if ishandle( P )
-      set( P, 'Visible', 'off' );
-    end
-  end
+  hideHandle( S );
+  hideHandle( PS );
+  hideHandle( MAX );
+  hideHandle( MID );
+  hideHandle( MIN );
+  hideHandle( ELLIP );
+  hideHandle( ELLIPPATCH );
+  hideHandle( L );
+  hideHandle( LP );
+  hideHandle( LN );
+  hideHandle( DIV );
+  hideHandle( SD );
+  hideHandle( SDD );
+  hideHandle( SDP );
+  hideHandle( SDN );
+  hideHandle( CONTOUR );
+  hideHandle( BC );
+  hideHandle( TC );
+  hideHandle( BM );
+  hideHandle( TM );
+  hideHandle( COLORBAR1 );
+  hideHandle( COLORBAR2 );
+  hideHandle( COLORBAR3 );
+  hideHandle( P );
   
   % min and max values of contributions for the color of the rectangles
   minContr = 10000.;
@@ -1006,7 +929,7 @@ while curI < endI-deltaI+1
             endPos = tileGrid{ gt }(l, 3:4);
             slope = (endPos(2)-startPos(2))/(endPos(1)-startPos(1));
             L(lineRenderIndex) = drawAverageLines( slope, gt, [totalMinAxes(1) totalMinAxes(2)],...
-              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ], 0 );
+              [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, [ 0 0 0 ] );
             lineRenderIndex = lineRenderIndex + 1;
           end
         end
@@ -1060,22 +983,28 @@ while curI < endI-deltaI+1
     camlight headlight;
   end
   
-  % if images instead of a video should be exported
-  if strcmp( exportTypeStr( 1, exportType ), 'AsImages' ) &&...
-      renderAveragePerTimeStep == 1
-    if curI < 10
-      digit = strcat( viewStr( 1, cView ), '_00' );
-    elseif curI < 100
-      digit = strcat( viewStr( 1, cView ), '_0' );
-    else
-      digit = strcat( viewStr( 1, cView ), '_' );
-    end
-    
-    % output with number of cells
-    filePath = strcat( imageDir, digit, num2str(curI), '-Cells', num2str(numNormCellsN), '.png' );
-    
-    saveas( gcf, char(filePath) );
+  % image output options
+  if curI < 10
+    digit = strcat( viewStr( 1, cView ), '_00' );
+  elseif curI < 100
+    digit = strcat( viewStr( 1, cView ), '_0' );
+  else
+    digit = strcat( viewStr( 1, cView ), '_' );
   end
+    
+  % output with number of cells
+  filePath = strcat( imageDir, digit, num2str(curI), '-Cells', num2str(numNormCellsN), '.png' );
+  %saveas( gcf, char(filePath) );
+  export_fig( gcf, char(filePath), '-m2', '-png' );
+  
+  % clear current figure window
+  clf
+  
+  hold on;
+  generate2DGrid( [totalMinAxes(1) totalMinAxes(2)], [totalMaxAxes(1) totalMaxAxes(2)], resGrid );
+  % hide axis ticks and labels
+  set(gca,'xtick',[],'ytick',[])
+  
   % at last increment the current index loop parameter
   curI = curI + deltaI;
 end
@@ -1112,10 +1041,10 @@ if renderAverage == 1 && renderAveragePerTimeStep == 0 && averageOverData == 0
     end
   end
   
-  if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
-    filePath = strcat( imageDir, pureDataStr{dataIndex}, '-AverageLines.png' );
-    saveas( gcf, char(filePath) );
-  end
+%   if strcmp( exportTypeStr( 1, exportType ), 'AsImages' )
+%     filePath = strcat( imageDir, pureDataStr{dataIndex}, '-AverageLines.png' );
+%     saveas( gcf, char(filePath) );
+%   end
 end
 
 ElapsedTimeIndexLoop = cputime - cpuT

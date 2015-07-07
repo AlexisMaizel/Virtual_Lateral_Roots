@@ -5,7 +5,7 @@ function [lineColorIndex, linePos, minMaxEigenValueIndex,...
   = computeTimeEvolution( uniqueEdgesC, uniqueEdgesN, cellIdsC, cellIdsN,...
   numCellsN, triC, triN, matPosC, matPosN, cellPrecursorsN, triangulationType,...
   termTypeStr, dataStr, planePos, u, v, TF, deltaT, centerPosPerTimeStep,...
-  curTC, curTN, renderMasterFile, cellFileMap )
+  curTC, curTN, renderMasterFile, cellFileMap, cView )
 % scaling of ellipses; was before 5
 scaling = 1;
 % number of subdivisions for ellipsoids
@@ -33,9 +33,12 @@ for c=1:numCellsN
   % get objectId of current cell
   objectIdN = cellIdsN( c );
   % only render the master cell file if required
-  if renderMasterFile == 1 &&...
-      0 ~= cellFileMap( objectIdN )
-    continue;
+  % and only for the side view
+  if cView == 2
+    if renderMasterFile == 1 &&...
+        0 ~= cellFileMap( objectIdN )
+      continue;
+    end
   end
   
   numConsideredCells = numConsideredCells + 1;
@@ -70,9 +73,12 @@ for c=1:numCellsN
   % get objectId of current cell
   objectIdN = cellIdsN( c );
   % only render the master cell file if required
-  if renderMasterFile == 1 &&...
-      0 ~= cellFileMap( objectIdN )
-    continue;
+  % and only for the side view
+  if cView == 2
+    if renderMasterFile == 1 &&...
+        0 ~= cellFileMap( objectIdN )
+      continue;
+    end
   end
   
   % get position of cell at next time step

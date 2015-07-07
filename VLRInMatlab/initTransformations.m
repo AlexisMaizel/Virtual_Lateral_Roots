@@ -17,7 +17,7 @@ elseif cView == 2
   end
 elseif cView == 3
   dir = -coeff(:,1);
-  u = -coeff(:,3);
+  u = coeff(:,3);
   v = coeff(:,2);
   if strcmp( dataStr, '121211_raw' )
     v = -v;
@@ -33,11 +33,37 @@ plane = [ planePos(1) planePos(2) planePos(3)...
 TF = createBasisTransform3d( 'g', plane );
 
 if strcmp( dataStr, '121204_raw_2014' )
-  TF = createRotationOz( degtorad( 1. ) ) * TF;
+  TF = createRotationOz( degTorad( 2. ) ) * TF;
 elseif strcmp( dataStr, '121211_raw' )
-  TF = createRotationOz( degtorad( 1. ) ) * TF;
+  TF = createRotationOz( degTorad( 1. ) ) * TF;
+elseif strcmp( dataStr, '130508_raw' )
+  TF = createRotationOz( degTorad( -1.5 ) ) * TF;
 elseif strcmp( dataStr, '130607_raw' )
-  TF = createRotationOz( degtorad( -3.5 ) ) * TF;
+  TF = createRotationOz( degTorad( -4. ) ) * TF;
+end
+
+if cView == 3
+  if strcmp( dataStr, '120830_raw' )
+    TF = createRotationOz( degTorad( 10. ) ) * TF;
+    TF = createTranslation3d( [ 10. 0 0 ] ) * TF;
+  elseif strcmp( dataStr, '121204_raw_2014' )
+    TF = createRotationOz( degTorad( -10. ) ) * TF;
+    TF = createTranslation3d( [ -10 0 0 ] ) * TF;
+  elseif strcmp( dataStr, '130508_raw' )
+    TF = createTranslation3d( [ -25 0 0 ] ) * TF;
+  end
+end
+
+if cView == 1
+  if strcmp( dataStr, '121204_raw_2014' )
+    TF = createRotationOz( degTorad( -3. ) ) * TF;
+    TF = createTranslation3d( [ 0 -9 0 ] ) * TF;
+  elseif strcmp( dataStr, '130508_raw' )
+    TF = createRotationOz( degTorad( 2. ) ) * TF;
+    TF = createTranslation3d( [ 0 -35 0 ] ) * TF;
+  elseif strcmp( dataStr, '130607_raw' )
+    TF = createRotationOz( degTorad( -5. ) ) * TF;
+  end
 end
 
 % apply manual translation of data sets for registration

@@ -38,7 +38,7 @@ averageDirection = averageEnd./numLines - averageStart./numLines;
 if numPositive > 0
   averagePSlope = averagePSlope/numPositive;
   if numNegative == 0
-    rad = degtorad(averagePSlope);
+    rad = degTorad(averagePSlope);
     rotMat = createRotationOz(rad);
     dir = [ 1 0 0 1 ];
     dir = rotMat * dir';
@@ -49,7 +49,7 @@ end
 if numNegative > 0
   averageNSlope = averageNSlope/numNegative;
   if numPositive == 0
-    rad = degtorad(-averageNSlope);
+    rad = degTorad(-averageNSlope);
     rotMat = createRotationOz(rad);
     dir = [ -1 0 0 1 ];
     dir = rotMat * dir';
@@ -58,12 +58,12 @@ if numNegative > 0
   end
 end
 
-rad = degtorad(averagePSlope);
+rad = degTorad(averagePSlope);
 rotMat = createRotationOz(rad);
 dir1 = [ 1 0 0 1 ];
 dir1 = rotMat * dir1';
 
-rad = degtorad(-averageNSlope);
+rad = degTorad(-averageNSlope);
 rotMat = createRotationOz(rad);
 dir2 = [ 1 0 0 1 ];
 dir2 = rotMat * dir2';
@@ -74,14 +74,14 @@ angle = angle*180/pi;
 % if the angle is smaller than 90 degrees then the average should be in
 % this area else it is located in the mid of the other angle
 if angle < 90
-  rad = degtorad(-angle/2.);
+  rad = degTorad(-angle/2.);
   rotMat = createRotationOz(rad);
   dir = [ dir1(1) dir1(2) 0 1 ];
   dir = rotMat * dir';
   averageSlope = dir(2)/dir(1);
 else
   angle = 180 - angle;
-  rad = degtorad(-angle/2.);
+  rad = degTorad(-angle/2.);
   rotMat = createRotationOz(rad);
   dir = [ dir2(1) dir2(2) 0 1 ];
   dir = rotMat * dir';

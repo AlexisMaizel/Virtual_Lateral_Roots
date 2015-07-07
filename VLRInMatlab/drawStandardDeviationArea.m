@@ -38,11 +38,11 @@ averageDirection = normalize( averageDirection );
 averageDirection = [ averageDirection(1) averageDirection(2) 0 1 ];
 
 % perform rotation depending on slope
-rad = degtorad(sd);
+rad = degTorad(sd);
 rotMat = createRotationOz(rad);
 sd1 = rotMat * averageDirection';
 sd1 = sd1.*tilesizeX/2.;
-rad = degtorad(-sd);
+rad = degTorad(-sd);
 rotMat = createRotationOz(rad);
 sd2 = rotMat * averageDirection';
 sd2 = sd2.*tilesizeX/2.;

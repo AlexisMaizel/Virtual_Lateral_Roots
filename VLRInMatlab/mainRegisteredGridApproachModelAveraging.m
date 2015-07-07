@@ -15,7 +15,7 @@ cView = 2;
 % startIndex
 startI = 1;
 % endIndex
-endI = 150;
+endI = 1;
 % min and max index
 minI = 1;
 maxI = 150;
@@ -26,7 +26,7 @@ drawAverageDelaunay = 0;
 % draw point set as ellipses
 drawNuclei = 0;
 % draw contour of cell nuclei
-drawContour = 1;
+drawContour = 0;
 % draw average contour of cell nuclei
 drawAverageContour = 1;
 % include contour points
@@ -36,7 +36,7 @@ averageColorIndex = 6;
 % render average lineage lines
 drawAverageLines = 0;
 % render average nuclei positions
-drawAverageNuclei = 1;
+drawAverageNuclei = 0;
 % export as image file
 exportImages = 0;
 % exclude nuclei outliers
@@ -114,8 +114,10 @@ zlabel('Z');
 camproj( 'orthographic' );
 
 % apply preprocessing step of data
-[ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep, centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
-  prepareData( dataStr, startData, endData, numData, 'Ellipses', renderMasterFile, cView, 0 );
+[ divisionProperties, cellDatas, dimData, maxT, numCellsPerTimeStep,...
+	centerPosPerTimeStep, totalMinAxes, totalMaxAxes, cellFileMap ] =...
+  prepareData( dataStr, startData, endData, numData, 'Ellipses',...
+	renderMasterFile, cView, excludeOutliers, 0 );
 
 % drawing handles
 CONTOUR = [];
@@ -237,11 +239,11 @@ for curI=startI:endI
     TF = createBasisTransform3d( 'g', plane );
     
     if strcmp( dataStr( 1, dataIndex ), '121204_raw_2014' )
-      TF = createRotationOz( degtorad( 1. ) ) * TF;
+      TF = createRotationOz( degTorad( 1. ) ) * TF;
     elseif strcmp( dataStr( 1, dataIndex ), '121211_raw' )
-      TF = createRotationOz( degtorad( 1. ) ) * TF;
+      TF = createRotationOz( degTorad( 1. ) ) * TF;
     elseif strcmp( dataStr( 1, dataIndex ), '130607_raw' )
-      TF = createRotationOz( degtorad( -3.5 ) ) * TF;
+      TF = createRotationOz( degTorad( -3.5 ) ) * TF;
     end
     
     % apply manual translation of data sets for registration
@@ -253,7 +255,7 @@ for curI=startI:endI
     end
     
     % get the corresponding time steps for the reg. step
-    [ curT, numNormCells, numCellExists ] = getCorrespondingTimeStep( curI, minI, maxI,...
+    [ curT, numNormCells ] = getCorrespondingTimeStep( curI, minI, maxI,...
       maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
       numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
     
@@ -261,15 +263,15 @@ for curI=startI:endI
     allCurT( dataIndex, 1 ) = curT;
     allCells( dataIndex, 1 ) = numCellsPerTimeStep{dataIndex}(curT,1);
     
-    [ nextT, numNextNormCells, numCellExists ]  = getCorrespondingTimeStep( curI+1, minI, maxI,...
+    [ nextT, numNextNormCells ]  = getCorrespondingTimeStep( curI+1, minI, maxI,...
       maxT(dataIndex), numCellsPerTimeStep{dataIndex},...
       numCellsPerTimeStep{dataIndex}(maxT(dataIndex),1), considerAllCells );
     
     % only continue with this data set if the current number of cells does
     % not exceed the real number of cells in the current data set
-    if numCellExists == 0
-      continue;
-    end
+%     if numCellExists == 0
+%       continue;
+%     end
     
     % required vectors
     curPos = [];

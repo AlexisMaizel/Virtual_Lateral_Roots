@@ -1,4 +1,4 @@
 function hideHandle( handle )
 if ishandle( handle )
-  set( handle, 'Visible', 'off' );
+  set( handle, 'HandleVisibility', 'off' );
 end
