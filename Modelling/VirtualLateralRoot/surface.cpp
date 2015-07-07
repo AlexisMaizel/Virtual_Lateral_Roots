@@ -10,42 +10,6 @@
 #include <cmath>
 #include <util/parms.h>
 
-using std::cout;
-using std::cerr;
-using std::endl;
-
-// Clip to bounds
-static double InBounds(double s, double min, double max) 
-{
-  if(s < min)
-    return(min);
-  else if(s > max)
-    return(max);
-  else
-    return(s);
-}
-
-//----------------------------------------------------------------
-
-Point3d SurfacePoint::Pos()
-{
-  return(pos);
-}
-
-//----------------------------------------------------------------
-
-Point3d SurfacePoint::Pos() const
-{
-  return(pos);
-}
-
-//----------------------------------------------------------------
-
-Point3d SurfacePoint::Normal()
-{
-  return(normal);
-}
-
 //----------------------------------------------------------------
 
 Surface::Surface( util::Parms &parms,
@@ -54,6 +18,7 @@ Surface::Surface( util::Parms &parms,
                   const bool interpolateBezierSurfaces,
                   const bool onlyGrowthInHeight,
                   const std::string &surfaceName )
+  : _time( 0. )
 {
   this->init( parms, section, bezierGrowthSurface,
               interpolateBezierSurfaces, onlyGrowthInHeight,
@@ -71,8 +36,6 @@ void Surface::init( util::Parms &parms,
 {
   string surffile;
 
-  time = 0;
-  
   _bezierGrowthSurface = bezierGrowthSurface;
   
   // Load surfaces 
@@ -203,51 +166,39 @@ void Surface::applyControlpointsVariation( Bezier &surface,
 
 //----------------------------------------------------------------
 
-// Zero a surface Point
-void Surface::Zero(SurfacePoint &p)
-{
-  p.u = p.v = 0.0;
-  CalcPos(p);
-  CalcNormal(p);
-}
-
-//----------------------------------------------------------------
-
 // Initial surface Point
-void Surface::InitPoint(SurfacePoint &p, double u, double v)
+void Surface::initPos( SurfacePoint &sp )
 {
-  p.u = InBounds(u, 0.0, 1.0);
-  p.v = InBounds(v, 0.0, 1.0);
-  
-  CalcPos(p);
-  CalcNormal(p);
+  sp.boundParameters();
+  this->calcPos( sp );
+  this->calcNormal( sp );
 }
 
 //----------------------------------------------------------------
 
 // Determine parametric coords u and v such that the distance between
 // the corresponding point for (u,v) is minimal to the desired point cp
-bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
+void Surface::setPos( SurfacePoint &sp, const Point3d &cp )
 {
   // Initial guess for p
-  p.u = sp.u;
-  p.v = sp.v;
-  CalcPos(p);
+  //p.u = sp.u;
+  //p.v = sp.v;
+  this->calcPos( sp );
   double lastd = -(DX * 1000);
   double count = 0;
   double du, dv;
   
-  while( fabs(lastd - norm(cp - p.pos)) > DX * 2. && count++ < MAXSEARCHSTEPS )
+  while( fabs(lastd - norm(cp - sp.pos)) > DX * 2. && count++ < MAXSEARCHSTEPS )
   {
     // Save previous distance
-    lastd = norm(cp - p.pos);
+    lastd = norm(cp - sp.pos);
 
     // Calc partials
-    SurfacePoint u1 = p, u2 = p;
+    SurfacePoint u1 = sp, u2 = sp;
     u1.u -= DX;
     u2.u += DX;
-    CalcPos(u1);
-    CalcPos(u2);
+    this->calcPos( u1 );
+    this->calcPos( u2 );
     du = (norm(cp - u1.pos) - norm(cp - u2.pos))/fabs(u1.u - u2.u);
     
     // make sure that the du values are in [0, 1] or [-1, 0] such that the line
@@ -257,11 +208,11 @@ bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
     unsigned int numDigitsBeforeComma = std::to_string( abs( (int)(du) ) ).size();
     du /= (double)( pow( 10, numDigitsBeforeComma-1 ) );
     
-    SurfacePoint v1 = p, v2 = p;
+    SurfacePoint v1 = sp, v2 = sp;
     v1.v -= DX;
     v2.v += DX;
-    CalcPos(v1);
-    CalcPos(v2);
+    this->calcPos( v1 );
+    this->calcPos( v2 );
     dv = (norm(cp - v1.pos) - norm(cp - v2.pos))/fabs(v1.v - v2.v);
     
     // make sure that the dv values are in [0, 1] or [-1, 0] such that the line
@@ -275,86 +226,54 @@ bool Surface::SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp)
     double step = .01;
     while(step > DX)
     {
-      SurfacePoint t = p;
+      SurfacePoint t = sp;
       t.u += step * du;
       t.v += step * dv;
-      CalcPos(t);
-      if(norm(cp - t.pos) < norm(cp - p.pos))
+      this->calcPos( t );
+      if(norm(cp - t.pos) < norm(cp - sp.pos))
       {
         step *= 1.11;
-        p = t;
+        sp = t;
       }
       else
         step /= 2.0;
     }
   }
 
-  CalcNormal(p);
-  if(count >= MAXSEARCHSTEPS || norm(p.pos - cp) > surfMaxDist) {
-    cerr << "Surface::SetPoint:Error Failed, point " << cp << 
-            " closest point " << p.pos << " du " << du << " dv " << dv << 
-            " count " << count << " distance " <<  norm(p.pos - cp) << endl;
+  this->calcNormal( sp );
+  if(count >= MAXSEARCHSTEPS || norm(sp.pos - cp) > surfMaxDist) {
+    std::cerr << "Surface::SetPoint:Error Failed, point " << cp << 
+            " closest point " << sp.pos << " du " << du << " dv " << dv << 
+            " count " << count << " distance " <<  norm(sp.pos - cp) << std::endl;
   }
-
-  return(true);
 }
 
 //----------------------------------------------------------------
 
-// Advance time
-void Surface::GrowStep(double dt)
+void Surface::growStep( const double dt )
 {
   if( !_bezierGrowthSurface )
   {
-    time += dt * surfTimeScale;
+    _time += dt * surfTimeScale;
     int surf = 1;
     double surftime = 0;
-    //while(time > surftime + surfTime[surf] && surf < surfaces - 1)
-    //  surftime += surfTime[surf++ - 1];
-
-    // setting for considering three bezier surfaces
-    /*
-    double halfTime = surfTime[surfaces-1]/2.;
-    double maxTime = surfTime[surfaces-1];
-    
-    if( time < halfTime )
-    {
-      surf = 1;
-      surfCurr.Interpolate( surface[surf-1], surface[surf], 
-                            surfScale[surf-1], surfScale[surf],
-                            (time - surftime)/halfTime );
-    }
-    else
-    {
-      surf = 2;
-      surfCurr.Interpolate( surface[surf-1], surface[surf], 
-                            surfScale[surf-1], surfScale[surf],
-                            (time - surftime - halfTime)/halfTime );
-    }
-    */
     
     surfCurr.Interpolate( surface[surf-1], surface[surf], 
                           surfScale[surf-1], surfScale[surf],
-                          (time - surftime)/surfTime[surf]);
+                          (_time - surftime)/surfTime[surf]);
   }
   else
   {
-    time += dt;
-    if( time > 1. )
-      time = 1.;
+    _time += dt;
+    if( _time > 1. )
+      _time = 1.;
     // determine the pair of considered surfaces depending on
     // the current time
     std::size_t min = 0;
     std::size_t max = _numSurfaces-1;
-    double temp = (1.-time)*min + time*max;
+    double temp = (1.-_time)*min + _time*max;
     std::size_t curSurface = (std::size_t)temp;
     double tFactor = temp - (double)curSurface;
-   
-    /*
-    std::cout << "time: " << time << std::endl;
-    std::cout << "curSurface: " << curSurface << std::endl;
-    std::cout << "tFactor: " << tFactor << std::endl;
-    */
     
     if( curSurface != _numSurfaces-1 )
     {
@@ -368,54 +287,35 @@ void Surface::GrowStep(double dt)
 
 //----------------------------------------------------------------
 
-double Surface::GetTime() const
+void Surface::getPos( SurfacePoint &sp )
 {
-	return time;
+  this->calcPos( sp );
+  this->calcNormal( sp );
 }
 
 //----------------------------------------------------------------
 
-// Get position at current time 
-void Surface::GetPos(SurfacePoint &p)
+void Surface::calcPos( SurfacePoint &sp )
 {
-  CalcPos(p);
-  CalcNormal(p);
+  sp.boundParameters();
+  sp.pos = surfCurr.EvalCoord( sp.u, sp.v );
 }
 
 //----------------------------------------------------------------
 
-// Return distance between u and v
-double Surface::Distance(SurfacePoint &u, SurfacePoint &v)
+void Surface::calcNormal( SurfacePoint &sp )
 {
-  // For now use Euclidean distance
-  return(norm(u.pos - v.pos));
-}
-
-//----------------------------------------------------------------
-
-// Calculate xyz postition
-void Surface::CalcPos(SurfacePoint &p)
-{
-  p.u = InBounds(p.u, 0.0, 1.0);
-  p.v = InBounds(p.v, 0.0, 1.0);
-  p.pos = surfCurr.EvalCoord(p.u, p.v);
-}
-
-//----------------------------------------------------------------
-
-// Calculate normal
-void Surface::CalcNormal(SurfacePoint &p)
-{
-  // Calc normal from surface.
   SurfacePoint n, s, e, w;
-  n.u = p.u + DX; n.v = p.v; 
-  s.u = p.u - DX; s.v = p.v;
-  e.u = p.u; e.v = p.v + DX;
-  w.u = p.u; w.v = p.v - DX;
-  CalcPos(n); CalcPos(s);
-  CalcPos(e); CalcPos(w);
+  n.u = sp.u + DX; n.v = sp.v; 
+  s.u = sp.u - DX; s.v = sp.v;
+  e.u = sp.u; e.v = sp.v + DX;
+  w.u = sp.u; w.v = sp.v - DX;
+  this->calcPos( n );
+  this->calcPos( s );
+  this->calcPos( e );
+  this->calcPos( w );
     
-  p.normal = s.Pos() - n.Pos();
-  p.normal = p.normal ^ (w.Pos() - e.Pos());
-  p.normal.normalize();
+  sp.normal = s.getPos() - n.getPos();
+  sp.normal = sp.normal ^ (w.getPos() - e.getPos());
+  sp.normal.normalize();
 }

@@ -1,11 +1,8 @@
 #ifndef RealSurface_HH
 #define RealSurface_HH
 
-#include <util/parms.h>
-#include <util/vector.h>
-
+#include "SurfaceBaseClass.h"
 #include "SurfacePoints.h"
-#include "ModelHeader.h"
 
 /**
   @file   RealSurface.h
@@ -13,7 +10,7 @@
   @author Jens Fangerau <jens.fangerau@iwr.uni-heidelberg.de>
 */
 
-class RealSurface
+class RealSurface : public SurfaceBaseClass
 {
 public:
   RealSurface( util::Parms &parms, 
@@ -23,18 +20,18 @@ public:
              const std::string &fileName,
              const bool useAutomaticContourPoints );
   
-  void initPoint( TrianglePoint &tp );
+  void initPos( SurfacePoint &sp );
   
   void growStep( const double dt,
-                 std::vector<TrianglePoint> &tps );
+                 std::vector<SurfacePoint> &sps );
   
-  void getPos( TrianglePoint &tp );
+  void getPos( SurfacePoint &sp );
   
-  void setPos( TrianglePoint &tp, const Point3d &p );
+  void setPos( SurfacePoint &sp, const Point3d &p );
   
-  void calcPos( TrianglePoint &tp );
+  void calcPos( SurfacePoint &sp );
   
-  void calcNormal( TrianglePoint &tp );
+  void calcNormal( SurfacePoint &sp );
   
   std::size_t getCurTimeStep() const
   { return _curSurface.getCurTimeStep(); }

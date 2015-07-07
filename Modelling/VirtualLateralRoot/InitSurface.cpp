@@ -11,9 +11,12 @@
 // ---------------------------------------------------------------------
 
 void InitSurface::init( const std::size_t lod,
-                         const std::string &lineageFileName,
-                         const std::size_t timeSteps,
-                         const bool forceInitialSituation )
+                        const std::string &lineageFileName,
+                        const std::size_t timeSteps,
+                        const bool forceInitialSituation,
+                        const bool useAutomaticContourPoints,
+                        const double surfaceScale,
+                        const std::string &dataset )
 {
   if( _lod == 0 )
     _lod = 1;
@@ -26,39 +29,42 @@ void InitSurface::init( const std::size_t lod,
   _maxTime = timeSteps;
   _lineageFileName = lineageFileName;
   _forceInitialSituation = forceInitialSituation;
+  _useAutomaticContourPoints = useAutomaticContourPoints;
+  _surfaceScale = surfaceScale;
+  _dataset = dataset;
 }
 
 // ---------------------------------------------------------------------
 
-void InitSurface::initModelBasedOnBezier( MyTissue &T,
-                                           const std::size_t cellNumber,
-                                           Surface &lateralRoot )
+void InitSurface::initIdealizedCells( MyTissue &T,
+                                      const std::size_t founderCells,
+                                      SurfaceBaseClass &surface )
 {
   std::size_t lCounter = 1;
-  switch( cellNumber )
+  switch( founderCells )
   {
     case 1:
     this->generateCell( T, std::make_pair( 0., 0. ),
                         std::make_pair( 1., 1. ),
-                        lCounter, lateralRoot ); 
+                        lCounter, surface ); 
     break;
     case 2:
     for( std::size_t c=0; c < 2; c++, lCounter++ )
     {
       this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
                           std::make_pair( 0.5, 1. ),
-                          lCounter, lateralRoot );
+                          lCounter, surface );
     }
     
 //     this->generateCell( T, std::make_pair( 0., 0. ),
 //                           std::make_pair( 1./4., 1. ),
-//                           lCounter, lateralRoot );
+//                           lCounter, surface );
 //     
 //     lCounter++;
 //     
 //     this->generateCell( T, std::make_pair( 1./4., 0. ),
 //                           std::make_pair( 3./4., 1. ),
-//                           lCounter, lateralRoot );
+//                           lCounter, surface );
     
     break;
     case 6:
@@ -72,7 +78,7 @@ void InitSurface::initModelBasedOnBezier( MyTissue &T,
           
         this->generateCell( T, std::make_pair( u, v ),
                             std::make_pair( length, 1./2. ),
-                            lCounter, lateralRoot );
+                            lCounter, surface );
       }
       
     // outer cells
@@ -93,7 +99,7 @@ void InitSurface::initModelBasedOnBezier( MyTissue &T,
       
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( length, 1. ),
-                          lCounter, lateralRoot, addJunctionToWall );
+                          lCounter, surface, addJunctionToWall );
     }
     
     /*
@@ -105,7 +111,7 @@ void InitSurface::initModelBasedOnBezier( MyTissue &T,
         double v = 0. + h*1./2.;
         this->generateCell( T, std::make_pair( u, v ),
                             std::make_pair( 1./4., 1./2. ),
-                            lCounter, lateralRoot );
+                            lCounter, surface );
       }
     
     // outer left and right cell
@@ -121,7 +127,7 @@ void InitSurface::initModelBasedOnBezier( MyTissue &T,
         addJunctionToWall = 0;
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( 1./4., 1. ),
-                          lCounter, lateralRoot, addJunctionToWall );
+                          lCounter, surface, addJunctionToWall );
     }
     */
     break;
@@ -132,7 +138,7 @@ void InitSurface::initModelBasedOnBezier( MyTissue &T,
       double v = h*1./2.;
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( 1./3., 1./2. ),
-                          lCounter, lateralRoot );
+                          lCounter, surface );
     }
     
     // init the inner smaller cells
@@ -143,7 +149,7 @@ void InitSurface::initModelBasedOnBezier( MyTissue &T,
         double v = 0. + h*1./2.;
         this->generateCell( T, std::make_pair( u, v ),
                             std::make_pair( 1./6., 1./2. ),
-                            lCounter, lateralRoot );
+                            lCounter, surface );
       }
     
     for( std::size_t h = 0; h < 2; h++, lCounter++ )
@@ -152,7 +158,7 @@ void InitSurface::initModelBasedOnBezier( MyTissue &T,
       double v = h*1./2.;
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( 1./3., 1./2. ),
-                          lCounter, lateralRoot );
+                          lCounter, surface );
     }
     break;
     default:
@@ -163,143 +169,22 @@ void InitSurface::initModelBasedOnBezier( MyTissue &T,
 
 // ---------------------------------------------------------------------
 
-void InitSurface::initLateralRootBasedOnBezier( MyTissue &T,
-                                                 const std::string &dataset,
-                                                 Surface &lateralRoot )
+void InitSurface::initRealDataCells( MyTissue &T, SurfaceBaseClass &surface )
 {
-  std::cout << "Lateral root constellation of data: " << dataset << std::endl;
+  std::cout << "Lateral root constellation of data: " << _dataset << std::endl;
   std::size_t lCounter = 1;
   // 2 cells
-  if( dataset == "120830_raw" )
-  {
-    this->generateCell( T, std::make_pair( 0., 0. ),
-                        std::make_pair( 0.55, 1. ),
-                        lCounter, lateralRoot );
-    
-    lCounter++;
-    
-    this->generateCell( T, std::make_pair( 0.55, 0. ),
-                        std::make_pair( 0.45, 1. ),
-                        lCounter, lateralRoot );
-  }
-  // 2 cells
-  else if( dataset == "121204_raw_2014" )
-  {
-    for( std::size_t c = 0; c < 2; c++, lCounter++ )
-    {
-      double u = 0. + c*2./5.;
-      double v = 0.;
-      double length;
-      if( c == 0 )
-        length = 2./5.;
-      else
-        length = 3./5.;
-        
-      this->generateCell( T, std::make_pair( u, v ),
-                          std::make_pair( length, 1. ),
-                          lCounter, lateralRoot );
-    }
-  }
-  // 5 cells
-  else if( dataset == "121211_raw" )
-  {
-    this->generateCell( T, std::make_pair( 0., 0. ),
-                        std::make_pair( 1./3., 1. ),
-                        lCounter, lateralRoot );
-    
-    lCounter++;
-    
-    // inner smaller cells
-    for( std::size_t c = 0; c < 3; c++, lCounter++ )
-    {
-      double u = 1./3. + c*1./9.;
-      double v = 0.;
-      this->generateCell( T, std::make_pair( u, v ),
-                          std::make_pair( 1./9., 1. ),
-                          lCounter, lateralRoot );
-    }
-    
-    this->generateCell( T, std::make_pair( 2./3., 0. ),
-                        std::make_pair( 1./3., 1. ),
-                        lCounter, lateralRoot );
-  }
-  // 1 cell
-  else if( dataset == "130508_raw" )
-  {
-    this->generateCell( T, std::make_pair( 0., 0. ),
-                        std::make_pair( 1., 1. ),
-                        lCounter, lateralRoot );
-  }
-  // 3 cells
-  else if( dataset == "130607_raw" )
-  {
-    for( std::size_t c = 0; c < 3; c++, lCounter++ )
-    {
-      double length,u,v;
-      switch( c )
-      {
-        case 0:
-        length = 1./12.;
-        u = 0.;
-        v = 0.;
-        break;
-        case 1:
-        length = 5./12.;
-        u = 1./12.;
-        v = 0.;
-        break;
-        case 2:
-        length = 6./12.;
-        u = 6./12.;
-        v = 0.;
-        break;
-      }
-        
-      this->generateCell( T, std::make_pair( u, v ),
-                          std::make_pair( length, 1. ),
-                          lCounter, lateralRoot );
-    }
-  }
-  else
-    std::cerr << "Selected data set is not supported!" << std::endl;  
-}
-
-// ---------------------------------------------------------------------
-
-void InitSurface::initLateralRootBasedOnRealData( MyTissue &T,
-                                                   RealSurface &lateralRoot,
-                                                   const std::string &dataset,
-                                                   const double surfaceScale,
-                                                   const bool useAutomaticContourPoints )
-{
-  std::cout << "Lateral root constellation of data: " << dataset << std::endl;
-  
-  std::string fileName = dataset;
-  if( dataset.compare( 0, 7, "Average") == 0 )
-    fileName = "Average";
-  
-  std::string name = "conPoints-";
-  name += fileName;
-  if( useAutomaticContourPoints )
-    name += "_auto.txt";
-  else
-    name += ".txt";
-  
-  std::vector<Point3d> conPoints = ModelUtils::loadContourPoints( name, surfaceScale );
-  std::size_t lCounter = 1;
-    
-  // 2 cells
-  if( dataset == "120830_raw" )
+  if( _dataset == "120830_raw" )
   {
     for( std::size_t c=0; c < 2; c++, lCounter++ )
     {
       this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
                           std::make_pair( 0.5, 1. ),
-                          lCounter, lateralRoot, conPoints );
+                          lCounter, surface );
     }
   }
   // 2 cells
-  else if( dataset == "121204_raw_2014" )
+  else if( _dataset == "121204_raw_2014" )
   {
     for( std::size_t c = 0; c < 2; c++, lCounter++ )
     {
@@ -313,11 +198,11 @@ void InitSurface::initLateralRootBasedOnRealData( MyTissue &T,
         
       this->generateCell( T, std::make_pair( u, v ),
                           std::make_pair( length, 1. ),
-                          lCounter, lateralRoot, conPoints );
+                          lCounter, surface );
     }
   }
   // 5 cells
-  else if( dataset == "121211_raw" )
+  else if( _dataset == "121211_raw" )
   {
     if( _forceInitialSituation )
     {
@@ -325,14 +210,14 @@ void InitSurface::initLateralRootBasedOnRealData( MyTissue &T,
       {
         this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
                             std::make_pair( 0.5, 1. ),
-                            lCounter, lateralRoot, conPoints );
+                            lCounter, surface );
       }
     }
     else
     {
       this->generateCell( T, std::make_pair( 0., 0. ),
                           std::make_pair( 1./3., 1. ),
-                          lCounter, lateralRoot, conPoints );
+                          lCounter, surface );
       
       lCounter++;
       
@@ -343,16 +228,16 @@ void InitSurface::initLateralRootBasedOnRealData( MyTissue &T,
         double v = 0.;
         this->generateCell( T, std::make_pair( u, v ),
                             std::make_pair( 1./9., 1. ),
-                            lCounter, lateralRoot, conPoints );
+                            lCounter, surface );
       }
       
       this->generateCell( T, std::make_pair( 2./3., 0. ),
                           std::make_pair( 1./3., 1. ),
-                          lCounter, lateralRoot, conPoints );
+                          lCounter, surface );
     }
   }
   // 1 cell
-  else if( dataset == "130508_raw" )
+  else if( _dataset == "130508_raw" )
   {
     if( _forceInitialSituation )
     {
@@ -360,18 +245,18 @@ void InitSurface::initLateralRootBasedOnRealData( MyTissue &T,
       {
         this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
                             std::make_pair( 0.5, 1. ),
-                            lCounter, lateralRoot, conPoints );
+                            lCounter, surface );
       }
     }
     else
     {
       this->generateCell( T, std::make_pair( 0., 0. ),
                           std::make_pair( 1., 1. ),
-                          lCounter, lateralRoot, conPoints, 4, true );
+                          lCounter, surface );
     }
   }
   // 3 cells
-  else if( dataset == "130607_raw" )
+  else if( _dataset == "130607_raw" )
   {
     if( _forceInitialSituation )
     {
@@ -379,7 +264,7 @@ void InitSurface::initLateralRootBasedOnRealData( MyTissue &T,
       {
         this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
                             std::make_pair( 0.5, 1. ),
-                            lCounter, lateralRoot, conPoints );
+                            lCounter, surface );
       }
     }
     else
@@ -402,120 +287,12 @@ void InitSurface::initLateralRootBasedOnRealData( MyTissue &T,
           
         this->generateCell( T, std::make_pair( u, v ),
                             std::make_pair( length, 1. ),
-                            lCounter, lateralRoot, conPoints );
+                            lCounter, surface );
       }
-    }
-  }
-  else if( dataset == "Average2" )
-  {
-    // 2 cells
-    for( std::size_t c = 0; c < 2; c++, lCounter++ )
-    {
-      double length = 1./2.;
-      this->generateCell( T, std::make_pair( c*1./2., 0. ),
-                             std::make_pair( length, 1. ),
-                             lCounter, lateralRoot, conPoints );
-    }
-  }
-  else if( dataset == "Average4" )
-  {
-    // 4 cells
-    for( std::size_t c = 0; c < 4; c++, lCounter++ )
-    {
-      double u = 0. + c*1./4.;
-      double v = 0.;
-      double length = 1./4.;
-        
-      this->generateCell( T, std::make_pair( u, v ),
-                          std::make_pair( length, 1. ),
-                          lCounter, lateralRoot, conPoints );
-    }
-  }
-  else if( dataset == "Average6" )
-  {
-    // 6 cells in total
-    for( std::size_t t = 0; t < 2; t++ )
-      for( std::size_t b = 0; b < 2; b++, lCounter++ )
-      {
-        double u = 1./3. + b*1./6.;
-        double v = 0. + t*1./2.;
-        double length = 1./6.;
-          
-        this->generateCell( T, std::make_pair( u, v ),
-                            std::make_pair( length, 1./2. ),
-                            lCounter, lateralRoot, conPoints );
-      }
-      
-    // outer cells
-    for( std::size_t c = 0; c < 2; c++, lCounter++ )
-    {
-      double u = 0.;
-      if( c == 1 )
-        u = 2./3.;
-      double v = 0.;
-      double length = 1./3.;
-        
-      // set wall for which an additional junction has to be included
-      std::size_t addJunctionToWall;
-      // right wall
-      if( c == 0 )
-        addJunctionToWall = 2;
-      // left wall
-      else if( c == 1 )
-        addJunctionToWall = 0;
-      // none
-      else
-        addJunctionToWall = 4;
-      
-      this->generateCell( T, std::make_pair( u, v ),
-                          std::make_pair( length, 1. ),
-                          lCounter, lateralRoot,
-                          conPoints, addJunctionToWall );
-    }
-  }
-  else if( dataset == "Average8" )
-  {
-    // 8 cells in total
-    for( std::size_t t = 0; t < 2; t++ )
-      for( std::size_t b = 0; b < 2; b++, lCounter++ )
-      {
-        double u = 1./4. + b*1./4.;
-        double v = 0. + t*1./2.;
-        double length = 1./4.;
-          
-        this->generateCell( T, std::make_pair( u, v ),
-                            std::make_pair( length, 1./2. ),
-                            lCounter, lateralRoot, conPoints );
-      }
-      
-    for( std::size_t c = 0; c < 4; c++, lCounter++ )
-    {
-      double u = 0. + c*1./8.;
-      if( c > 1 )
-        u = 1./2. + c*1./8.;
-      double v = 0.;
-      double length = 1./8.;
-        
-      // set wall for which an additional junction has to be included
-      std::size_t addJunctionToWall = 4;
-      // right wall
-      if( c == 1 )
-        addJunctionToWall = 2;
-      // left wall
-      else if( c == 2 )
-        addJunctionToWall = 0;
-      // none
-      else
-        addJunctionToWall = 4;
-      
-      this->generateCell( T, std::make_pair( u, v ),
-                          std::make_pair( length, 1. ),
-                          lCounter, lateralRoot,
-                          conPoints, addJunctionToWall );
     }
   }
   else
-    std::cerr << "Selected data set is not supported!" << std::endl;
+    std::cerr << "Selected data set is not supported!" << std::endl;  
 }
 
 // ---------------------------------------------------------------------
@@ -523,12 +300,18 @@ void InitSurface::initLateralRootBasedOnRealData( MyTissue &T,
 // generate a cell starting at the bottom left
 // with different lengths
 void InitSurface::generateCell( MyTissue &T,
-                                 const std::pair<double, double> &start,
-                                 const std::pair<double, double> &length,
-                                 const std::size_t treeId,
-                                 Surface &lateralRoot,
-                                 const std::size_t addJunctionToWall )
+                                const std::pair<double, double> &start,
+                                const std::pair<double, double> &length,
+                                const std::size_t treeId,
+                                SurfaceBaseClass &surface,
+                                const std::size_t addJunctionToWall )
 {
+  // first determine which kind of surface is used
+  bool bezier = true;
+  Surface *bez = dynamic_cast<Surface*>( &surface );
+  if( !bez )
+    bezier = false;
+  
   // addJunctionToWall can be a number in [0,4] for which each number
   // represents a wall:
   // 0 -> left, 1 -> top, 2-> right, 3 -> down, 4 -> none
@@ -596,23 +379,51 @@ void InitSurface::generateCell( MyTissue &T,
     
     junction j;
     j->id = _jIDCounter;
-    lateralRoot.InitPoint( j->sp, u, v );
+    if( bezier )
+    {
+      j->sp.setUV( u, v );
+      surface.initPos( j->sp );
+    }
+    else
+    {
+      Point3d curPos = this->determinePos( u, v );
+      surface.setPos( j->sp, curPos );
+    }
     ModelUtils::findNearestPointToMerge( T, j );
-    vs.push_back(j);
+    vs.push_back( j );
     _jIDCounter++;
     
     if( uiw == addJunctionToWall )
     {
       junction j;
       j->id = _jIDCounter;
-      lateralRoot.InitPoint( j->sp, mu, mv );
+      if( bezier )
+      {
+        j->sp.setUV( mu, mv );
+        surface.initPos( j->sp );
+      }
+      else
+      {
+        Point3d cPos = this->determinePos( mu, mv );
+        surface.setPos( j->sp, cPos );
+      }
       ModelUtils::findNearestPointToMerge( T, j );
-      vs.push_back(j);
+      vs.push_back( j );
       _jIDCounter++;
     }
   }
   
-  //std::cout << "cell" << std::endl;
+  // TODO: only one cell for real data
+//   for( std::size_t w = 0; w < conPoints.size(); w++ )
+//   {
+//     Point3d curPos = conPoints.at(w);
+//     junction j;
+//     j->id = _jIDCounter;
+//     lateralRoot.setPos( j->sp, curPos );
+//     ModelUtils::findNearestPointToMerge( T, j );
+//     vs.push_back(j);
+//     _jIDCounter++;
+//   }
   
   cell c;
   c->treeId = treeId;
@@ -636,14 +447,14 @@ void InitSurface::generateCell( MyTissue &T,
   Point3d center;
   forall(const junction& j, T.S.neighbors(c))
   {
-    polygon.push_back( j->sp.Pos() );
-    center += j->sp.Pos();
+    polygon.push_back( j->getPos() );
+    center += j->getPos();
     
-    if( j->sp.Pos().i() < xMin )
-      xMin = j->sp.Pos().i();
+    if( j->getPos().i() < xMin )
+      xMin = j->getPos().i();
     
-    if( j->sp.Pos().i() > xMax )
-      xMax = j->sp.Pos().i();
+    if( j->getPos().i() > xMax )
+      xMax = j->getPos().i();
   }
   center /= polygon.size();
   
@@ -675,9 +486,7 @@ void InitSurface::generateCell( MyTissue &T,
   }
   
   c->center = center;
-  
-  lateralRoot.SetPoint(c->sp, c->sp, center);
-
+  surface.setPos( c->sp, center );
   ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
   
   // afterwards increment the id counter
@@ -686,192 +495,18 @@ void InitSurface::generateCell( MyTissue &T,
 
 // ---------------------------------------------------------------------
 
-void InitSurface::generateCell( MyTissue &T,
-                                 const std::pair<double, double> &start,
-                                 const std::pair<double, double> &length,
-                                 const std::size_t treeId,
-                                 RealSurface &lateralRoot,
-                                 const std::vector<Point3d> &conPoints,
-                                 const std::size_t addJunctionToWall,
-                                 const bool oneCell )
+Point3d InitSurface::determinePos( const double u, const double v )
 {
-  // addJunctionToWall can be a number in [0,4] for which each number
-  // represents a wall:
-  // 0 -> left, 1 -> top, 2-> right, 3 -> down, 4 -> none
-  // for one of these walls an additional junction is generated for which
-  // an existing one is searched (if it was already generated before) such
-  // that the old and new junctions are merged
-  
-  // set of junctions for the cell
-  std::vector<junction> vs;
-  
-  // if _lod = 1 -> curLength = 0
-  // order of generated points:
-  // 1 --------- 2
-  // |           |
-  // |           |
-  // 0 --------- 3
-  
-  if( !oneCell )
-  {
-    for( std::size_t w = 0; w < 4*_lod; w++ )
-    {
-      unsigned int uiw = (unsigned int)(w/_lod);
-      double cellLength;
-      double curLength = (double)w/(double)_lod - (double)uiw;
-      std::pair<double, double> iPos;
-      std::pair<double, double> mPos;
-      
-      switch(uiw)
-      {
-        case 0:
-          iPos.first = start.first;
-          iPos.second = start.second + curLength*length.second;
-          if( addJunctionToWall == 0 )
-          {
-            mPos.first = start.first;
-            mPos.second = start.second + length.second/2. + curLength*length.second;
-          }
-          break;
-        case 1:
-          iPos.first = start.first + curLength*length.first;
-          iPos.second = start.second + length.second;
-          if( addJunctionToWall == 1 )
-          {
-            mPos.first = start.first + length.first/2. + curLength*length.first;
-            mPos.second = start.second + length.second;
-          }
-          break;
-        case 2:
-          iPos.first = start.first + length.first;
-          iPos.second = start.second + length.second - curLength*length.second;
-          if( addJunctionToWall == 2 )
-          {
-            mPos.first = start.first + length.first;
-            mPos.second = start.second + length.second/2. - curLength*length.second;
-          }
-          break;
-        case 3:
-          iPos.first = start.first + length.first - curLength*length.first;
-          iPos.second = start.second;
-          if( addJunctionToWall == 3 )
-          {
-            mPos.first = start.first + length.first/2. - curLength*length.first;
-            mPos.second = start.second;
-          }
-          break;
-        default: iPos.first = iPos.second = 0.; break;
-      }
-      
-      Point3d curPos = this->determinePos( iPos, conPoints );
-      junction j;
-      j->id = _jIDCounter;
-      lateralRoot.setPos( j->tp, curPos );
-      ModelUtils::findNearestPointToMerge( T, j );
-      vs.push_back(j);
-      _jIDCounter++;
-      
-      if( uiw == addJunctionToWall )
-      {
-        Point3d cPos = this->determinePos( mPos, conPoints );
-        junction j;
-        j->id = _jIDCounter;
-        lateralRoot.setPos( j->tp, cPos );
-        ModelUtils::findNearestPointToMerge( T, j );
-        vs.push_back(j);
-        _jIDCounter++;
-      }
-    }
-  }
+  std::string name = "conPoints-";
+  name += _dataset;
+  if( _useAutomaticContourPoints )
+    name += "_auto.txt";
   else
-  {
-    for( std::size_t w = 0; w < conPoints.size(); w++ )
-    {
-      Point3d curPos = conPoints.at(w);
-      junction j;
-      j->id = _jIDCounter;
-      lateralRoot.setPos( j->tp, curPos );
-      ModelUtils::findNearestPointToMerge( T, j );
-      vs.push_back(j);
-      _jIDCounter++;
-    }
-  }
+    name += ".txt";
   
-  cell c;
-  c->treeId = treeId;
-  c->id = _IDCounter;
-  c->parentId = _IDCounter;
-  c->timeStep = _time;
-  c->previousAngle = 0.;
-  c->angle = 0.;
-  c->previousDivDir = Point3d( 0., 0., 0. );
-  c->divDir = Point3d( 0., 0., 0. );
-  c->divType = DivisionType::NONE;
-  c->layerValue = 1;
-  c->divisionSequence = "0";
-  c->cellCycle = 0;
-  c->periCycle = 0;
-  T.addCell( c, vs );
+  std::vector<Point3d> conPoints =
+  ModelUtils::loadContourPoints( name, _surfaceScale );
   
-  std::vector<Point2d> polygon;
-  double xMin = 5000000.;
-  double xMax = -5000000.;
-  Point3d center;
-  forall(const junction& j, T.S.neighbors(c))
-  {
-    polygon.push_back( j->tp.Pos() );
-    center += Point3d( j->tp.Pos().i(), j->tp.Pos().j(), 0. );
-    
-    if( j->tp.Pos().i() < xMin )
-      xMin = j->tp.Pos().i();
-    
-    if( j->tp.Pos().i() > xMax )
-      xMax = j->tp.Pos().i();
-  }
-  center /= polygon.size();
-
-  c->xMin = xMin;
-  c->xMax = xMax;
-  c->divType = DivisionType::NONE;
-  c->centerPos.push_back( center );
-  c->initialArea = geometry::polygonArea(polygon);
-  c->area = c->initialArea;
-  c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
-  c->longestWallLength = c->initialLongestWallLength;
-    
-  // set the division properties for the first division
-  // anticlinal division in 1/3:2/3 ratio resulting in four cells
-  // **********************************
-  // *         *     *     *          *
-  // *         *     *     *          *
-  // *         *     *     *          *
-  // **********************************
-  if( _forceInitialSituation && c->id <= 2 )
-  {
-    // determine xLength of cell
-    double xLength = std::fabs( xMax - xMin );
-    
-    if( c->id == 1 )
-      center.i() = xMin + 2.*xLength/3.; 
-    else if( c->id == 2 )
-      center.i() = xMin + 1.*xLength/3.; 
-  }
-  
-  c->center = center;
-  
-  lateralRoot.setPos(c->tp, center);
-  
-  ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
-  
-  // afterwards increment the id counter
-  _IDCounter++;  
-}
-
-// ---------------------------------------------------------------------
-
-Point3d InitSurface::determinePos( const std::pair<double, double> &coord,
-                                    const std::vector<Point3d> &conPoints )
-{
   // u and v coordinates of start should correspond to the
   // following contour points
   // u = 0, v = 0 -> conPoints.at(14)
@@ -880,8 +515,8 @@ Point3d InitSurface::determinePos( const std::pair<double, double> &coord,
   // u = 1, v = 1 -> conPoints.at(6)
   
   Point3d pos;
-  double h = coord.second;
-  double xPos = 6. * coord.first;
+  double h = v;
+  double xPos = 6. * u;
   std::size_t xI = (std::size_t)xPos;
   double factor = xPos - (double)xI;
 

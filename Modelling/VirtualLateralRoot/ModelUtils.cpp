@@ -20,8 +20,8 @@ double determineLongestWallLength( const cell& c,
   forall( const junction& j,T.S.neighbors(c) )
   {
     const junction& jn = T.S.nextTo(c, j);
-    const Point3d& jpos = j->sp.Pos();
-    const Point3d& jnpos = jn->sp.Pos();
+    const Point3d& jpos = j->getPos();
+    const Point3d& jnpos = jn->getPos();
     
     double length = 0.;
     for( std::size_t l = 0; l<3; l++ )
@@ -245,7 +245,10 @@ std::vector<Point2d> determineConvexHull( const cell &c, const MyTissue& T )
   std::vector<Point2d> points;
   // determine points
   forall(const junction& j, T.S.neighbors(c))
-    points.push_back( j->tp.Pos() );
+  {
+    Point2d pos( j->getPos().i(), j->getPos().j() );
+    points.push_back( pos );
+  }
   
   std::size_t n = points.size();
   
@@ -757,129 +760,6 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
   //std::cout << "orig size: " << T.S.neighbors(c).size() << std::endl;
   //std::cout << "size: " << juncs.size() << std::endl;
   
-  double deltaAngle = 3.;
-  for( double angle = 0.; angle < 180.; angle += deltaAngle )
-  {
-    // points for storing cell wall information
-    Point3d u1,u2,v1,v2;
-    MyTissue::division_data ddata;
-    //const Point3d& center = c->center;
-    double a = M_PI/180. * angle;
-    Point3d direction = Point3d(-sin(a), cos(a), 0);
-    
-    // for each cell wall
-    forall( const junction& j,T.S.neighbors(c) )
-    {
-      Point3d jpos, jnpos;
-      const junction& jn = T.S.nextTo(c, j);
-      jpos = j->getPos();
-      jnpos = jn->getPos();
-      
-      Point3d u;
-      double s;
-      // compute intersection between line [jpos, jnpos] and the plane with
-      // position center and normal direction; the result is stored in u and
-      // s: Position of the intersection on the line in [0,1].
-      if(geometry::planeLineIntersection(u, s, center, direction, jpos, jnpos) and s >= 0 and s <= 1)
-      {
-        if((jpos - center)*direction > 0)
-        {
-          ddata.v1 = j;
-          ddata.pv = u;
-          v1 = jpos;
-          v2 = jnpos;
-        }
-        else if((jpos - center)*direction < 0)
-        {
-          ddata.u1 = j;
-          ddata.pu = u;
-          u1 = jpos;
-          u2 = jnpos;
-        }
-        
-        if(ddata.u1 and ddata.v1)
-          break;
-      }
-    }
-    
-    // check if the distance between ddata.pv and v1 or v2 is smaller than
-    // some eps OR if distance between ddata.pu and u1 or u2 is smaller than eps
-    bool pass = true;
-    
-    // compute junction lengths depending on the simplified cell structure
-    // after applying a level of detail such that our approach in avoiding
-    // triangle-shaped cells are guaranteed
-    // u1 -> right of pu -> ccw
-    // u2 -> left of pu -> cw
-    // v1 -> right of pv -> ccw
-    // v2 -> left of pv -> cw
-    findAppropriateJunctionPoint( u1, juncs, T, c, false );
-    findAppropriateJunctionPoint( u2, juncs, T, c, true );
-    findAppropriateJunctionPoint( v1, juncs, T, c, false );
-    findAppropriateJunctionPoint( v2, juncs, T, c, true );
-    
-    double uJunctionLength = norm( u2 - u1 );
-    double vJunctionLength = norm( v2 - v1 );
-    double dist1 = norm( ddata.pu - u1 );
-    double dist2 = norm( ddata.pu - u2 );
-    double dist3 = norm( ddata.pv - v1 );
-    double dist4 = norm( ddata.pv - v2 );
-    
-    // compute the percentage of length that is set by the user
-    double uPercLength = (uJunctionLength*epsLength)/100.;
-    double vPercLength = (vJunctionLength*epsLength)/100.;
-    
-    /*
-    std::cout << "uJunctionLength: " << uJunctionLength << std::endl;
-    std::cout << "vJunctionLength: " << vJunctionLength << std::endl;
-    std::cout << "uPercLength: " << uPercLength << std::endl;
-    std::cout << "vPercLength: " << vPercLength << std::endl;
-    std::cout << "dist1: " << dist1 << std::endl;
-    std::cout << "dist2: " << dist2 << std::endl;
-    std::cout << "dist3: " << dist3 << std::endl;
-    std::cout << "dist4: " << dist4 << std::endl;
-    std::cout << "pu: " << ddata.pu << std::endl;
-    std::cout << "pv: " << ddata.pv << std::endl;
-    std::cout << "u1: " << u1 << " u2: " << u2 << std::endl;
-    std::cout << "v1: " << v1 << " v2: " << v2 << std::endl;
-    */
-    
-    if( dist1 < uPercLength || dist2 < uPercLength ||
-        dist3 < vPercLength || dist4 < vPercLength )
-      pass = false;
-    
-    if( pass )
-      divisionData.push_back( ddata );
-    
-    //std::cout << "pass: " << pass << std::endl;
-  }
-  
-  return divisionData;
-}
-
-//----------------------------------------------------------------
-
-std::vector<MyTissue::division_data> determinePossibleDivisionDataAndPreserveEqualArea(
-                                      const cell& c,
-                                      const double epsLength,
-                                      const double epsLOD,
-                                      const MyTissue& T,
-                                      const double equalAreaRatio )
-{
-  std::vector<MyTissue::division_data> divisionData;
-  
-  //std::cout << std::endl;
-  
-  // we perform a LOD to the current cell such that for three colinear junctions
-  // the inner one is not considered because then the method to avoid triangles
-  // will not work any more
-  Point3d center = Point3d( 0., 0., 0. );
-  std::set<junction> juncs = ModelUtils::determineNeedlessJunctions(
-    c, T, center, epsLOD );
-  
-  //std::cout << "orig size: " << T.S.neighbors(c).size() << std::endl;
-  //std::cout << "size: " << juncs.size() << std::endl;
-  
   double deltaAngle = 0.5;
   for( double angle = 0.; angle < 180.; angle += deltaAngle )
   {
@@ -927,7 +807,7 @@ std::vector<MyTissue::division_data> determinePossibleDivisionDataAndPreserveEqu
     
     // check if the distance between ddata.pv and v1 or v2 is smaller than
     // some eps OR if distance between ddata.pu and u1 or u2 is smaller than eps
-    bool pass = true;//ModelUtils::checkDivisionArea( c, ddata, T, equalAreaRatio );
+    bool pass = true;
     
     // compute junction lengths depending on the simplified cell structure
     // after applying a level of detail such that our approach in avoiding

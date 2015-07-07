@@ -231,12 +231,12 @@ public:
       std::cout << "Wrong surface type chosen!!!" << std::endl;
       return;
     }
-    
-    _initSurface.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
-    
-    _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
-                            _interpolateBezierSurfaces,
-                            _onlyGrowthInHeight, _realDataName );
+        
+    _initSurface.init( _lod, _lineageFileName, t,
+                       _initialSituationType != 0,
+                       _useAutomaticContourPoints,
+                       _surfaceScale,
+                       _realDataName );
     
     // set name strings
     _lineageFileName = "/tmp/model";
@@ -305,16 +305,19 @@ public:
     // bezier
     if( SURFACETYPE == 0 )
     {
-      _VLRBezierSurface.GrowStep(0);
+      _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
+                        _interpolateBezierSurfaces,
+                        _onlyGrowthInHeight, _realDataName );
+      
+      _VLRBezierSurface.growStep( 0 );
       
       // special cases of number of cells at the beginning
       if( _realDataName == "none" )
-        _initSurface.initModelBasedOnBezier( T, _initialCellNumber,
-                                              _VLRBezierSurface );
+        _initSurface.initIdealizedCells( T, _initialCellNumber,
+                                         _VLRBezierSurface );
       // else constellation of founder cells according to real data
       else
-        _initSurface.initLateralRootBasedOnBezier( T, _realDataName,
-                                                    _VLRBezierSurface );
+        _initSurface.initRealDataCells( T, _VLRBezierSurface );
     }
     // real data points
     else
@@ -323,13 +326,10 @@ public:
                                  _realDataName,
                                  _useAutomaticContourPoints );
       
-      std::vector<TrianglePoint> tps;
-      _VLRDataPointSurface.growStep( 0, tps );
+      std::vector<SurfacePoint> sps;
+      _VLRDataPointSurface.growStep( 0, sps );
         
-      _initSurface.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
-                                                    _realDataName,
-                                                    _surfaceScale,
-                                                    _useAutomaticContourPoints );
+      _initSurface.initRealDataCells( T, _VLRDataPointSurface );
     }
     
     // export initial cell constellation
@@ -465,11 +465,11 @@ public:
     else if( _bezierGrowthSurface && _realDataName == "none" )
       t = 502;
     
-    _initSurface.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
-    
-    _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
-                            _interpolateBezierSurfaces,
-                            _onlyGrowthInHeight, _realDataName );
+    _initSurface.init( _lod, _lineageFileName, t,
+                       _initialSituationType != 0,
+                       _useAutomaticContourPoints,
+                       _surfaceScale,
+                       _realDataName );
     
     // after each restart, reset the model and cell wall file because
     // it makes no sense to append these files
@@ -481,16 +481,19 @@ public:
     // bezier
     if( SURFACETYPE == 0 )
     {
-      _VLRBezierSurface.GrowStep(0);
+      _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
+                              _interpolateBezierSurfaces,
+                              _onlyGrowthInHeight, _realDataName );
+      
+      _VLRBezierSurface.growStep( 0 );
       
       // special cases of number of cells at the beginning
       if( _realDataName == "none" )
-        _initSurface.initModelBasedOnBezier( T, _initialCellNumber,
-                                              _VLRBezierSurface );
+        _initSurface.initIdealizedCells( T, _initialCellNumber,
+                                         _VLRBezierSurface );
       // else constellation of founder cells according to real data
       else
-        _initSurface.initLateralRootBasedOnBezier( T, _realDataName,
-                                                    _VLRBezierSurface );
+        _initSurface.initRealDataCells( T, _VLRBezierSurface );
     }
     // real data points
     else
@@ -500,13 +503,10 @@ public:
                                  _realDataName,
                                  _useAutomaticContourPoints );
       
-      std::vector<TrianglePoint> tps;
-      _VLRDataPointSurface.growStep( 0, tps );
+      std::vector<SurfacePoint> sps;
+      _VLRDataPointSurface.growStep( 0, sps );
         
-      _initSurface.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
-                                                    _realDataName,
-                                                    _surfaceScale,
-                                                    _useAutomaticContourPoints );
+      _initSurface.initRealDataCells( T, _VLRDataPointSurface );
     }
     
     forall(const cell& c, T.C)
@@ -691,10 +691,7 @@ public:
   
   void setStatus()
   {
-    //double time = _VLRBezierSurface.GetTime();
     std::size_t time = _initSurface.getTime();
-//     if( time > _initSurface.getMaxTime() )
-//       time = _initSurface.getMaxTime();
     
     QString status = QString( "Vertices: %1\t "
                               "Cells: %2\t").
@@ -831,13 +828,13 @@ public:
       if( j == juncs.size() - 1 )
       {
         Point3d pos = ( juncs.at(j)->getPos() + juncs.at(0)->getPos() )/2.;
-        _VLRBezierSurface.SetPoint( newJ->sp, newJ->sp, pos );
+        _VLRBezierSurface.setPos( newJ->sp, pos );
         T.splitWall( juncs.at(j), juncs.at(0), newJ );
       }
       else
       {
         Point3d pos = ( juncs.at(j)->getPos() + juncs.at(j+1)->getPos() )/2.;
-        _VLRBezierSurface.SetPoint( newJ->sp, newJ->sp, pos );
+        _VLRBezierSurface.setPos( newJ->sp, pos );
         T.splitWall( juncs.at(j), juncs.at(j+1), newJ );
       }
     } 
@@ -893,12 +890,11 @@ public:
     center = Point3d( 0., 0., 0. );
     if( !_centerOfMassAfterLOD )
     {
-      std::vector<Point2d> polygon;
+      std::vector<Point3d> polygon;
       forall(const junction& j, T.S.neighbors(c))
       {
-        Point3d pos = j->getPos();
-        polygon.push_back( Point2d( pos.i(), pos.j() ) );
-        center += pos;
+        polygon.push_back( j->getPos() );
+        center += j->getPos();
       }
       
       center /= polygon.size();
@@ -1177,8 +1173,8 @@ public:
                                                        bool &empty )
   {
     std::vector<MyTissue::division_data> divData;
-    divData = ModelUtils::determinePossibleDivisionDataAndPreserveEqualArea(
-      c, _avoidTrianglesThreshold, _LODThreshold, T, _equalAreaRatio );
+    divData = ModelUtils::determinePossibleDivisionData(
+      c, _avoidTrianglesThreshold, _LODThreshold, T );
     
     std::size_t numLines = divData.size();
     //std::cout << "possible Divisions: " << numLines << std::endl;
@@ -1192,12 +1188,10 @@ public:
     lengths.resize( numLines );
     
     // compute area size and mean cell diameter
-    std::vector<Point2d> polygon;
+    std::vector<Point3d> polygon;
     forall(const junction& j, T.S.neighbors(c))
-    {
-      Point3d pos = j->getPos();
-      polygon.push_back( Point2d( pos.i(), pos.j() ) );
-    }
+      polygon.push_back( j->getPos() );
+    
     double area = geometry::polygonArea( polygon );
     // mean cell diameter
     double rho = std::sqrt( area );
@@ -1772,24 +1766,24 @@ public:
   {
     if( SURFACETYPE == 0 )
     {
-      _VLRBezierSurface.GrowStep(dt);
-      forall(const junction& v, T.W)
-        _VLRBezierSurface.GetPos(v->sp);
+      _VLRBezierSurface.growStep( dt );
+      forall(const junction& j, T.W)
+        _VLRBezierSurface.getPos( j->sp );
     }
     else
     {
       // generate new triangulation surface based on real data points
-      std::vector<TrianglePoint> tps;
+      std::vector<SurfacePoint> sps;
       forall(const junction& j, T.W)
-        tps.push_back(j->tp);
+        sps.push_back( j->sp );
 
-      _VLRDataPointSurface.growStep( dt, tps );
+      _VLRDataPointSurface.growStep( dt, sps );
       
       int i = 0;
       forall(const junction& j, T.W)
       {
-        j->tp = tps[i++];
-        _VLRDataPointSurface.getPos( j->tp );
+        j->sp = sps[i++];
+        _VLRDataPointSurface.getPos( j->sp );
       }
     }
   }
@@ -2226,9 +2220,9 @@ public:
   void setPosition(const cell& c, const Point3d& p)
   {
     if( SURFACETYPE == 0 )
-      _VLRBezierSurface.SetPoint(c->sp, c->sp, p);
+      _VLRBezierSurface.setPos( c->sp, p );
     else
-      _VLRDataPointSurface.setPos( c->tp, p );
+      _VLRDataPointSurface.setPos( c->sp, p );
   }
   
   //----------------------------------------------------------------
@@ -2237,9 +2231,9 @@ public:
   void setPosition(const junction& j, const Point3d& p)
   { 
     if( SURFACETYPE == 0 )
-      _VLRBezierSurface.SetPoint(j->sp, j->sp, p);
+      _VLRBezierSurface.setPos( j->sp, p );
     else
-      _VLRDataPointSurface.setPos( j->tp, p );
+      _VLRDataPointSurface.setPos( j->sp, p );
   }
 
   //----------------------------------------------------------------

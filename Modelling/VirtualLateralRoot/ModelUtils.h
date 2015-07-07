@@ -78,13 +78,6 @@ namespace ModelUtils
                                       const double epsLOD,
                                       const MyTissue& T );
   
-  std::vector<MyTissue::division_data> determinePossibleDivisionDataAndPreserveEqualArea(
-                                      const cell& c,
-                                      const double epsLength,
-                                      const double epsLOD,
-                                      const MyTissue& T,
-                                      const double equalAreaRatio );
-  
   bool checkDivisionArea( const cell& c,
                           const MyTissue::division_data &ddata,
                           const MyTissue& T,

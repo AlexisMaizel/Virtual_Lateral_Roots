@@ -3,6 +3,7 @@
 
 #include "ModelHeader.h"
 #include "ModelUtils.h"
+#include "SurfaceBaseClass.h"
 
 /**
   @file   InitSurface.h
@@ -18,40 +19,27 @@ public:
   void init( const std::size_t lod,
              const std::string &lineageFileName,
              const std::size_t timeSteps,
-             const bool forceInitialSituation );
+             const bool forceInitialSituation,
+             const bool useAutomaticContourPoints,
+             const double surfaceScale,
+             const std::string &dataset );
   
-  void initModelBasedOnBezier( MyTissue &T,
-                               const std::size_t cellNumber,
-                               Surface &lateralRoot );
+  void initIdealizedCells( MyTissue &T,
+                           const std::size_t founderCells,
+                           SurfaceBaseClass &surface );
   
-  void initLateralRootBasedOnBezier( MyTissue &T,
-                                     const std::string &dataset,
-                                     Surface &lateralRoot );
+  void initRealDataCells( MyTissue &T, SurfaceBaseClass &surface );
   
-  void initLateralRootBasedOnRealData( MyTissue &T,
-                                       RealSurface &lateralRoot,
-                                       const std::string &dataset,
-                                       const double surfaceScale,
-                                       const bool useAutomaticContourPoints );
+  void initLateralRootBasedOnRealData( MyTissue &T, SurfaceBaseClass &surface );
   
   void generateCell( MyTissue &T,
                      const std::pair<double, double> &start,
                      const std::pair<double, double> &length,
                      const std::size_t treeId,
-                     Surface &lateralRoot,
+                     SurfaceBaseClass &surface,
                      const std::size_t addJunctionToWall = 4 );
   
-  void generateCell( MyTissue &T,
-                     const std::pair<double, double> &start,
-                     const std::pair<double, double> &length,
-                     const std::size_t treeId,
-                     RealSurface &lateralRoot,
-                     const std::vector<Point3d> &conPoints,
-                     const std::size_t addJunctionToWall = 4,
-                     const bool oneCell = false );
-  
-  Point3d determinePos( const std::pair<double, double> &coord,
-                        const std::vector<Point3d> &conPoints );
+  Point3d determinePos( const double u, const double v );
   
   void incrementTime(){ _time++; }
   void incrementCellID(){ _IDCounter++; }
@@ -77,6 +65,13 @@ private:
   std::string _lineageFileName;
   
   bool _forceInitialSituation;
+  
+  bool _useAutomaticContourPoints;
+  
+  // only valid for surface based on real data sets
+  double _surfaceScale;
+  
+  std::string _dataset;
 };
 
 #endif // InitSurface_H

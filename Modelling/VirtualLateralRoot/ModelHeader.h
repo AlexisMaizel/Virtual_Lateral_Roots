@@ -50,21 +50,14 @@ struct JunctionContent
 {
   SurfacePoint sp;
   std::size_t id;
-  TrianglePoint tp;
   
   Point3d getPos() const
-  {
-    if( SURFACETYPE == 0 )
-      return sp.Pos();
-    else
-      return Point3d( tp.Pos().i(), tp.Pos().j(), 0. );
-  }
+  { return sp.getPos(); }
 };
 
 struct CellContent
 {
   SurfacePoint sp;
-  TrianglePoint tp;
   std::size_t id;
   std::size_t parentId;
   std::size_t treeId;
@@ -124,12 +117,7 @@ struct CellContent
   Point3d principalGrowthDir;
   
   Point3d getPos() const
-  {
-    if( SURFACETYPE == 0 )
-      return sp.Pos();
-    else
-      return Point3d( tp.Pos().i(), tp.Pos().j(), 0. );
-  }
+  { return sp.getPos(); }
 };
 
 struct WallContent

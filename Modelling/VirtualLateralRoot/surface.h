@@ -1,50 +1,17 @@
-// Surface class
 #ifndef __SURFACE_H__
 #define __SURFACE_H__
 
-#include <string>
-#include <cmath>
-#include <util/parms.h>
-
+#include "SurfaceBaseClass.h"
 #include "bezier.h"
-//#include "BezierSurface.h"
 
-const double PI = 3.14159265358979323846;
 const double DX = .0000001;//.0000001;
 const double MAXSEARCHSTEPS = 1000;
 const int MAXSURF = 1000;
 
-class SurfacePoint {
-  public:
-    SurfacePoint() : u(0.), v(0.){}
-    ~SurfacePoint() {}
-    
-    Point3d Pos();
-    Point3d Pos() const;
-    Point3d Normal();
-    double getU() const { return u; }
-    double getV() const { return v; }
-    void printPos( const std::string name = "Point" ) const
-    { std::cout << name << ": [" << pos.i() << ", "
-      << pos.j() << ", " << pos.k() << "]" << std::endl; }
-
-    friend std::ostream& operator<<(std::ostream& os, const SurfacePoint &sp) {
-      return os;
-     };
-    friend std::istream& operator>>(std::istream& is, SurfacePoint &sp) {
-      return is;
-    };
-    friend class Surface;
-
-  private:
-    double u,v;                         // Coordinates in parametric space
-    Point3d pos;		// x,y,z pos of vertex
-    Point3d normal;		// normalized normal vector
-};
-
-class Surface {
+class Surface : public SurfaceBaseClass
+{
   public: 
-    Surface(){};
+    Surface() : _time( 0. ) {}
     Surface( util::Parms &parms,
              string section,
              const bool bezierGrowthSurface,
@@ -65,25 +32,17 @@ class Surface {
     
     void applyGrowthOnlyInHeight( Bezier &surfaceS, const Bezier &surfaceE );
     
-    // Create zero point
-    void Zero(SurfacePoint &p);
-
     // Create inital point
-    void InitPoint(SurfacePoint &p, double u, double v);
+    void initPos( SurfacePoint &sp );
    
     // Find closest point on surface to a given point with an initial guess
-    bool SetPoint(SurfacePoint &p, SurfacePoint sp, Point3d cp);
+    void setPos( SurfacePoint &sp, const Point3d &cp );
 
     // Advance growth by dt
-    void GrowStep(double dt);
+    void growStep( const double dt );
 
     // Compute pos of point based on current time
-    void GetPos(SurfacePoint &p);
-
-    // Distance between two surface points
-    double Distance(SurfacePoint &u, SurfacePoint &v);
-
-		double GetTime() const;
+    void getPos( SurfacePoint &sp );
 
     conpoi getCurrentControlPoints() const
     { return surfCurr.getControlPoints(); }
@@ -96,8 +55,8 @@ class Surface {
     friend class SurfacePoint;
 
   private:
-    void CalcPos(SurfacePoint &p);      // Calc x,y,x pos from u,v values
-    void CalcNormal(SurfacePoint &p);   // Calc normal
+    void calcPos( SurfacePoint &sp );
+    void calcNormal( SurfacePoint &sp );
 
     double growthScale;			// Growth scaling constant
 
@@ -110,9 +69,8 @@ class Surface {
     double surfTime[MAXSURF];           // Surdace time scale
     Bezier surfCurr;                    // Current surfaces
     //BezierSurface surfCurr;                    // Current surfaces
-
-    double time;                        // Time
     
+    double _time;
     bool _bezierGrowthSurface;
     std::size_t _numSurfaces;
     std::size_t _numPatches;

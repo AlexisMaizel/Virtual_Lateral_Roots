@@ -20,6 +20,7 @@ void RealSurface::init( const double surfaceScale,
                         const std::string &fileName,
                         const bool useAutomaticContourPoints )
 {
+  _time = 0.;
   std::string dataset = fileName;
   if( dataset.compare( 0, 7, "Average") == 0 )
     dataset = "Average";
@@ -36,50 +37,48 @@ void RealSurface::init( const double surfaceScale,
 //----------------------------------------------------------------
 
 void RealSurface::growStep( const double dt,
-                            std::vector<TrianglePoint> &tps )
+                            std::vector<SurfacePoint> &sps )
 { 
   _time += dt;
-  _curSurface.interpolate( _time , tps );
+  _curSurface.interpolate( _time , sps );
 }
 
 //----------------------------------------------------------------
 
-void RealSurface::initPoint( TrianglePoint &tp )
+void RealSurface::initPos( SurfacePoint &sp )
 {
-  this->getPos( tp );
+  this->getPos( sp );
 }
 
 //----------------------------------------------------------------
 
-void RealSurface::getPos( TrianglePoint &tp )
+void RealSurface::getPos( SurfacePoint &sp )
 {
-  calcPos(tp);
-  calcNormal(tp);
+  this->calcPos( sp );
+  this->calcNormal( sp );
 }
 
 //----------------------------------------------------------------
 
-void RealSurface::setPos( TrianglePoint &tp, const Point3d &p )
+void RealSurface::setPos( SurfacePoint &sp, const Point3d &p )
 {
-  _curSurface.determinePosProperties( tp, Point2d( p.i(), p.j() ) );
-  calcNormal(tp);
+  _curSurface.determinePosProperties( sp, p );
+  this->calcNormal( sp );
 }
 
 //----------------------------------------------------------------
 
-void RealSurface::calcPos( TrianglePoint &tp )
+void RealSurface::calcPos( SurfacePoint &sp )
 {
-  tp.u = _curSurface.checkBounds(tp.u, 0., 1.);
-  tp.v = _curSurface.checkBounds(tp.v, 0., 1.);
-  tp.w = _curSurface.checkBounds(tp.w, 0., 1.);
-  _curSurface.getCoord( tp );
+  sp.boundParameters();
+  _curSurface.getCoord( sp );
 }
 
 //----------------------------------------------------------------
 
-void RealSurface::calcNormal( TrianglePoint &tp )
+void RealSurface::calcNormal( SurfacePoint &sp )
 {
-  _curSurface.determineNormal( tp );
+  _curSurface.determineNormal( sp );
 }
 
 //----------------------------------------------------------------

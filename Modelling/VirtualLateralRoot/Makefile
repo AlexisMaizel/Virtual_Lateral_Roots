@@ -1,4 +1,4 @@
-OBJECTS=model.o bezier.o BezierSurface.o surface.o ModelExporter.o SurfacePoints.o RealSurface.o ModelUtils.o GraphicsClass.o InitSurface.o
+OBJECTS=model.o bezier.o surface.o ModelExporter.o SurfacePoints.o RealSurface.o ModelUtils.o GraphicsClass.o InitSurface.o SurfaceBaseClass.o
 
 default: model.vve
 
@@ -21,9 +21,9 @@ model.o: model.moc ModelHeader.h PrincipalComponentAnalysis.h
 
 GraphicsClass.o: GraphicsClass.cpp GraphicsClass.h
 
-ModelUtils.o: ModelUtils.cpp ModelUtils.h
+SurfaceBaseClass.o: SurfaceBaseClass.cpp SurfaceBaseClass.h
 
-BezierSurface.o: BezierSurface.cpp BezierSurface.h
+ModelUtils.o: ModelUtils.cpp ModelUtils.h
 
 bezier.o: bezier.cpp bezier.h
 

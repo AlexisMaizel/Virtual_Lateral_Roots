@@ -3,7 +3,7 @@ Dt: 0.002 // 0.002 // how fast the shape of the end stage is reached, default 0.
 Growth: .1  // not considered in code
 InitialCellNumber: 2 // initial cell number designed for VLR: 1, 2, 6 or 8
 RealDataName: none // valid entries are:
-// none, 120830_raw, 121204_raw_2014, 121211_raw, 130508_raw, 130607_raw, Average2, Average4, Average6, Average8
+// none, 120830_raw, 121204_raw_2014, 121211_raw, 130508_raw, 130607_raw
 SubDivisionLevelOfCells: 10 // this value minus 1 defines the number of additional vertices per cell wall and therefore the subdivision level of a cell
 BezierGrowthSurface: true // if the surface type is bezier then it can be chosen to choose the generated bezier surface that includes the growth tensor information
 SurfaceScale: 1 // scale factor for surface based on real data points
@@ -31,7 +31,7 @@ RenderPCLine: false // only when PerToGrowth as division type is used
 
 [Division]
 DivisionArea: 400 // 1100 ... 0.025 threshold size of cells before they divide
-DivisionAreaRatio: 0.1 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionAreaRatio: 0.25 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 EqualAreaRatio: 1.
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
