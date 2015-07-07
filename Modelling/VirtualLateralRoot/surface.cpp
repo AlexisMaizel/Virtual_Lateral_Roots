@@ -148,6 +148,8 @@ void Surface::init( util::Parms &parms,
       if( onlyGrowthInHeight )
         this->applyGrowthOnlyInHeight( surface[0], surface[_numSurfaces-1] );
       
+      this->increaseDomeTipHeight( surface[_numSurfaces-1] );
+      
       for( std::size_t i = 1; i < _numSurfaces-1; i++ )
       {
         double s = (double)i/(double)(_numSurfaces-1);
@@ -156,6 +158,13 @@ void Surface::init( util::Parms &parms,
       }
     }
   }
+}
+
+//----------------------------------------------------------------
+
+void Surface::increaseDomeTipHeight( Bezier &surface )
+{
+  surface.increaseDomeTipHeight( 270. );
 }
 
 //----------------------------------------------------------------

@@ -22,6 +22,8 @@ namespace ModelUtils
   double determineLongestWallLength( const cell& c,
                                      const MyTissue& T );
   
+  void determineXMinMax( const cell &c, const MyTissue& T );
+  
   void findAppropriateJunctionPoint( Point3d &p,
                                    const std::set<junction> &juncs,
                                    const MyTissue& T,

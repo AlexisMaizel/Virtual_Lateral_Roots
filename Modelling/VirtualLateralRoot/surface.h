@@ -88,6 +88,8 @@ class Surface {
     conpoi getCurrentControlPoints() const
     { return surfCurr.getControlPoints(); }
     
+    void increaseDomeTipHeight( Bezier &surface );
+    
     void applyControlpointsVariation( Bezier &surface,
                                       const bool focusTop );
     

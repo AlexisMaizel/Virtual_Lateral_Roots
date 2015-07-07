@@ -1,16 +1,16 @@
-#include "SurfaceClass.h"
+#include "InitSurface.h"
 
 #include "ModelExporter.h"
 
 /**
-  @file   SurfaceClass.cpp
+  @file   InitSurface.cpp
   @brief  Contains class for setting initial surfaces of model
   @author Jens Fangerau <jens.fangerau@iwr.uni-heidelberg.de>
 */
 
 // ---------------------------------------------------------------------
 
-void SurfaceClass::init( const std::size_t lod,
+void InitSurface::init( const std::size_t lod,
                          const std::string &lineageFileName,
                          const std::size_t timeSteps,
                          const bool forceInitialSituation )
@@ -30,7 +30,7 @@ void SurfaceClass::init( const std::size_t lod,
 
 // ---------------------------------------------------------------------
 
-void SurfaceClass::initModelBasedOnBezier( MyTissue &T,
+void InitSurface::initModelBasedOnBezier( MyTissue &T,
                                            const std::size_t cellNumber,
                                            Surface &lateralRoot )
 {
@@ -43,22 +43,22 @@ void SurfaceClass::initModelBasedOnBezier( MyTissue &T,
                         lCounter, lateralRoot ); 
     break;
     case 2:
-//     for( std::size_t c=0; c < 2; c++, lCounter++ )
-//     {
-//       this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
-//                           std::make_pair( 0.5, 1. ),
+    for( std::size_t c=0; c < 2; c++, lCounter++ )
+    {
+      this->generateCell( T, std::make_pair( 0. + c*0.5, 0. ),
+                          std::make_pair( 0.5, 1. ),
+                          lCounter, lateralRoot );
+    }
+    
+//     this->generateCell( T, std::make_pair( 0., 0. ),
+//                           std::make_pair( 1./4., 1. ),
 //                           lCounter, lateralRoot );
-//     }
-    
-    this->generateCell( T, std::make_pair( 0., 0. ),
-                          std::make_pair( 1./4., 1. ),
-                          lCounter, lateralRoot );
-    
-    lCounter++;
-    
-    this->generateCell( T, std::make_pair( 1./4., 0. ),
-                          std::make_pair( 3./4., 1. ),
-                          lCounter, lateralRoot );
+//     
+//     lCounter++;
+//     
+//     this->generateCell( T, std::make_pair( 1./4., 0. ),
+//                           std::make_pair( 3./4., 1. ),
+//                           lCounter, lateralRoot );
     
     break;
     case 6:
@@ -163,7 +163,7 @@ void SurfaceClass::initModelBasedOnBezier( MyTissue &T,
 
 // ---------------------------------------------------------------------
 
-void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
+void InitSurface::initLateralRootBasedOnBezier( MyTissue &T,
                                                  const std::string &dataset,
                                                  Surface &lateralRoot )
 {
@@ -266,7 +266,7 @@ void SurfaceClass::initLateralRootBasedOnBezier( MyTissue &T,
 
 // ---------------------------------------------------------------------
 
-void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
+void InitSurface::initLateralRootBasedOnRealData( MyTissue &T,
                                                    RealSurface &lateralRoot,
                                                    const std::string &dataset,
                                                    const double surfaceScale,
@@ -522,7 +522,7 @@ void SurfaceClass::initLateralRootBasedOnRealData( MyTissue &T,
 
 // generate a cell starting at the bottom left
 // with different lengths
-void SurfaceClass::generateCell( MyTissue &T,
+void InitSurface::generateCell( MyTissue &T,
                                  const std::pair<double, double> &start,
                                  const std::pair<double, double> &length,
                                  const std::size_t treeId,
@@ -627,6 +627,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   c->layerValue = 1;
   c->divisionSequence = "0";
   c->cellCycle = 0;
+  c->periCycle = 0;
   T.addCell( c, vs );
   
   std::vector<Point3d> polygon;
@@ -685,7 +686,7 @@ void SurfaceClass::generateCell( MyTissue &T,
 
 // ---------------------------------------------------------------------
 
-void SurfaceClass::generateCell( MyTissue &T,
+void InitSurface::generateCell( MyTissue &T,
                                  const std::pair<double, double> &start,
                                  const std::pair<double, double> &length,
                                  const std::size_t treeId,
@@ -809,6 +810,7 @@ void SurfaceClass::generateCell( MyTissue &T,
   c->layerValue = 1;
   c->divisionSequence = "0";
   c->cellCycle = 0;
+  c->periCycle = 0;
   T.addCell( c, vs );
   
   std::vector<Point2d> polygon;
@@ -867,7 +869,7 @@ void SurfaceClass::generateCell( MyTissue &T,
 
 // ---------------------------------------------------------------------
 
-Point3d SurfaceClass::determinePos( const std::pair<double, double> &coord,
+Point3d InitSurface::determinePos( const std::pair<double, double> &coord,
                                     const std::vector<Point3d> &conPoints )
 {
   // u and v coordinates of start should correspond to the

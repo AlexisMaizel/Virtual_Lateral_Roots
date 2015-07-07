@@ -8,13 +8,13 @@ SubDivisionLevelOfCells: 10 // this value minus 1 defines the number of addition
 BezierGrowthSurface: true // if the surface type is bezier then it can be chosen to choose the generated bezier surface that includes the growth tensor information
 SurfaceScale: 1 // scale factor for surface based on real data points
 UseAutomaticContourPoints: false // use contour points that are generated automatically
-InitialSituationType: 3 // forced division situation at the beginning; can be 0, 1, 2, or 3 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells, 3: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards anticlinally again resulting in 6 cells
+InitialSituationType: 0 // forced division situation at the beginning; can be 0, 1, 2, or 3 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells, 3: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards anticlinally again resulting in 6 cells
 CenterOfMassAfterLOD: true // compute the center of mass after applying a level of detail
-Loop: true
+Loop: false
 LODThreshold: 1 // threshold for used edge criterion in LOD
 AvoidTrianglesThreshold: 0 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
 LoadLastModel: false // if true load the last created model for which this variable was set to false -> this is required to rerun models that are generated with randomized parameters
-OnlyGrowthInHeight: false // the idealized bezier surface changes in width and height -> setting this parameter to true results in a bezier surface only increasing in height
+OnlyGrowthInHeight: true // the idealized bezier surface changes in width and height -> setting this parameter to true results in a bezier surface only increasing in height
 RenderMovies: false // if set to true then create movies from the same model (even if randomized) visualized by cells, spheres, and layercurves, all colored by layers and additionally one movie where the cells are colored by founder cells
 
 [View]
@@ -30,8 +30,8 @@ RenderCellCenter: false
 RenderPCLine: false // only when PerToGrowth as division type is used
 
 [Division]
-DivisionArea: 1100 // 1100 ... 0.025 threshold size of cells before they divide
-DivisionAreaRatio: 0.6 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionArea: 400 // 1100 ... 0.025 threshold size of cells before they divide
+DivisionAreaRatio: 0.1 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 EqualAreaRatio: 1.
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step

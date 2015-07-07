@@ -104,6 +104,8 @@ struct CellContent
   std::string divisionSequence;
   // corresponding cell cycle
   std::size_t cellCycle;
+  // periCycle
+  std::size_t periCycle;
   // previous division direction of cell
   Point3d previousDivDir;
   // current division direction of cell

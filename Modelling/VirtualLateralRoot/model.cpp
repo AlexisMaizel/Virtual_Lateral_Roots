@@ -2,7 +2,7 @@
 #include "ModelExporter.h"
 #include "ModelUtils.h"
 #include "GraphicsClass.h"
-#include "SurfaceClass.h"
+#include "InitSurface.h"
 #include "PrincipalComponentAnalysis.h"
 
 //#define TimeAgainstCellAnalysis
@@ -49,7 +49,7 @@ public:
   double _cellMaxPinch;
   std::size_t _cellColoringType;
   std::pair<std::size_t, std::size_t> _divOccurrences;
-  SurfaceClass _surfaceClass;
+  InitSurface _initSurface;
   std::size_t _lod;
   bool _lastStep;
   std::size_t _initialSituationType;
@@ -232,7 +232,7 @@ public:
       return;
     }
     
-    _surfaceClass.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
+    _initSurface.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
     
     _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
                             _interpolateBezierSurfaces,
@@ -309,11 +309,11 @@ public:
       
       // special cases of number of cells at the beginning
       if( _realDataName == "none" )
-        _surfaceClass.initModelBasedOnBezier( T, _initialCellNumber,
+        _initSurface.initModelBasedOnBezier( T, _initialCellNumber,
                                               _VLRBezierSurface );
       // else constellation of founder cells according to real data
       else
-        _surfaceClass.initLateralRootBasedOnBezier( T, _realDataName,
+        _initSurface.initLateralRootBasedOnBezier( T, _realDataName,
                                                     _VLRBezierSurface );
     }
     // real data points
@@ -326,7 +326,7 @@ public:
       std::vector<TrianglePoint> tps;
       _VLRDataPointSurface.growStep( 0, tps );
         
-      _surfaceClass.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
+      _initSurface.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
                                                     _realDataName,
                                                     _surfaceScale,
                                                     _useAutomaticContourPoints );
@@ -377,7 +377,7 @@ public:
   {
     if( _renderMovies )
     {
-      unsigned int step = _surfaceClass.getTime()-1;
+      unsigned int step = _initSurface.getTime()-1;
       QString file = _imagesFilename;
       
       // handle hard wired situations
@@ -391,11 +391,16 @@ public:
         case 3:
         case 4:
         case 5:
-          file += "2DC_";
+          file += "1DC_";
         break;
         case 6:
         case 7:
         case 8:
+          file += "2DC_";
+        break;
+        case 9:
+        case 10:
+        case 11:
           file += "2DCBase_";
         break;
       }
@@ -460,7 +465,7 @@ public:
     else if( _bezierGrowthSurface && _realDataName == "none" )
       t = 502;
     
-    _surfaceClass.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
+    _initSurface.init( _lod, _lineageFileName, t, _initialSituationType != 0 );
     
     _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
                             _interpolateBezierSurfaces,
@@ -480,11 +485,11 @@ public:
       
       // special cases of number of cells at the beginning
       if( _realDataName == "none" )
-        _surfaceClass.initModelBasedOnBezier( T, _initialCellNumber,
+        _initSurface.initModelBasedOnBezier( T, _initialCellNumber,
                                               _VLRBezierSurface );
       // else constellation of founder cells according to real data
       else
-        _surfaceClass.initLateralRootBasedOnBezier( T, _realDataName,
+        _initSurface.initLateralRootBasedOnBezier( T, _realDataName,
                                                     _VLRBezierSurface );
     }
     // real data points
@@ -498,7 +503,7 @@ public:
       std::vector<TrianglePoint> tps;
       _VLRDataPointSurface.growStep( 0, tps );
         
-      _surfaceClass.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
+      _initSurface.initLateralRootBasedOnRealData( T, _VLRDataPointSurface,
                                                     _realDataName,
                                                     _surfaceScale,
                                                     _useAutomaticContourPoints );
@@ -586,11 +591,16 @@ public:
         case 3:
         case 4:
         case 5:
-          _initialSituationType = 2;
+          _initialSituationType = 1;
         break;
         case 6:
         case 7:
         case 8:
+          _initialSituationType = 2;
+        break;
+        case 9:
+        case 10:
+        case 11:
           _initialSituationType = 3;
         break;
       }
@@ -611,7 +621,32 @@ public:
           if( _onlyGrowthInHeight )
             divisionAreaRatio = 0.32;
           else
-            divisionAreaRatio = 0.455;//0.468;
+          {
+            // asymmetric case: 0.455
+            // growth in height/width: 0.468
+            divisionAreaRatio = 0.468; 
+          }
+        }
+        else if( _divisionType == "Random" )
+          divisionAreaRatio = 0.4674;
+        else if( _divisionType == "RandomEqualAreas" )
+          divisionAreaRatio = 0.4674;
+        else if( _divisionType == "Decussation" )
+          divisionAreaRatio = 0.462;
+        else if( _divisionType == "PerToGrowth" )
+          divisionAreaRatio = 0.462;
+      break;
+      case 1:
+        if( _divisionType == "Besson-Dumais" )
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.42;
+          else
+          {
+            // asymmetric case: ?
+            // growth in height/width: 0.7
+            divisionAreaRatio = 0.7;
+          }
         }
         else if( _divisionType == "Random" )
           divisionAreaRatio = 0.4674;
@@ -629,7 +664,11 @@ public:
           if( _onlyGrowthInHeight )
             divisionAreaRatio = 0.45;
           else
-            divisionAreaRatio = 0.6;//0.71;
+          {
+            // asymmetric case: 0.6
+            // growth in height/width: 0.71
+            divisionAreaRatio = 0.71;
+          }
         }
         else if( _divisionType == "Random" )
           divisionAreaRatio = 0.735;
@@ -653,9 +692,9 @@ public:
   void setStatus()
   {
     //double time = _VLRBezierSurface.GetTime();
-    std::size_t time = _surfaceClass.getTime();
-//     if( time > _surfaceClass.getMaxTime() )
-//       time = _surfaceClass.getMaxTime();
+    std::size_t time = _initSurface.getTime();
+//     if( time > _initSurface.getMaxTime() )
+//       time = _initSurface.getMaxTime();
     
     QString status = QString( "Vertices: %1\t "
                               "Cells: %2\t").
@@ -832,15 +871,19 @@ public:
     c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
     c->longestWallLength = c->initialLongestWallLength;
     c->treeId = parentCell->treeId;
-    c->id = _surfaceClass.getCellID();
+    c->id = _initSurface.getCellID();
     c->parentId = parentCell->id;
-    c->timeStep = _surfaceClass.getTime();
+    c->timeStep = _initSurface.getTime();
     c->previousAngle = parentCell->angle;
     c->angle = parentCell->angle;
     c->previousDivDir = parentCell->divDir;
     c->divDir = c->center - parentCell->center;
     c->cellCycle = parentCell->cellCycle+1;
-    _surfaceClass.incrementCellID();
+    if( parentCell->divType == DivisionType::PERICLINAL )
+      c->periCycle = parentCell->periCycle+1;
+    else
+      c->periCycle = parentCell->periCycle;
+    _initSurface.incrementCellID();
   }
 
   //----------------------------------------------------------------
@@ -917,28 +960,6 @@ public:
       cr->layerValue = c->layerValue;
       cr->divisionSequence = c->divisionSequence;
     }
-  }
-  
-  //----------------------------------------------------------------
-  
-  void determineXMinMax( const cell &c )
-  {
-    double xMin = 5000000.;
-    double xMax = -5000000.;
-    forall(const junction& j, T.S.neighbors(c))
-    {
-      Point3d pos = j->getPos();
-      
-      if( pos.i() < xMin )
-        xMin = pos.i();
-      
-      if( pos.i() >= xMax )
-        xMax = pos.i();
-    }
-    
-    // set min and max values for x
-    c->xMin = xMin;
-    c->xMax = xMax;
   }
   
   //----------------------------------------------------------------
@@ -1334,7 +1355,7 @@ public:
     bool wait = false;
     if( T.C.size() == 4 && _initialSituationType == 1 )
     {
-      std::size_t curTime = _surfaceClass.getTime();
+      std::size_t curTime = _initSurface.getTime();
       if( curTime - _timeFourCellStage > _timeDelay )
         wait = false;
       else
@@ -1344,7 +1365,7 @@ public:
     if( T.C.size() == 6 &&
         ( _initialSituationType == 2 || _initialSituationType == 3 ) )
     {
-      std::size_t curTime = _surfaceClass.getTime();
+      std::size_t curTime = _initSurface.getTime();
       if( curTime - _timeSixCellStage > _timeDelay )
         wait = false;
       else
@@ -1353,7 +1374,7 @@ public:
     
     // at first determine the min and max values for each cell
     forall(const cell& c, T.C)
-      this->determineXMinMax(c);
+      ModelUtils::determineXMinMax( c, T );
     
     // wait for the four-cell stage some time steps such that the
     // the future divisions are not occurring too fast
@@ -1372,7 +1393,7 @@ public:
         c->center = center;
         // add the current center position to the set
         c->centerPos.push_back( center );
-        c->timeStep = _surfaceClass.getTime();
+        c->timeStep = _initSurface.getTime();
         c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
       }
     }
@@ -1398,7 +1419,7 @@ public:
         c->center = center;
         // add the current center position to the set
         c->centerPos.push_back( center );
-        c->timeStep = _surfaceClass.getTime();
+        c->timeStep = _initSurface.getTime();
         c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
         
         double a = c->area;
@@ -1423,7 +1444,7 @@ public:
               to_divide.push_back(c);
           }
           
-          _timeFourCellStage = _surfaceClass.getTime();
+          _timeFourCellStage = _initSurface.getTime();
         }
         // else perform the "normal" division routine
         else
@@ -1434,7 +1455,7 @@ public:
             // a next division will occur; so we store the time
             // of the six cell stage
             if( T.C.size() == 5 )
-              _timeSixCellStage = _surfaceClass.getTime();
+              _timeSixCellStage = _initSurface.getTime();
               
             to_divide.push_back(c);
           }
@@ -1458,7 +1479,7 @@ public:
         c->center = center;
         // add the current center position to the set
         c->centerPos.push_back( center );
-        c->timeStep = _surfaceClass.getTime();
+        c->timeStep = _initSurface.getTime();
         c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
       }
     }
@@ -1475,7 +1496,7 @@ public:
         c->center = center;
         // add the current center position to the set
         c->centerPos.push_back( center );
-        c->timeStep = _surfaceClass.getTime();
+        c->timeStep = _initSurface.getTime();
         c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
         
         double a = c->area;
@@ -1780,8 +1801,8 @@ public:
     std::size_t curTime, maxTime;
     if( SURFACETYPE == 0 )
     {
-      curTime = _surfaceClass.getTime();
-      maxTime = _surfaceClass.getMaxTime();
+      curTime = _initSurface.getTime();
+      maxTime = _initSurface.getMaxTime();
     }
     else
     {
@@ -1802,6 +1823,18 @@ public:
       ModelUtils::appendCellSituationType( fileName, _initialSituationType );
       fileName += ".csv";
       this->exportDataProperties( fileName );
+      
+      unsigned int counter = 0;
+      std::vector<unsigned int> cycleCounter;
+      cycleCounter.resize( 10, 0 );
+      forall(const cell& c, T.C)
+      {
+        if( c->periCycle < cycleCounter.size() )
+          cycleCounter.at( c->periCycle )++;
+      }
+      
+      for( std::size_t c=0; c < cycleCounter.size(); c++ )
+        std::cout << cycleCounter.at(c) << " cells in cycle " << c << std::endl;
     }
     
     this->renderImage();
@@ -1849,7 +1882,7 @@ public:
     
     if( _renderMovies && curTime >= maxTime )
     {
-      if( _renderMoviesIndex < 8 )
+      if( _renderMoviesIndex < 11 )
         _renderMoviesIndex++;
       else
         this->stopModel();
@@ -1866,7 +1899,7 @@ public:
       return;
     }
      
-    _surfaceClass.incrementTime();
+    _initSurface.incrementTime();
     
     for(int i = 0 ; i < stepPerView ; ++i)
     {

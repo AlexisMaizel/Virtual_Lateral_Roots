@@ -493,6 +493,26 @@ void Bezier::applyGrowthOnlyInHeight( const Bezier &surfaceE )
 
 //----------------------------------------------------------------
 
+void Bezier::increaseDomeTipHeight( const double topPoint )
+{
+  double sideTopPoints = topPoint + 10.; // 180.; -> default
+  _cpMatrix.at(6).at(3).j() = topPoint;
+  _cpMatrix.at(6).at(2).j() = sideTopPoints;
+  _cpMatrix.at(6).at(4).j() = sideTopPoints;
+  for(std::size_t i = 1; i < _cpMatrix.size()-1; i++)
+  {
+    for(std::size_t j = 2; j < _cpMatrix.at(i).size()-2; j++)
+    {
+      // update y positions
+      double t = (double)i/(double)(_cpMatrix.at(i).size()-1);
+      _cpMatrix.at(i).at(j).j() =
+      (1-t) * _cpMatrix.at(0).at(j).j() + t * _cpMatrix.at(6).at(j).j();
+    }
+  }
+}
+
+//----------------------------------------------------------------
+
 void Bezier::focusCPs( const bool focusTop )
 {
   double factor = 2./3.;

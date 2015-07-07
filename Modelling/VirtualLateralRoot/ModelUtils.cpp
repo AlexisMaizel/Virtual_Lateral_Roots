@@ -35,6 +35,28 @@ double determineLongestWallLength( const cell& c,
 
 //----------------------------------------------------------------
 
+void determineXMinMax( const cell &c, const MyTissue& T )
+{
+  double xMin = 5000000.;
+  double xMax = -5000000.;
+  forall(const junction& j, T.S.neighbors(c))
+  {
+    Point3d pos = j->getPos();
+    
+    if( pos.i() < xMin )
+      xMin = pos.i();
+    
+    if( pos.i() >= xMax )
+      xMax = pos.i();
+  }
+  
+  // set min and max values for x
+  c->xMin = xMin;
+  c->xMax = xMax;
+}
+
+//----------------------------------------------------------------
+
 void findAppropriateJunctionPoint( Point3d &p,
                                    const std::set<junction> &juncs,
                                    const MyTissue& T,

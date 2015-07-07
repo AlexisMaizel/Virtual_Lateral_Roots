@@ -1,19 +1,19 @@
-#ifndef SurfaceClass_H
-#define SurfaceClass_H
+#ifndef InitSurface_H
+#define InitSurface_H
 
 #include "ModelHeader.h"
 #include "ModelUtils.h"
 
 /**
-  @file   SurfaceClass.h
+  @file   InitSurface.h
   @brief  Contains class for setting initial surfaces of model
   @author Jens Fangerau <jens.fangerau@iwr.uni-heidelberg.de>
 */
 
-class SurfaceClass
+class InitSurface
 {
 public:
-  SurfaceClass(){}
+  InitSurface(){}
   
   void init( const std::size_t lod,
              const std::string &lineageFileName,
@@ -79,4 +79,4 @@ private:
   bool _forceInitialSituation;
 };
 
-#endif // SurfaceClass_H
+#endif // InitSurface_H

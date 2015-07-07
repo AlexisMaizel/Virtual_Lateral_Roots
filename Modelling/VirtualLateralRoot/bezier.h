@@ -68,6 +68,8 @@ class Bezier {
     void focusCPs( const bool focusTop );
     
     void applyGrowthOnlyInHeight( const Bezier &surfaceE );
+    
+    void increaseDomeTipHeight( const double topPoint );
 
   private:
     int Choose( unsigned int n, unsigned int k );
