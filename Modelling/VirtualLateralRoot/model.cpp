@@ -80,6 +80,7 @@ public:
   bool _drawJunctions;
   bool _loadLastModel;
   bool _onlyGrowthInHeight;
+  std::size_t _highOrderPattern;
   GLUquadricObj *quadratic;
   std::vector<std::size_t> _randomChoices;
   std::size_t _choiceCounter;
@@ -112,11 +113,11 @@ public:
     _parms("Main", "InitialSituationType", _initialSituationType );
     _parms("Main", "CenterOfMassAfterLOD", _centerOfMassAfterLOD );
     _parms("Main", "Loop", _useLoop );
-    _parms("Main", "LODThreshold", _LODThreshold );
     _parms("Main", "AvoidTrianglesThreshold", _avoidTrianglesThreshold );
     _parms("Main", "LoadLastModel", _loadLastModel );
     _parms("Main", "OnlyGrowthInHeight", _onlyGrowthInHeight );
     _parms("Main", "RenderMovies", _renderMovies );
+    _parms("Main", "HighOrderPattern", _highOrderPattern );
     
     _parms("View", "StepPerView", stepPerView);
     _parms("View", "BackgroundColor", bgColor);
@@ -189,6 +190,9 @@ public:
     registerFile("pal.map");
     registerFile("view.v");
     
+    // update LOD threshold depending on subdivision level
+    _LODThreshold = 30./_lod - 0.1;
+    
     _randomChoices.clear();
     
     // read the properties of the saved data model
@@ -196,6 +200,8 @@ public:
     {
       std::string fileName = "/tmp/modelDataProp";
       ModelUtils::appendCellSituationType( fileName, _initialSituationType );
+      if( _highOrderPattern != 0 )
+        fileName += "_HOP" + std::to_string( _highOrderPattern );
       fileName += ".csv";
       this->readDataProperties( fileName );
     }
@@ -220,8 +226,6 @@ public:
     std::size_t t = 300;
     if( _realDataName == "130508_raw" )
       t = 350;
-    else if( _realDataName.compare( 0, 7, "Average") == 0 )
-      t = 150;
     else if( _bezierGrowthSurface && _realDataName == "none" )
       t = 500;
     
@@ -272,6 +276,13 @@ public:
       
     }
     
+    if( _highOrderPattern != 0 )
+    {
+      _divisionFileName += "_HOP" + std::to_string( _highOrderPattern );
+      _lineageFileName += "_HOP" + std::to_string( _highOrderPattern );
+      _cellWallsFileName += "_HOP" + std::to_string( _highOrderPattern );
+    }
+    
     _divisionFileName += ".csv";
     _lineageFileName += ".csv";
     _cellWallsFileName += ".csv";
@@ -307,7 +318,8 @@ public:
     {
       _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
                         _interpolateBezierSurfaces,
-                        _onlyGrowthInHeight, _realDataName );
+                        _onlyGrowthInHeight, _realDataName,
+                        _highOrderPattern );
       
       _VLRBezierSurface.growStep( 0 );
       
@@ -453,6 +465,9 @@ public:
     {
       std::string fileName = "/tmp/modelDataProp";
       ModelUtils::appendCellSituationType( fileName, _initialSituationType );
+      if( _highOrderPattern != 0 )
+        fileName += "_HOP" + std::to_string( _highOrderPattern );
+      
       fileName += ".csv";
       this->readDataProperties( fileName );
     }
@@ -460,10 +475,8 @@ public:
     std::size_t t = 300;
     if( _realDataName == "130508_raw" )
       t = 350;
-    else if( _realDataName.compare( 0, 7, "Average") == 0 )
-      t = 150;
     else if( _bezierGrowthSurface && _realDataName == "none" )
-      t = 502;
+      t = 500;
     
     _initSurface.init( _lod, _lineageFileName, t,
                        _initialSituationType != 0,
@@ -483,7 +496,8 @@ public:
     {
       _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
                               _interpolateBezierSurfaces,
-                              _onlyGrowthInHeight, _realDataName );
+                              _onlyGrowthInHeight, _realDataName,
+                              _highOrderPattern );
       
       _VLRBezierSurface.growStep( 0 );
       
@@ -619,7 +633,11 @@ public:
         if( _divisionType == "Besson-Dumais" )
         {
           if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.32;
+          {
+            // 90 cells at end: 0.25
+            // 64 cells at end: 0.32
+            divisionAreaRatio = 0.3;
+          }
           else
           {
             // asymmetric case: 0.455
@@ -628,9 +646,19 @@ public:
           }
         }
         else if( _divisionType == "Random" )
-          divisionAreaRatio = 0.4674;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.308;
+          else
+            divisionAreaRatio = 0.4674;
+        }
         else if( _divisionType == "RandomEqualAreas" )
-          divisionAreaRatio = 0.4674;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.308;
+          else
+            divisionAreaRatio = 0.4674;
+        }
         else if( _divisionType == "Decussation" )
           divisionAreaRatio = 0.462;
         else if( _divisionType == "PerToGrowth" )
@@ -640,7 +668,11 @@ public:
         if( _divisionType == "Besson-Dumais" )
         {
           if( _onlyGrowthInHeight )
+          {
+            // 90 cells at end: 0.305
+            // 64 cells at end: 0.42
             divisionAreaRatio = 0.42;
+          }
           else
           {
             // asymmetric case: ?
@@ -1811,10 +1843,13 @@ public:
       _probValues, _lengths, _choices );
     }
     
-    if( curTime == maxTime + 2 && !_loadLastModel )
+    if( curTime == maxTime && !_loadLastModel )
     {
       std::string fileName = "/tmp/modelDataProp";
       ModelUtils::appendCellSituationType( fileName, _initialSituationType );
+      if( _highOrderPattern != 0 )
+        fileName += "_HOP" + std::to_string( _highOrderPattern );
+      
       fileName += ".csv";
       this->exportDataProperties( fileName );
       
@@ -1827,8 +1862,8 @@ public:
           cycleCounter.at( c->periCycle )++;
       }
       
-      for( std::size_t c=0; c < cycleCounter.size(); c++ )
-        std::cout << cycleCounter.at(c) << " cells in cycle " << c << std::endl;
+//       for( std::size_t c=0; c < cycleCounter.size(); c++ )
+//         std::cout << cycleCounter.at(c) << " cells in cycle " << c << std::endl;
     }
     
     this->renderImage();
@@ -1855,6 +1890,9 @@ public:
       }
       else
         filename += "ShortestWall";
+      
+      if( _highOrderPattern != 0 )
+        filename += "_HOP" + std::to_string( _highOrderPattern );
       
       filename += ".csv";
       ModelExporter::exportModelProperties( filename,
@@ -1885,6 +1923,9 @@ public:
       {
         std::string fileName = "/tmp/modelDataProp";
         ModelUtils::appendCellSituationType( fileName, _initialSituationType );
+        if( _highOrderPattern != 0 )
+          fileName += "_HOP" + std::to_string( _highOrderPattern );
+        
         fileName += ".csv";
         this->exportDataProperties( fileName );
       }

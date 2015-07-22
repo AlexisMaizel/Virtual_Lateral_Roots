@@ -56,7 +56,7 @@ NAME12="Model${NAME}_2DCBase_L.avi"
 ~/Tools/ffmpeg-2.0.1-64bit-static/./ffmpeg -framerate 24 -i m-2DCBase_L%04d.jpg -vframes 500 -vcodec libx264 temp2DCBaseL.avi && ~/Tools/ffmpeg-2.0.1-64bit-static/./ffmpeg -i temp2DCBaseL.avi -filter:v "crop=iw:350:0:500" -vcodec libx264 ${NAME12}
 
 rm -rf temp*.avi
-FOLDER="/home/necrolyte/Uni/LateralRootGrowth/300615/GrowthInHeightOnly/"
+FOLDER="/home/necrolyte/Uni/LateralRootGrowth/130715/"
 mv ${NAME1} $FOLDER
 mv ${NAME2} $FOLDER
 mv ${NAME3} $FOLDER

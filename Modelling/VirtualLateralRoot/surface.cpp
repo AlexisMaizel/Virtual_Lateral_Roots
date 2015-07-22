@@ -12,28 +12,16 @@
 
 //----------------------------------------------------------------
 
-Surface::Surface( util::Parms &parms,
-                  string section,
-                  const bool bezierGrowthSurface,
-                  const bool interpolateBezierSurfaces,
-                  const bool onlyGrowthInHeight,
-                  const std::string &surfaceName )
-  : _time( 0. )
-{
-  this->init( parms, section, bezierGrowthSurface,
-              interpolateBezierSurfaces, onlyGrowthInHeight,
-              surfaceName );
-}
-
-//----------------------------------------------------------------
-
 void Surface::init( util::Parms &parms,
                     string section,
                     const bool bezierGrowthSurface,
                     const bool interpolateBezierSurfaces,
                     const bool onlyGrowthInHeight,
-                    const std::string &surfaceName )
+                    const std::string &surfaceName,
+                    const std::size_t highOrderPattern )
 {
+  _time = 0.;
+  
   string surffile;
 
   _bezierGrowthSurface = bezierGrowthSurface;
@@ -104,14 +92,15 @@ void Surface::init( util::Parms &parms,
       surface[0].LoadGrowthBezier( first, _numPatches, _numControlPoints );
       surface[_numSurfaces-1].LoadGrowthBezier( last, _numPatches, _numControlPoints );
       
-      // uncomment this line if you want to highly support or impair
-      // the occurrence of the high order pattern of periclinal divisions
-      //this->applyControlpointsVariation( surface[_numSurfaces-1], true );
+      // highly support or impair the occurrence of the high order
+      // pattern of periclinal divisions
+      if( highOrderPattern != 0 )
+        this->applyControlpointsVariation( surface[_numSurfaces-1], highOrderPattern == 2 );
       
       if( onlyGrowthInHeight )
         this->applyGrowthOnlyInHeight( surface[0], surface[_numSurfaces-1] );
       
-      this->increaseDomeTipHeight( surface[_numSurfaces-1] );
+      //this->increaseDomeTipHeight( surface[_numSurfaces-1] );
       
       for( std::size_t i = 1; i < _numSurfaces-1; i++ )
       {

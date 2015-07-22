@@ -515,9 +515,12 @@ Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
       //std::cout << "pl: " << a << " pm: " << b << " pr: " << c << std::endl;
     }
     
+    //std::cout << "a: " << a << " b: " << b << " c: " << c << std::endl;
+    
     // if node B does not pass test then add to vector eraseNodes
     if( shouldNodeBeErased( ac, ab, eps ) )
     {
+      //std::cout << "erased node: " << b << std::endl;
       //std::cout << "erasedIndex: " << erasedIndex << std::endl;
       eraseNodes.insert( erasedIndex );
       lastIndexWillBeErased = true;
@@ -538,6 +541,7 @@ Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
     {
       if( eraseNodes.find(i) == eraseNodes.end() )
       {
+        //std::cout << "remaining nodes: " << juncs.at(i) << std::endl;
         newJuncs.push_back( juncs.at(i) );
         center += newJuncs.back();
       }

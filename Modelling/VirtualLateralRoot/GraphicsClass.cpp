@@ -88,7 +88,7 @@ void drawLine( const Point3d &pos1, const Point3d &pos2,
 void drawControlPoint( const Point3d &pos,
                        const util::Palette::Color &color )
 {
-  double halfLength = 1.;
+  double halfLength = 2.;
   glNormal3f( 0., 0., 1. );
   glPolygonMode( GL_FRONT, GL_FILL );
   glColor4fv( color.c_data() );

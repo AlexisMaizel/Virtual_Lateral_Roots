@@ -536,7 +536,7 @@ void Bezier::focusCPs( const bool focusTop )
       else
         top.j() -= dist*factor;
       
-      double s = (double)j/(double)(numInner);
+      double s = (double)i/(double)(numInner);
       _cpMatrix.at(i).at(j).j() = (1.-s) * bottom.j() + s * top.j();
     }
   }  

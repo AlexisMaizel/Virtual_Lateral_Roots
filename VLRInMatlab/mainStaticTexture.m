@@ -6,6 +6,8 @@
 geomPath = strcat( pwd, '/geom3d' );
 addpath( geomPath );
 
+setenv('LC_ALL','C')
+
 %%%%% setting of properties %%%%%%
 % data Index:
 % 1 -> 120830
@@ -27,7 +29,7 @@ startT = 298;
 drawDelaunay = 0;
 % if set to one then only a single time step
 % is rendered given by startT
-exportType = 3;
+exportType = 1;
 % vector of data strings
 exportTypeStr = { 'SingleFigure' 'AsImages' 'AsVideo' };
 % render only master file?
@@ -50,7 +52,7 @@ cellRange = [ 20 40 60 80 100 120 140 ];
 % offset for cell ranges
 epsilon = 2;
 % choose which major lines of the ellipsoids should be rendered
-lineRenderType = 4;
+lineRenderType = 2;
 % vector of line render types
 % 1. draw only those lines with the largest elongation of the ellipoids in 3D
 % 2: render all three major lines of elongation of the ellipsoids in 3D

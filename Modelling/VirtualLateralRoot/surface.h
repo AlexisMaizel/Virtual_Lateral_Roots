@@ -12,19 +12,14 @@ class Surface : public SurfaceBaseClass
 {
   public: 
     Surface() : _time( 0. ) {}
-    Surface( util::Parms &parms,
-             string section,
-             const bool bezierGrowthSurface,
-             const bool interpolateBezierSurfaces,
-             const bool onlyGrowthInHeight,
-             const std::string &surfaceName );
     
     void init( util::Parms &parms,
                string section,
                const bool bezierGrowthSurface,
                const bool interpolateBezierSurfaces,
                const bool onlyGrowthInHeight,
-               const std::string &surfaceName );
+               const std::string &surfaceName,
+               const std::size_t highOrderPattern );
     
     ~Surface() {};
 

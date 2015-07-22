@@ -22,7 +22,7 @@ switchColor = 0; % switch color between white (0) or black (1)
 % 3 -> radial
 cView = 3;
 % startIndex
-startI = 1;
+startI = 19;
 % endIndex
 endI = 20;
 % step size
@@ -30,9 +30,9 @@ deltaI = 1;
 % min and max index
 minI = 1;
 maxI = 20;
-renderSingleContours = 0;
+renderSingleContours = 1;
 renderNuclei = 0;
-renderContour = 1;
+renderContour = 0;
 renderMasterContour = 0;
 contourEps = 20.;
 % exclude nuclei outliers
@@ -363,12 +363,21 @@ for curI=startI:deltaI:endI-1
       curCellsN(dataIndex) = dimN;
       
       if renderSingleContours == 1
-        if dimN > 2
+        %if dimN > 2
           if triangulationType == 1
-            K = convhull( cellsInMaster(:,1), cellsInMaster(:,2) );
-            CONTOUR(contourCounter) = line(...
-              cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
-              'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+            K = convhull( allCells(:,1), allCells(:,2) );
+            
+            n = size( K, 1 );
+            points = cell( n, 1 );
+            for l=1:n
+              points{ l } = [ allCells( K(l), 1 ), allCells( K(l), 2 ) ];
+            end
+            hobbysplines( points, 'linestyle', {'linewidth', lineWidth},...
+              'color', colors( dataIndex, : ) );
+            
+%             CONTOUR(contourCounter) = line(...
+%               cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
+%               'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
           else
             [VolC,ShapeC] = alphavol( [ cellsInMaster(:, 1), cellsInMaster(:, 2) ],...
               sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
@@ -381,7 +390,7 @@ for curI=startI:deltaI:endI-1
             end
           end
           contourCounter = contourCounter + 1;
-        end
+        %end
       end
       
       if renderNuclei == 1
