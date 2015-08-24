@@ -169,6 +169,23 @@ void InitSurface::initIdealizedCells( MyTissue &T,
 
 // ---------------------------------------------------------------------
 
+void InitSurface::initRadialCells( MyTissue &T,
+                                   SurfaceBaseClass &surface )
+{
+  std::size_t lCounter = 1;
+  int maxCells = 6;
+  double uPos = 0.;
+  for( std::size_t c=1; c <= maxCells; c++, lCounter++ )
+  {
+    this->generateCell( T, std::make_pair( uPos, 0. ),
+                        std::make_pair( 1./(double)maxCells, 1. ),
+                        lCounter, surface );
+    uPos += 1./(double)maxCells;
+  }
+}
+
+// ---------------------------------------------------------------------
+
 void InitSurface::initRealDataCells( MyTissue &T, SurfaceBaseClass &surface )
 {
   std::cout << "Lateral root constellation of data: " << _dataset << std::endl;
@@ -492,6 +509,188 @@ void InitSurface::generateCell( MyTissue &T,
   // afterwards increment the id counter
   _IDCounter++;
 }
+
+// ---------------------------------------------------------------------
+/*
+void InitSurface::generateRadialCell( MyTissue &T,
+                                      const int cellIndexPosition,
+                                      const int maxCells,
+                                      const std::size_t treeId,
+                                      SurfaceBaseClass &surface,
+                                      const std::size_t addJunctionToWall )
+{
+  // first determine which kind of surface is used
+  bool bezier = true;
+  Surface *bez = dynamic_cast<Surface*>( &surface );
+  if( !bez )
+    bezier = false;
+ 
+  // set of junctions for the cell
+  std::vector<junction> vs;
+ 
+  for( std::size_t w = 0; w < 4 * _lod; w++ )
+  {
+    unsigned int uiw = (unsigned int)(w/_lod);
+    double cellLength;
+    double curLength = (double)w/(double)_lod - (double)uiw;
+    double u,v;
+    double mu,mv;
+    switch(uiw)
+    {
+      case 0:
+        u = start.first;
+        v = start.second + curLength*length.second;
+        if( addJunctionToWall == 0 )
+        {
+          mu = start.first;
+          mv = start.second + length.second/2. + curLength*length.second;
+        }
+        break;
+      case 1:
+        u = start.first + curLength*length.first;
+        v = start.second + length.second;
+        if( addJunctionToWall == 1 )
+        {
+          mu = start.first + length.first/2. + curLength*length.first;
+          mv = start.second + length.second;
+        }
+        break;
+      case 2:
+        u = start.first + length.first;
+        v = start.second + length.second - curLength*length.second;
+        if( addJunctionToWall == 2 )
+        {
+          mu = start.first + length.first;
+          mv = start.second + length.second/2. - curLength*length.second;
+        }
+        break;
+      case 3:
+        u = start.first + length.first - curLength*length.first;
+        v = start.second;
+        if( addJunctionToWall == 3 )
+        {
+          mu = start.first + length.first/2. - curLength*length.first;
+          mv = start.second;
+        }
+        break;
+      default: u = v = 0.; break;
+    }
+    
+    junction j;
+    j->id = _jIDCounter;
+    if( bezier )
+    {
+      j->sp.setUV( u, v );
+      surface.initPos( j->sp );
+    }
+    else
+    {
+      Point3d curPos = this->determinePos( u, v );
+      surface.setPos( j->sp, curPos );
+    }
+    ModelUtils::findNearestPointToMerge( T, j );
+    vs.push_back( j );
+    _jIDCounter++;
+    
+    if( uiw == addJunctionToWall )
+    {
+      junction j;
+      j->id = _jIDCounter;
+      if( bezier )
+      {
+        j->sp.setUV( mu, mv );
+        surface.initPos( j->sp );
+      }
+      else
+      {
+        Point3d cPos = this->determinePos( mu, mv );
+        surface.setPos( j->sp, cPos );
+      }
+      ModelUtils::findNearestPointToMerge( T, j );
+      vs.push_back( j );
+      _jIDCounter++;
+    }
+  }
+  
+  // TODO: only one cell for real data
+//   for( std::size_t w = 0; w < conPoints.size(); w++ )
+//   {
+//     Point3d curPos = conPoints.at(w);
+//     junction j;
+//     j->id = _jIDCounter;
+//     lateralRoot.setPos( j->sp, curPos );
+//     ModelUtils::findNearestPointToMerge( T, j );
+//     vs.push_back(j);
+//     _jIDCounter++;
+//   }
+  
+  cell c;
+  c->treeId = treeId;
+  c->id = _IDCounter;
+  c->parentId = _IDCounter;
+  c->timeStep = _time;
+  c->previousAngle = 0.;
+  c->angle = 0.;
+  c->previousDivDir = Point3d( 0., 0., 0. );
+  c->divDir = Point3d( 0., 0., 0. );
+  c->divType = DivisionType::NONE;
+  c->layerValue = 1;
+  c->divisionSequence = "0";
+  c->cellCycle = 0;
+  c->periCycle = 0;
+  T.addCell( c, vs );
+  
+  std::vector<Point3d> polygon;
+  double xMin = 5000000.;
+  double xMax = -5000000.;
+  Point3d center;
+  forall(const junction& j, T.S.neighbors(c))
+  {
+    polygon.push_back( j->getPos() );
+    center += j->getPos();
+    
+    if( j->getPos().i() < xMin )
+      xMin = j->getPos().i();
+    
+    if( j->getPos().i() > xMax )
+      xMax = j->getPos().i();
+  }
+  center /= polygon.size();
+  
+  c->xMin = xMin;
+  c->xMax = xMax;
+  c->divType = DivisionType::NONE;
+  c->centerPos.push_back( center );
+  c->initialArea = geometry::polygonArea(polygon);
+  c->area = c->initialArea;
+  c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
+  c->longestWallLength = c->initialLongestWallLength;
+  
+  // set the division properties for the first division
+  // anticlinal division in 1/3:2/3 ratio resulting in four cells
+  // **********************************
+  // *         *     *     *          *
+  // *         *     *     *          *
+  // *         *     *     *          *
+  // **********************************
+  if( _forceInitialSituation && c->id <= 2 )
+  {
+    // determine xLength of cell
+    double xLength = std::fabs( c->xMax - c->xMin );
+    
+    if( c->id == 1 )
+      center.i() = c->xMin + 2.*xLength/3.; 
+    else if( c->id == 2 )
+      center.i() = c->xMin + 1.*xLength/3.; 
+  }
+  
+  c->center = center;
+  surface.setPos( c->sp, center );
+  ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
+  
+  // afterwards increment the id counter
+  _IDCounter++;
+}*/
 
 // ---------------------------------------------------------------------
 

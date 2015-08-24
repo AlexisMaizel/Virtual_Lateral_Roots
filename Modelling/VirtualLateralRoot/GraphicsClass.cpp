@@ -107,7 +107,7 @@ void drawControlPoint( const Point3d &pos,
 void drawBezierSurface( const conpoi &cps,
                         const util::Palette::Color &color )
 {
-  glLineWidth(1.); 
+  glLineWidth(2.); 
   glColor4fv( color.c_data() );
   glShadeModel( GL_SMOOTH );
   double steps = 0.05;

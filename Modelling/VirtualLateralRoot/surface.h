@@ -21,6 +21,9 @@ class Surface : public SurfaceBaseClass
                const std::string &surfaceName,
                const std::size_t highOrderPattern );
     
+    void initRadialSurface( util::Parms &parms,
+                            string section );
+    
     ~Surface() {};
 
     void determineSurfaceHeaderProperties( const std::string bezFile );

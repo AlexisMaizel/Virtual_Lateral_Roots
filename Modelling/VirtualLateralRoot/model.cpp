@@ -39,6 +39,7 @@ public:
   double _angleThreshold;
   bool _bezierGrowthSurface;
   double _surfaceScale;
+  int _surfaceType;
   bool _useAutomaticContourPoints;
   std::string _lineageFileName;
   std::string _cellWallsFileName;
@@ -109,6 +110,7 @@ public:
     _parms("Main", "SubDivisionLevelOfCells", _lod);
     _parms("Main", "BezierGrowthSurface", _bezierGrowthSurface);
     _parms("Main", "SurfaceScale", _surfaceScale);
+    _parms("Main", "SurfaceType", _surfaceType);
     _parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
     _parms("Main", "InitialSituationType", _initialSituationType );
     _parms("Main", "CenterOfMassAfterLOD", _centerOfMassAfterLOD );
@@ -316,20 +318,31 @@ public:
     // bezier
     if( SURFACETYPE == 0 )
     {
-      _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
-                        _interpolateBezierSurfaces,
-                        _onlyGrowthInHeight, _realDataName,
-                        _highOrderPattern );
-      
-      _VLRBezierSurface.growStep( 0 );
-      
-      // special cases of number of cells at the beginning
-      if( _realDataName == "none" )
-        _initSurface.initIdealizedCells( T, _initialCellNumber,
-                                         _VLRBezierSurface );
-      // else constellation of founder cells according to real data
+      // side
+      if( _surfaceType == 0 )
+      {
+        _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
+                          _interpolateBezierSurfaces,
+                          _onlyGrowthInHeight, _realDataName,
+                          _highOrderPattern );
+        
+        _VLRBezierSurface.growStep( 0 );
+        
+        // special cases of number of cells at the beginning
+        if( _realDataName == "none" )
+          _initSurface.initIdealizedCells( T, _initialCellNumber,
+                                          _VLRBezierSurface );
+        // else constellation of founder cells according to real data
+        else
+          _initSurface.initRealDataCells( T, _VLRBezierSurface );
+      }
+      // radial
       else
-        _initSurface.initRealDataCells( T, _VLRBezierSurface );
+      {
+        _VLRBezierSurface.initRadialSurface( _parms, "Surface" );
+        _VLRBezierSurface.growStep( 0 );
+        _initSurface.initRadialCells( T, _VLRBezierSurface );
+      }
     }
     // real data points
     else
@@ -660,9 +673,19 @@ public:
             divisionAreaRatio = 0.4674;
         }
         else if( _divisionType == "Decussation" )
-          divisionAreaRatio = 0.462;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.3;
+          else
+            divisionAreaRatio = 0.462;
+        }
         else if( _divisionType == "PerToGrowth" )
-          divisionAreaRatio = 0.462;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.3;
+          else
+            divisionAreaRatio = 0.462;
+        }
       break;
       case 1:
         if( _divisionType == "Besson-Dumais" )
@@ -681,13 +704,33 @@ public:
           }
         }
         else if( _divisionType == "Random" )
-          divisionAreaRatio = 0.4674;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.45;
+          else
+            divisionAreaRatio = 0.4674;
+        }
         else if( _divisionType == "RandomEqualAreas" )
-          divisionAreaRatio = 0.4674;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.45;
+          else
+            divisionAreaRatio = 0.4674;
+        }
         else if( _divisionType == "Decussation" )
-          divisionAreaRatio = 0.462;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.445;
+          else
+            divisionAreaRatio = 0.462;
+        }
         else if( _divisionType == "PerToGrowth" )
-          divisionAreaRatio = 0.462;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.445;
+          else
+            divisionAreaRatio = 0.462;
+        }
       break;
       case 2:
       case 3:
@@ -703,13 +746,33 @@ public:
           }
         }
         else if( _divisionType == "Random" )
-          divisionAreaRatio = 0.735;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.45;
+          else
+            divisionAreaRatio = 0.735;
+        }
         else if( _divisionType == "RandomEqualAreas" )
-          divisionAreaRatio = 0.735;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.45;
+          else
+            divisionAreaRatio = 0.735;
+        }
         else if( _divisionType == "Decussation" )
-          divisionAreaRatio = 0.73;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.45;
+          else
+            divisionAreaRatio = 0.73;
+        }
         else if( _divisionType == "PerToGrowth" )
-          divisionAreaRatio = 0.71;
+        {
+          if( _onlyGrowthInHeight )
+            divisionAreaRatio = 0.45;
+          else
+            divisionAreaRatio = 0.71;
+        }
       break;
     }
     
@@ -1578,8 +1641,18 @@ public:
     forall(const cell& c, to_divide)
     {
       // perform the "normal" division routine for the initial two founder cells
-      if( T.C.size() < 4 && _initialSituationType != 0 )
-        T.divideCell(c);
+      if( T.C.size() < 4 )//&& _initialSituationType != 0 )
+      {
+        // HACKING HERE for first randomized division
+        bool empty = false;
+        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty, false );
+        if( empty )
+          T.divideCell( c );
+        else
+          T.divideCell( c, ddata );
+        
+        //T.divideCell(c);
+      }
       // set the division properties for the second division
       // periclinal division resulting in six cells
       // **********************************
@@ -1587,14 +1660,22 @@ public:
       // *         *************          *
       // *         *     *     *          *
       // **********************************
-      else if( T.C.size() > 3 && T.C.size() < 6 && _initialSituationType == 2 )
+      else if( T.C.size() > 3 && T.C.size() < 6 )//&& _initialSituationType == 2 )
       {
-        if( c->innerCell )
-        {
-          c->angle = 180.;
-          MyTissue::division_data ddata = this->setDivisionPoints( c );
+        // HACKING HERE for first randomized division
+        bool empty = false;
+        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty, false );
+        if( empty )
+          T.divideCell( c );
+        else
           T.divideCell( c, ddata );
-        }
+        
+//         if( c->innerCell )
+//         {
+//           c->angle = 180.;
+//           MyTissue::division_data ddata = this->setDivisionPoints( c );
+//           T.divideCell( c, ddata );
+//         }
       }
       // set the division properties for the second division
       // anticlinal division resulting in six cells

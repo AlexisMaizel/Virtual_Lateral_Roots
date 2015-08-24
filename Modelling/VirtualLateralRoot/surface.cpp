@@ -114,6 +114,35 @@ void Surface::init( util::Parms &parms,
 
 //----------------------------------------------------------------
 
+void Surface::initRadialSurface( util::Parms &parms,
+                                 string section )
+{
+  _bezierGrowthSurface = true;
+  // Load surfaces 
+  parms(section.data(), "Surfaces", surfaces);
+  parms(section.data(), "SurfTimeScale", surfTimeScale);
+  parms(section.data(), "SurfMaxDist", surfMaxDist);
+  _time = 0.;
+  _numSurfaces = 20;
+  _numPatches = 1;
+  _numControlPoints = 7;
+  
+  // init first and last radial bezier surface
+  surface[0].setRadialSurface( _numControlPoints, true );
+  surface[0].setCount( 1 );
+  surface[_numSurfaces-1].setRadialSurface( _numControlPoints, false );
+  surface[_numSurfaces-1].setCount( 1 );
+  
+  for( std::size_t i = 1; i < _numSurfaces-1; i++ )
+  {
+    double s = (double)i/(double)(_numSurfaces-1);
+    surface[i].Interpolate( surface[0], surface[_numSurfaces-1], 1., 1., s );
+    surface[i].setCount( 1 );
+  }
+}
+
+//----------------------------------------------------------------
+
 void Surface::increaseDomeTipHeight( Bezier &surface )
 {
   surface.increaseDomeTipHeight( 270. );

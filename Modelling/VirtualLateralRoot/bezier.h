@@ -43,6 +43,9 @@ class Bezier {
     void LoadGrowthBezier( const std::string bezFile,
                            const std::size_t numPatches,
                            const std::size_t numControlPoints );
+
+    void setRadialSurface( const int numControlPoints,
+                           const bool start );
     
     // Copy and/or scale
     void Scale( Bezier &b, double Scale );

@@ -513,6 +513,78 @@ void Bezier::increaseDomeTipHeight( const double topPoint )
 
 //----------------------------------------------------------------
 
+void Bezier::setRadialSurface( const int numControlPoints,
+                               const bool start )
+{
+  // initialize control points matrix
+  _cpMatrix.resize( numControlPoints );
+  for( std::size_t r=0;r<numControlPoints;r++ )
+    _cpMatrix.at(r).resize( numControlPoints );
+  
+  double r = 200.;
+  double angle = 30.;
+  double angleStep = 20.;
+  
+  if( start )
+  {
+    // set bottom boundary points
+    for(std::size_t j = 0; j < _cpMatrix.front().size(); j++)
+    {
+      _cpMatrix.front().at(j).i() = -r/10. * cos( angle * M_PI/180. );
+      _cpMatrix.front().at(j).j() = r/10. * sin( angle * M_PI/180. );
+      _cpMatrix.front().at(j).k() = 0.;
+      angle += angleStep;
+    }
+    
+    angle = 30.;
+    
+    // set top boundary points
+    for(std::size_t j = 0; j < _cpMatrix.front().size(); j++)
+    {
+      _cpMatrix.back().at(j).i() = -r * cos( angle * M_PI/180. );
+      _cpMatrix.back().at(j).j() = r * sin( angle * M_PI/180. );
+      _cpMatrix.back().at(j).k() = 0.;
+      angle += angleStep;
+    }
+  }
+  else
+  {
+    // set bottom boundary points
+    for(std::size_t j = 0; j < _cpMatrix.front().size(); j++)
+    {
+      _cpMatrix.front().at(j).i() = -r/10. * cos( angle * M_PI/180. );
+      _cpMatrix.front().at(j).j() = r/10. * sin( angle * M_PI/180. );
+      _cpMatrix.front().at(j).k() = 0.;
+      angle += angleStep;
+    }
+    
+    angle = 30.;
+    
+    // set top boundary points
+    for(std::size_t j = 0; j < _cpMatrix.front().size(); j++)
+    {
+      _cpMatrix.back().at(j).i() = 1.5 * -r * cos( angle * M_PI/180. );
+      _cpMatrix.back().at(j).j() = 4. * r * sin( angle * M_PI/180. );
+      _cpMatrix.back().at(j).k() = 0.;
+      angle += angleStep;
+    }
+  }
+  
+  // interpolate in between
+  for(std::size_t i = 1; i < _cpMatrix.size()-1; i++)
+    for(std::size_t j = 0; j < _cpMatrix.at(i).size(); j++)
+    {
+      Point3d top = _cpMatrix.back().at(j);
+      Point3d bottom = _cpMatrix.front().at(j);
+      double dist = r;
+  
+      double s = (double)i/(double)(_cpMatrix.size()-1);
+      _cpMatrix.at(i).at(j) = (1.-s) * bottom + s * top;
+    }
+}
+
+//----------------------------------------------------------------
+
 void Bezier::focusCPs( const bool focusTop )
 {
   double factor = 2./3.;

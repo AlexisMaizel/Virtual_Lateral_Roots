@@ -30,6 +30,8 @@ public:
   
   void initRealDataCells( MyTissue &T, SurfaceBaseClass &surface );
   
+  void initRadialCells( MyTissue &T, SurfaceBaseClass &surface );
+  
   void initLateralRootBasedOnRealData( MyTissue &T, SurfaceBaseClass &surface );
   
   void generateCell( MyTissue &T,
