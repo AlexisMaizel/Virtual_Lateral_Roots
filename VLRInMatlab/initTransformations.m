@@ -54,6 +54,24 @@ if cView == 3
   end
 end
 
+if registerBase == 1
+  if cView == 1
+    if strcmp( dataStr, '130607_raw' )
+      TF = createRotationOz( degTorad( 5. ) ) * TF;
+    end
+  end
+  if cView == 2
+    if strcmp( dataStr, '130607_raw' )
+      %TF = createRotationOz( degTorad( 5. ) ) * TF;
+    end
+  end
+%   if cView == 3
+%     if strcmp( dataStr, '130607_raw' )
+%       TF = createRotationOz( degTorad( 5. ) ) * TF;
+%     end
+%   end
+end
+
 if cView == 1
   if strcmp( dataStr, '121204_raw_2014' )
     TF = createRotationOz( degTorad( -3. ) ) * TF;
@@ -67,5 +85,5 @@ if cView == 1
 end
 
 % apply manual translation of data sets for registration
-TF = getDataSetTranslationMatrix( dataStr, registerBase ) * TF;
+TF = getDataSetTranslationMatrix( dataStr, cView, registerBase ) * TF;
 

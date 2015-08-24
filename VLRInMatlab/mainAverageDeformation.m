@@ -22,17 +22,18 @@ switchColor = 0; % switch color between white (0) or black (1)
 % 3 -> radial
 cView = 3;
 % startIndex
-startI = 19;
+startI = 1;
 % endIndex
-endI = 20;
+endI = 21;
 % step size
 deltaI = 1;
 % min and max index
 minI = 1;
-maxI = 20;
-renderSingleContours = 1;
+maxI = 21;
+renderSingleContours = 0;
+renderSingleMasterContours = 0;
 renderNuclei = 0;
-renderContour = 0;
+renderContour = 1;
 renderMasterContour = 0;
 contourEps = 20.;
 % exclude nuclei outliers
@@ -73,7 +74,7 @@ numData = 5;
 % resolution of grid
 resGrid = 30;
 % register data sets based on base instead of dome tip
-registerBase = 0;
+registerBase = 1;
 % apply the registration to all existing cell ranges and not only the one
 % that all data sets share (cells in [18,143])
 considerAllCells = 0;
@@ -192,16 +193,45 @@ lineDeformationCounter = 1;
 nucleiCounter = 1;
 averageDeltaT = 0;
 
-if cView == 1
-  globalMin = 0.2696;
-  globalMax = 4.4663;
-elseif cView == 2
-  globalMin = 0.15823;
-  globalMax = 4.042;
-elseif cView == 3
-  globalMin = 0.27102;
-  globalMax = 2.7117;
+if registerBase == 0
+  if cView == 1
+    globalMin = 0.2696;
+    globalMax = 4.4663;
+  elseif cView == 2
+    globalMin = 0.15823;
+    globalMax = 4.042;
+  elseif cView == 3
+    globalMin = 0.27102;
+    globalMax = 2.7117;
+  end
+else
+  if onlyLongestDeformation == 1
+  if cView == 1
+    globalMin = 0.44033; % -2.1
+    globalMax = 4.6714; % -0.3
+  elseif cView == 2
+    globalMin = 0.15684; % -2.2
+    globalMax = 4.3213; % -0.4
+  elseif cView == 3
+    globalMin = 0.633; % -2.0
+    globalMax = 2.9589; % -1.0
+  end
+  else
+  if cView == 1
+    globalMin = -0.44279; % -2.5
+    globalMax = 3.5977; % -0.7
+  elseif cView == 2
+    globalMin = -1.229; % -2.8
+    globalMax = 3.2249; % -0.9
+  elseif cView == 3
+    globalMin = -1.1418; % -2.8
+    globalMax = 2.3076; % -1.3
+  end
+  end
 end
+
+% globalMin = 10000;
+% globalMax = -10000;
 
 % convert values to real units in log( µm / min )
 globalMin = convertToReal( globalMin );
@@ -348,6 +378,7 @@ for curI=startI:deltaI:endI-1
       dimC = size( cellsInMaster, 1 );
       curCellsC(dataIndex) = dimC;
       cellsInMaster = [];
+      cellsInDataset = [];
       for m=1:size(matPosN{dataIndex}, 1)
         if cellFileMap{dataIndex}( cellIdsN{dataIndex}(m) ) == 0
           p = matPosN{dataIndex}(m,:) - centerPosPerTimeStep{dataIndex}(curTN(dataIndex),:);
@@ -358,39 +389,45 @@ for curI=startI:deltaI:endI-1
         cp = matPosN{dataIndex}(m,:) - centerPosPerTimeStep{dataIndex}(curTN(dataIndex),:);
         cp = applyTransformations( cp, planePos, u, v, TF, dataStr( 1, dataIndex ), renderMasterFile );
         allCells = [ allCells ; cp ];
+        cellsInDataset = [ cellsInDataset ; cp ];
       end
       dimN = size( cellsInMaster, 1 );
       curCellsN(dataIndex) = dimN;
       
-      if renderSingleContours == 1
-        %if dimN > 2
-          if triangulationType == 1
-            K = convhull( allCells(:,1), allCells(:,2) );
-            
-            n = size( K, 1 );
-            points = cell( n, 1 );
-            for l=1:n
-              points{ l } = [ allCells( K(l), 1 ), allCells( K(l), 2 ) ];
-            end
-            hobbysplines( points, 'linestyle', {'linewidth', lineWidth},...
-              'color', colors( dataIndex, : ) );
-            
-%             CONTOUR(contourCounter) = line(...
-%               cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
-%               'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
-          else
-            [VolC,ShapeC] = alphavol( [ cellsInMaster(:, 1), cellsInMaster(:, 2) ],...
-              sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
-            K = ShapeC.bnd(:,1);
-            dimK = size( K, 1 );
-            if dimK > 1
-              K(dimK+1,:) = K(1,:);
-              CONTOUR(contourCounter) = line( cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
-                cellsInMaster( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
-            end
+      if renderSingleContours == 1 || renderSingleMasterContours == 1
+        % consider all cells for front and radial view
+        if renderSingleContours == 1
+          scPos = cellsInDataset;
+        % consider only master cells for side view
+        else
+          scPos = cellsInMaster;
+        end
+        if triangulationType == 1
+          K = convhull( scPos(:,1), scPos(:,2) );
+          
+%           n = size( K, 1 );
+%           points = cell( n, 1 );
+%           for l=1:n
+%             points{ l } = [ scPos( K(l), 1 ), scPos( K(l), 2 ) ];
+%           end
+%           hobbysplines( points, 'linestyle', {'linewidth', lineWidth},...
+%             'color', colors( dataIndex, : ) );
+          
+          CONTOUR(contourCounter) = line(...
+            scPos( K, 1 ), scPos( K, 2 ),...
+            'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
+        else
+          [VolC,ShapeC] = alphavol( [ cellsInMaster(:, 1), cellsInMaster(:, 2) ],...
+            sqrt( alphaRadiiVector( curTC(dataIndex), 1 )) );
+          K = ShapeC.bnd(:,1);
+          dimK = size( K, 1 );
+          if dimK > 1
+            K(dimK+1,:) = K(1,:);
+            CONTOUR(contourCounter) = line( cellsInMaster( K, 1 ), cellsInMaster( K, 2 ),...
+              cellsInMaster( K, 3 ), 'Color', colors( dataIndex, : ), 'LineWidth', lineWidth );
           end
-          contourCounter = contourCounter + 1;
-        %end
+        end
+        contourCounter = contourCounter + 1;
       end
       
       if renderNuclei == 1
@@ -623,7 +660,7 @@ for curI=startI:deltaI:endI-1
 %       end
 %     end
 %   end
-  
+%   
 %   % update global min value
 %   if minM < globalMin
 %     globalMin = minM;
@@ -750,9 +787,9 @@ for curI=startI:deltaI:endI-1
 end
 
 % average deltaT value for all data sets and reg time steps
-%averageDeltaT = averageDeltaT/(endI-startI);
-%disp( strcat( {'Average DeltaT '}, num2str(averageDeltaT) ) );
-%disp( strcat( {'Global Min and Max '}, num2str(globalMin), ' and ', num2str(globalMax) ) );
+ %averageDeltaT = averageDeltaT/(endI-startI);
+ %disp( strcat( {'Average DeltaT '}, num2str(averageDeltaT) ) );
+ %disp( strcat( {'Global Min and Max '}, num2str(globalMin), ' and ', num2str(globalMax) ) );
 
 % print elapsed time
 toc
