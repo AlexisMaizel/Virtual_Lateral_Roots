@@ -68,6 +68,9 @@ namespace ModelUtils
   Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
                                            double &area, const double eps );
   
+  Point3d getCenterBasedOnTriangleFan( const cell &c, const MyTissue& T,
+                                       double &area );
+  
   bool shouldNodeBeErased( const Point3d &nodePos1,
                            const Point3d &nodePos2,
                            const double eps );

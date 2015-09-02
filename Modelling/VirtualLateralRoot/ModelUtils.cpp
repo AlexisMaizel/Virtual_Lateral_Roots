@@ -557,6 +557,53 @@ Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
 
 //----------------------------------------------------------------
 
+Point3d getCenterBasedOnTriangleFan( const cell &c,
+                                     const MyTissue& T,
+                                     double &area )
+{
+  // determine the current center of mass as an initial point
+  Point3d initCenter;
+  std::vector<Point3d> polygon;
+  forall(const junction& j, T.S.neighbors(c))
+  {
+    polygon.push_back( j->getPos() );
+    initCenter += j->getPos();
+  }
+  
+  initCenter /= polygon.size();
+  area = geometry::polygonArea(polygon);
+  
+  std::vector<double> triangleAreas;
+  std::vector<Point3d> triangleCenters;
+  
+  Point3d newCenter;
+
+  // create a triangle for each pair of junctions and the initCenter
+  forall(const junction& j, T.S.neighbors(c))
+  {
+    std::vector<Point3d> triangle;
+    Point3d triCenter;
+    const junction& jn = T.S.nextTo(c, j);
+    Point3d jpos = j->getPos();
+    Point3d jnpos = jn->getPos();
+    triangle.push_back( jpos );
+    triangle.push_back( jnpos );
+    triangle.push_back( initCenter );
+    triCenter = jpos + jnpos + initCenter;
+    triCenter /= 3.;
+    
+    triangleCenters.push_back( triCenter );
+    triangleAreas.push_back( geometry::polygonArea(triangle) );
+  }
+  
+  for( std::size_t t=0; t < triangleAreas.size(); t++ )
+    newCenter += triangleCenters.at( t ) * triangleAreas.at( t )/area;
+  
+  return newCenter;
+}
+
+//----------------------------------------------------------------
+
 std::set<junction> determineNeedlessJunctions( const cell &c,
                                                const MyTissue& T,
                                                Point3d &center,

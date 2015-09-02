@@ -997,8 +997,9 @@ public:
     }
     else
     {
-      center = ModelUtils::getCenterAfterApplyingLODToCell( c, T, area,
-                                                            _LODThreshold );
+      //center = ModelUtils::getCenterAfterApplyingLODToCell( c, T, area, _LODThreshold );
+      
+      center = ModelUtils::getCenterBasedOnTriangleFan( c, T, area );
     }
   }
   
