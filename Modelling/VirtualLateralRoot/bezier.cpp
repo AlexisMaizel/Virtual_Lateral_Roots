@@ -522,24 +522,25 @@ void Bezier::setRadialSurface( const int numControlPoints,
     _cpMatrix.at(r).resize( numControlPoints );
   
   double r = 200.;
-  double angle = 30.;
-  double angleStep = 20.;
+  double angle = 15.;
+  double angleStep = 25.;
+  int variant = 1;
   
+  // set bottom boundary points
+  for(std::size_t j = 0; j < _cpMatrix.front().size(); j++)
+  {
+    _cpMatrix.front().at(j).i() = -7.*r/10. * cos( angle * M_PI/180. );
+    _cpMatrix.front().at(j).j() = 7.*r/10. * sin( angle * M_PI/180. );
+    _cpMatrix.front().at(j).k() = 0.;
+    angle += angleStep;
+  }
+  
+  angle = 15.;
+  
+  // set top boundary points
   if( start )
   {
-    // set bottom boundary points
-    for(std::size_t j = 0; j < _cpMatrix.front().size(); j++)
-    {
-      _cpMatrix.front().at(j).i() = -r/10. * cos( angle * M_PI/180. );
-      _cpMatrix.front().at(j).j() = r/10. * sin( angle * M_PI/180. );
-      _cpMatrix.front().at(j).k() = 0.;
-      angle += angleStep;
-    }
-    
-    angle = 30.;
-    
-    // set top boundary points
-    for(std::size_t j = 0; j < _cpMatrix.front().size(); j++)
+    for(std::size_t j = 0; j < _cpMatrix.back().size(); j++)
     {
       _cpMatrix.back().at(j).i() = -r * cos( angle * M_PI/180. );
       _cpMatrix.back().at(j).j() = r * sin( angle * M_PI/180. );
@@ -549,24 +550,40 @@ void Bezier::setRadialSurface( const int numControlPoints,
   }
   else
   {
-    // set bottom boundary points
-    for(std::size_t j = 0; j < _cpMatrix.front().size(); j++)
+    switch( variant )
     {
-      _cpMatrix.front().at(j).i() = -r/10. * cos( angle * M_PI/180. );
-      _cpMatrix.front().at(j).j() = r/10. * sin( angle * M_PI/180. );
-      _cpMatrix.front().at(j).k() = 0.;
-      angle += angleStep;
-    }
-    
-    angle = 30.;
-    
-    // set top boundary points
-    for(std::size_t j = 0; j < _cpMatrix.front().size(); j++)
-    {
-      _cpMatrix.back().at(j).i() = 1.5 * -r * cos( angle * M_PI/180. );
-      _cpMatrix.back().at(j).j() = 4. * r * sin( angle * M_PI/180. );
-      _cpMatrix.back().at(j).k() = 0.;
-      angle += angleStep;
+      case 0:
+      for(std::size_t j = 0; j < _cpMatrix.back().size(); j++)
+      {
+        _cpMatrix.back().at(j).i() = 1.1 * -r * cos( angle * M_PI/180. );
+        _cpMatrix.back().at(j).j() = 4. * r * sin( angle * M_PI/180. );
+        
+        if( j == 1 || j == 5 )
+          _cpMatrix.back().at(j).j() *= 1.5;
+        
+        if( j == 3 )
+          _cpMatrix.back().at(j).j() /= 1.1;
+          
+        _cpMatrix.back().at(j).k() = 0.;
+        angle += angleStep;
+      }
+      break;
+      case 1:
+      for(std::size_t j = 0; j < _cpMatrix.back().size(); j++)
+      {
+        _cpMatrix.back().at(j).i() = 1.1 * -r * cos( angle * M_PI/180. );
+        _cpMatrix.back().at(j).j() = 4. * r * sin( angle * M_PI/180. );
+        
+        if( j == 1 || j == 5 )
+          _cpMatrix.back().at(j).j() *= 1.5;
+        
+        if( j == 3 )
+          _cpMatrix.back().at(j).j() /= 1.1;
+          
+        _cpMatrix.back().at(j).k() = 0.;
+        angle += angleStep;
+      }
+      break;
     }
   }
   
@@ -580,6 +597,12 @@ void Bezier::setRadialSurface( const int numControlPoints,
   
       double s = (double)i/(double)(_cpMatrix.size()-1);
       _cpMatrix.at(i).at(j) = (1.-s) * bottom + s * top;
+      
+      if( j == 1 )
+        _cpMatrix.at(i).at(j).i() -= i*10.;
+      
+      if( j == 5 )
+        _cpMatrix.at(i).at(j).i() += i*10.;
     }
 }
 
