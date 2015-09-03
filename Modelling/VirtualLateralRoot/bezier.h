@@ -54,6 +54,9 @@ class Bezier {
     void Interpolate( Bezier &src1, Bezier &src2, 
                       double scale1, double scale2, double s );
 
+    void ParabolicGrowth( Bezier &src1, double s,
+                          const double height );
+    
     // Return x,y,z point from u,v parameters
     Point3d EvalCoord( double u, double v );
 
