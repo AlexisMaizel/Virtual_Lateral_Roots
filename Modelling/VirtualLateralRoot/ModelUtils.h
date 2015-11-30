@@ -65,9 +65,6 @@ namespace ModelUtils
   
   double cross( const Point2d &p1, const Point2d &p2, const Point2d &p3 );
   
-  Point3d getCenterAfterApplyingLODToCell( const cell &c, const MyTissue& T,
-                                           double &area, const double eps );
-  
   Point3d getCenterBasedOnTriangleFan( const cell &c, const MyTissue& T,
                                        double &area );
   

@@ -60,7 +60,7 @@ public:
   std::size_t _timeDelay;
   std::size_t _timeSixCellStage;
   std::size_t _timeFourCellStage;
-  bool _centerOfMassAfterLOD;
+  bool _accurateCenterOfMass;
   double _LODThreshold;
   double _avoidTrianglesThreshold;
   bool _useAlternativeDT;
@@ -113,7 +113,7 @@ public:
     _parms("Main", "SurfaceType", _surfaceType);
     _parms("Main", "UseAutomaticContourPoints", _useAutomaticContourPoints );
     _parms("Main", "InitialSituationType", _initialSituationType );
-    _parms("Main", "CenterOfMassAfterLOD", _centerOfMassAfterLOD );
+    _parms("Main", "CenterOfMassBasedOnTriangleFan", _accurateCenterOfMass );
     _parms("Main", "Loop", _useLoop );
     _parms("Main", "AvoidTrianglesThreshold", _avoidTrianglesThreshold );
     _parms("Main", "LoadLastModel", _loadLastModel );
@@ -983,7 +983,7 @@ public:
   void setCellCenter( const cell &c, Point3d &center, double &area )
   {
     center = Point3d( 0., 0., 0. );
-    if( !_centerOfMassAfterLOD )
+    if( !_accurateCenterOfMass )
     {
       std::vector<Point3d> polygon;
       forall(const junction& j, T.S.neighbors(c))
@@ -996,11 +996,7 @@ public:
       area = geometry::polygonArea(polygon);
     }
     else
-    {
-      //center = ModelUtils::getCenterAfterApplyingLODToCell( c, T, area, _LODThreshold );
-      
       center = ModelUtils::getCenterBasedOnTriangleFan( c, T, area );
-    }
   }
   
   //----------------------------------------------------------------
