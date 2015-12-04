@@ -3,7 +3,7 @@
 #include "ModelUtils.h"
 #include "GraphicsClass.h"
 #include "InitSurface.h"
-#include "PrincipalComponentAnalysis.h"
+#include "DivisionSetting.h"
 
 //#define TimeAgainstCellAnalysis
 
@@ -20,22 +20,23 @@ public:
   util::Parms _parms;
   Surface _VLRBezierSurface;
   RealSurface _VLRDataPointSurface;
+  DivisionSetting *_divSetting;
   util::Palette _palette;
   MyTissue T;
 #ifndef TimeAgainstCellAnalysis
   double dt;
 #endif
-  bool useAreaRatio;
-  bool useCombinedAreaRatio;
-  bool useWallRatio;
-  double divisionArea;
-  double divisionAreaRatio;
-  double divisionWallRatio;
+  bool _useAreaRatio;
+  bool _useCombinedAreaRatio;
+  bool _useWallRatio;
+  double _divisionArea;
+  double _divisionAreaRatio;
+  double _divisionWallRatio;
   int bgColor;
   int stepPerView;
   std::size_t _initialCellNumber;
   std::string _realDataName;
-  double probabilityOfDecussationDivision;
+  double _probabilityOfDecussationDivision;
   double _angleThreshold;
   bool _bezierGrowthSurface;
   double _surfaceScale;
@@ -46,6 +47,7 @@ public:
   std::string _divisionFileName;
   //std::string _timeAgainstCellsFileName;
   std::vector<std::size_t> _layerColorIndex;
+  std::vector<std::size_t> _cellFileColorIndex;
   double _cellPinch;
   double _cellMaxPinch;
   std::size_t _cellColoringType;
@@ -58,8 +60,6 @@ public:
   double _firstDivisionsAreaRatio;
   double _secondDivisionsAreaRatio;
   std::size_t _timeDelay;
-  std::size_t _timeSixCellStage;
-  std::size_t _timeFourCellStage;
   bool _accurateCenterOfMass;
   double _LODThreshold;
   double _avoidTrianglesThreshold;
@@ -85,6 +85,9 @@ public:
   GLUquadricObj *quadratic;
   std::vector<std::size_t> _randomChoices;
   std::size_t _choiceCounter;
+  std::size_t _maxTimeSteps;
+  
+  std::map< std::string, std::vector<std::size_t> > _divisionSequences;
   
   double _equalAreaRatio;
   
@@ -132,16 +135,16 @@ public:
     _parms("View", "RenderCellCenter", _drawCenter );
     _parms("View", "RenderPCLine", _drawPCLine );
 
-    _parms( "Division", "DivisionArea", divisionArea);
-    _parms( "Division", "DivisionAreaRatio", divisionAreaRatio);
+    _parms( "Division", "DivisionArea", _divisionArea);
+    _parms( "Division", "DivisionAreaRatio", _divisionAreaRatio);
     _parms( "Division", "EqualAreaRatio", _equalAreaRatio);
-    _parms( "Division", "UseAreaRatio", useAreaRatio);
-    _parms( "Division", "UseCombinedAreaRatio", useCombinedAreaRatio);
-    _parms( "Division", "UseWallRatio", useWallRatio);
-    _parms( "Division", "DivisionWallRatio", divisionWallRatio);
+    _parms( "Division", "UseAreaRatio", _useAreaRatio);
+    _parms( "Division", "UseCombinedAreaRatio", _useCombinedAreaRatio);
+    _parms( "Division", "UseWallRatio", _useWallRatio);
+    _parms( "Division", "DivisionWallRatio", _divisionWallRatio);
     _parms( "Division", "UseAlternativeDivisionType", _useAlternativeDT );
     _parms( "Division", "DivisionType", _divisionType );
-    _parms( "Division", "ProbabilityOfDecussationDivision", probabilityOfDecussationDivision );
+    _parms( "Division", "ProbabilityOfDecussationDivision", _probabilityOfDecussationDivision );
     _parms( "Division", "DivisionAngleThreshold", _angleThreshold );
     _parms( "Division", "CellColoringType", _cellColoringType );
     
@@ -225,11 +228,11 @@ public:
       _drawLayerCurves = false;
     }
     
-    std::size_t t = 300;
+    _maxTimeSteps = 300;
     if( _realDataName == "130508_raw" )
-      t = 350;
+      _maxTimeSteps = 350;
     else if( _bezierGrowthSurface && _realDataName == "none" )
-      t = 500;
+      _maxTimeSteps = 500;
     
     // check if correct surface type was chosen
     if( _bezierGrowthSurface && SURFACETYPE == 1 )
@@ -238,7 +241,7 @@ public:
       return;
     }
         
-    _initSurface.init( _lod, _lineageFileName, t,
+    _initSurface.init( _lod, _lineageFileName,
                        _initialSituationType != 0,
                        _useAutomaticContourPoints,
                        _surfaceScale,
@@ -295,15 +298,17 @@ public:
     for( std::size_t l = 14; l < 45; l++ )
       _layerColorIndex.push_back( l );
     
+    for( std::size_t l = 45; l < 53; l++ )
+      _cellFileColorIndex.push_back( l );
+    
     cell dummy;
-    MyTissue::division_data ddummy;
     ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
     ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
     
     std::pair<std::size_t, std::size_t> pair;
     ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
                                                      dummy, dummy,
-                                                     ddummy, 0.,
+                                                     DivisionType::ANTICLINAL, 0.,
                                                      pair, true );
     
     /*
@@ -357,6 +362,16 @@ public:
       _initSurface.initRealDataCells( T, _VLRDataPointSurface );
     }
     
+    _divSetting = new DivisionSetting( T, _initialSituationType,
+      _divisionType, _timeDelay, _firstDivisionsAreaRatio,
+      _secondDivisionsAreaRatio, _useAlternativeDT, 
+      _accurateCenterOfMass, _probabilityOfDecussationDivision,
+      _useAreaRatio, _useCombinedAreaRatio, _useWallRatio,
+      _divisionArea, _divisionAreaRatio, _divisionWallRatio,
+      _LODThreshold, _avoidTrianglesThreshold, _loadLastModel,
+      _cellPinch, _cellMaxPinch, _onlyGrowthInHeight,
+      _VLRBezierSurface, _VLRDataPointSurface );
+    
     // export initial cell constellation
     forall(const cell& c, T.C)
     {
@@ -396,6 +411,13 @@ public:
     this->renderImage();
   }
 
+  //----------------------------------------------------------------
+  
+  ~MyModel()
+  {
+    delete _divSetting;
+  }
+  
   //----------------------------------------------------------------
   
   void renderImage()
@@ -485,13 +507,7 @@ public:
       this->readDataProperties( fileName );
     }
     
-    std::size_t t = 300;
-    if( _realDataName == "130508_raw" )
-      t = 350;
-    else if( _bezierGrowthSurface && _realDataName == "none" )
-      t = 500;
-    
-    _initSurface.init( _lod, _lineageFileName, t,
+    _initSurface.init( _lod, _lineageFileName,
                        _initialSituationType != 0,
                        _useAutomaticContourPoints,
                        _surfaceScale,
@@ -500,7 +516,6 @@ public:
     // after each restart, reset the model and cell wall file because
     // it makes no sense to append these files
     cell dummy;
-    MyTissue::division_data ddummy;
     ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
     ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
     
@@ -632,154 +647,9 @@ public:
         break;
       }
       
-      this->setAreaRatios();
+      _divSetting->setAreaRatios( _loadLastModel,
+                                  _initialSituationType );
     }
-  }
- 
-  //----------------------------------------------------------------
- 
-  void setAreaRatios()
-  {
-    switch( _initialSituationType )
-    {
-      case 0:
-        if( _divisionType == "Besson-Dumais" )
-        {
-          if( _onlyGrowthInHeight )
-          {
-            // 90 cells at end: 0.25
-            // 64 cells at end: 0.32
-            divisionAreaRatio = 0.3;
-          }
-          else
-          {
-            // asymmetric case: 0.455
-            // growth in height/width: 0.468
-            divisionAreaRatio = 0.468; 
-          }
-        }
-        else if( _divisionType == "Random" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.308;
-          else
-            divisionAreaRatio = 0.4674;
-        }
-        else if( _divisionType == "RandomEqualAreas" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.308;
-          else
-            divisionAreaRatio = 0.4674;
-        }
-        else if( _divisionType == "Decussation" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.3;
-          else
-            divisionAreaRatio = 0.462;
-        }
-        else if( _divisionType == "PerToGrowth" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.3;
-          else
-            divisionAreaRatio = 0.462;
-        }
-      break;
-      case 1:
-        if( _divisionType == "Besson-Dumais" )
-        {
-          if( _onlyGrowthInHeight )
-          {
-            // 90 cells at end: 0.305
-            // 64 cells at end: 0.42
-            divisionAreaRatio = 0.42;
-          }
-          else
-          {
-            // asymmetric case: ?
-            // growth in height/width: 0.7
-            divisionAreaRatio = 0.7;
-          }
-        }
-        else if( _divisionType == "Random" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.45;
-          else
-            divisionAreaRatio = 0.4674;
-        }
-        else if( _divisionType == "RandomEqualAreas" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.45;
-          else
-            divisionAreaRatio = 0.4674;
-        }
-        else if( _divisionType == "Decussation" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.445;
-          else
-            divisionAreaRatio = 0.462;
-        }
-        else if( _divisionType == "PerToGrowth" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.445;
-          else
-            divisionAreaRatio = 0.462;
-        }
-      break;
-      case 2:
-      case 3:
-        if( _divisionType == "Besson-Dumais" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.45;
-          else
-          {
-            // asymmetric case: 0.6
-            // growth in height/width: 0.71
-            divisionAreaRatio = 0.71;
-          }
-        }
-        else if( _divisionType == "Random" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.45;
-          else
-            divisionAreaRatio = 0.735;
-        }
-        else if( _divisionType == "RandomEqualAreas" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.45;
-          else
-            divisionAreaRatio = 0.735;
-        }
-        else if( _divisionType == "Decussation" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.45;
-          else
-            divisionAreaRatio = 0.73;
-        }
-        else if( _divisionType == "PerToGrowth" )
-        {
-          if( _onlyGrowthInHeight )
-            divisionAreaRatio = 0.45;
-          else
-            divisionAreaRatio = 0.71;
-        }
-      break;
-    }
-    
-    if( _divisionType == "Random" || _divisionType == "RandomEqualAreas" )
-      _avoidTrianglesThreshold = 15.;
-    else
-      _avoidTrianglesThreshold = 0.;
   }
  
   //----------------------------------------------------------------
@@ -800,27 +670,35 @@ public:
     }
     
     status += QString( "MS: %1\t" ).arg(time);
-    status += QString( "AD: %1\t" ).arg(_divOccurrences.first);
-    status += QString( "PD: %1\t" ).arg(_divOccurrences.second);
+    if( _surfaceType == 0 )
+    {
+      status += QString( "AD: %1\t" ).arg(_divOccurrences.first);
+      status += QString( "PD: %1\t" ).arg(_divOccurrences.second);
+    }
+    else
+    {
+      status += QString( "RD: %1\t" ).arg(_divOccurrences.first);
+      status += QString( "PD: %1\t" ).arg(_divOccurrences.second);
+    }
     
-    if( useCombinedAreaRatio )
+    if( _useCombinedAreaRatio )
     {
       QString type = "Type: ";
       ModelUtils::appendCellSituationType( type, _initialSituationType );
       type += "\t";
       status += QString( type );
-      status += QString( "Area div ratio: %1\t" ).arg(divisionAreaRatio);
+      status += QString( "Area div ratio: %1\t" ).arg(_divisionAreaRatio);
     }
-    else if( useAreaRatio )
-      status += QString( "Area div ratio: %1\t" ).arg(divisionAreaRatio);
+    else if( _useAreaRatio )
+      status += QString( "Area div ratio: %1\t" ).arg(_divisionAreaRatio);
     else
-      status += QString( "Area div: %1\t" ).arg(divisionArea);
+      status += QString( "Area div: %1\t" ).arg(_divisionArea);
     
-    if( useWallRatio )
-      status += QString( "Wall div ratio: %1\t" ).arg(divisionWallRatio);
+    if( _useWallRatio )
+      status += QString( "Wall div ratio: %1\t" ).arg(_divisionWallRatio);
     
     if( _divisionType == "Decussation" )
-      status += QString( "Dec prop: %1\%\t" ).arg(probabilityOfDecussationDivision);
+      status += QString( "Dec prop: %1\%\t" ).arg(_probabilityOfDecussationDivision);
     
     if( _useAlternativeDT )
       status += QString( "Div Type: %1\t" ).arg( QString::fromStdString(_divisionType) );
@@ -841,6 +719,10 @@ public:
     double angle = ModelUtils::determineDivisionAngle( ddata );
     DivisionType::type divType = ModelUtils::determineDivisionType( ddata,
                                                                     _angleThreshold );
+    
+    // in the radial view an anticlinal division is a radial one
+    if( _surfaceType == 1 && divType == DivisionType::ANTICLINAL )
+      divType = DivisionType::RADIAL;
     
     // set properties of dividing cell
     c->angle = angle;
@@ -876,6 +758,21 @@ public:
       }
     }
     
+    // store division sequences
+    if( divType == DivisionType::RADIAL )
+    {
+      auto iter = _divisionSequences.find( cl->divisionLetterSequence );
+      if( iter != _divisionSequences.end() )
+        iter->second.at( c->cellFile + 2 )++;
+      else
+      {
+        std::vector<std::size_t> files;
+        files.resize( 5, 0 );
+        files.at( c->cellFile + 2 )++;
+        _divisionSequences.insert( std::make_pair( cl->divisionLetterSequence, files ) );
+      }
+    }
+    
     // check which cell is the upper one and only increase the layer value
     // of the upper one in the case of having a periclinal division if 
     // updateBothLayers is set to false
@@ -885,6 +782,8 @@ public:
     this->checkLayerAppearance( cr );
     //this->applyLevelOfDetailToCell( cl );
     //this->applyLevelOfDetailToCell( cr );
+    
+    this->setCellFileSequence( cl, cr, c, divType, true );
     
     // update precursors
     cl->precursors.insert( c->id );
@@ -899,7 +798,7 @@ public:
     
     // export division properties
     ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
-                                                     cl, cr, ddata,
+                                                     cl, cr, c->divType,
                                                      _angleThreshold,
                                                      _divOccurrences,
                                                      false );
@@ -952,9 +851,8 @@ public:
   
   void setCellProperties( const cell &c, const cell &parentCell )
   {
-    Point3d center;
     double area;
-    this->setCellCenter( c, center, area );
+    Point3d center = ModelUtils::computeCellCenter( T, c, area, _accurateCenterOfMass );
     c->initialArea = area;
     c->center = center;
     c->divType = DivisionType::NONE;
@@ -971,32 +869,20 @@ public:
     c->previousDivDir = parentCell->divDir;
     c->divDir = c->center - parentCell->center;
     c->cellCycle = parentCell->cellCycle+1;
+    c->cellFile = parentCell->cellFile;
+    
+    if( parentCell->divType == DivisionType::ANTICLINAL )
+      c->divisionLetterSequence = parentCell->divisionLetterSequence + "A";
+    else if( parentCell->divType == DivisionType::PERICLINAL )
+      c->divisionLetterSequence = parentCell->divisionLetterSequence + "P";
+    else
+      c->divisionLetterSequence = parentCell->divisionLetterSequence + "R";
+    
     if( parentCell->divType == DivisionType::PERICLINAL )
       c->periCycle = parentCell->periCycle+1;
     else
       c->periCycle = parentCell->periCycle;
     _initSurface.incrementCellID();
-  }
-
-  //----------------------------------------------------------------
-  
-  void setCellCenter( const cell &c, Point3d &center, double &area )
-  {
-    center = Point3d( 0., 0., 0. );
-    if( !_accurateCenterOfMass )
-    {
-      std::vector<Point3d> polygon;
-      forall(const junction& j, T.S.neighbors(c))
-      {
-        polygon.push_back( j->getPos() );
-        center += j->getPos();
-      }
-      
-      center /= polygon.size();
-      area = geometry::polygonArea(polygon);
-    }
-    else
-      center = ModelUtils::getCenterBasedOnTriangleFan( c, T, area );
   }
   
   //----------------------------------------------------------------
@@ -1052,849 +938,51 @@ public:
   
   //----------------------------------------------------------------
   
-  bool setNextDecussationDivision()
+  void setCellFileSequence( const cell& cl, const cell& cr, const cell& c,
+                            const DivisionType::type divType,
+                            const bool updateBothFiles )
   {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    double p = probabilityOfDecussationDivision;
-    std::discrete_distribution<int> d({p, 100.-p});
-    
-    if(d(gen) == 0)
-      return true;
-    else
-      return false;
-  }
-
-  //----------------------------------------------------------------
-  
-  MyTissue::division_data getRandomDivisionData( const cell& c,
-                                                 bool &empty,
-                                                 const bool equalArea )
-  {
-    std::vector<MyTissue::division_data> divData;
-    divData = ModelUtils::determinePossibleDivisionData(
-      c, _avoidTrianglesThreshold, _LODThreshold, T );
-    
-//     std::cout << "possible Divisions: " << divData.size() << std::endl;
-    
-    MyTissue::division_data ddata;
-    unsigned int attempts = 0;
-    if( divData.size() != 0 )
+    if( divType == DivisionType::RADIAL )
     {
-      std::random_device rd;
-      std::mt19937 gen(rd());
-      std::uniform_int_distribution<int> d( 0, divData.size()-1 );
-      
-      // get a random choice of all possible division data
-      std::size_t choice;
-      
-      if( equalArea )
+      if( cl->center.i() < cr->center.i() )
       {
-        // check the two possible area of the daughter cells
-        do
+        if( !updateBothFiles )
         {
-          choice = d(gen);
-  //         std::cout << "c: " << choice << std::endl;
-          ddata = divData.at( choice );
-          attempts++;
-          
-          if( attempts > 50 )
-            break;
+          cl->cellFileColoringIndex = c->cellFileColoringIndex+1;
+          cr->cellFileColoringIndex = c->cellFileColoringIndex;
         }
-        while( !ModelUtils::checkDivisionArea( c, ddata, T, _equalAreaRatio ) );
+        else
+        {
+          cl->cellFileColoringIndex = 2*c->cellFileColoringIndex+2;
+          cr->cellFileColoringIndex = 2*c->cellFileColoringIndex+3;
+        }
+        
+        cl->cellFileSequence = c->cellFileSequence + "0";
+        cr->cellFileSequence = c->cellFileSequence + "1";
       }
       else
       {
-        choice = d(gen);
-        ddata = divData.at( choice );
-      }
-      
-      // store choice for later usage
-      if( !_loadLastModel )
-        _randomChoices.push_back( choice );
-      else
-      {
-        if( _choiceCounter < _randomChoices.size() )
+        if( !updateBothFiles )
         {
-          choice = _randomChoices.at(_choiceCounter);
-          ddata = divData.at( choice );
-          _choiceCounter++;
+          cr->cellFileColoringIndex = c->cellFileColoringIndex+1;
+          cl->cellFileColoringIndex = c->cellFileColoringIndex;
         }
-      }
-      
-      vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
-      
-      // apply cell pinching
-      tissue::CellPinchingParams params;
-      params.cellPinch = _cellPinch;
-      params.cellMaxPinch = _cellMaxPinch;
-      tissue::cellPinching( c, T, ddata, params );
-      empty = false;
-    }
-    else
-      empty = true;
-    
-    return ddata;
-  }
-  
-  //----------------------------------------------------------------
-  
-  MyTissue::division_data getEnergyDivisionData( const cell& c,
-                                                 bool &empty )
-  {
-    std::vector<MyTissue::division_data> divData;
-    divData = ModelUtils::determinePossibleDivisionData(
-      c, _avoidTrianglesThreshold, _LODThreshold, T );
-    
-    // compute the lengths of all division lines and sort them
-    // in ascending order
-    std::vector<double> lengths;
-    lengths.resize( divData.size() );
-    double minLength = 5000.;
-    double maxLength = 0.;
-    double sumLength = 0.;
-    std::size_t minIndex = 0;
-    
-    for( std::size_t l=0; l<lengths.size(); l++ )
-    {
-      Point3d pu = divData.at(l).pu;
-      Point3d pv = divData.at(l).pv;
-      //std::cout << "pu: " << pu << std::endl;
-      //std::cout << "pv: " << pv << std::endl;
-      double length = norm( pu - pv );
-      lengths.at(l) = length;
-      
-      if( length < minLength )
-      {
-        minLength = length;
-        minIndex = l;
-      }
-      
-      if( length >= maxLength )
-        maxLength = length;
-      
-      sumLength += length;
-    }
-    
-    //std::cout << "possible Divisions: " << divData.size() << std::endl;
-    //std::cout << "minLength: " << minLength << std::endl;
-    //std::cout << "maxLength: " << maxLength << std::endl;
-    //std::cout << "sumLength: " << sumLength << std::endl;
-    
-    std::size_t probDist = 1;
-    
-    MyTissue::division_data ddata;
-    if( divData.size() != 0 )
-    {
-      std::vector<double> probValues;
-      probValues.resize( divData.size() );
-      
-      if( probDist == 2 )
-      {
-        // get the probability distribution function for all lengths
-        for( std::size_t l=0; l<probValues.size(); l++ )
-        {
-          double prob = (lengths.at(l)*100.)/sumLength;
-          // the current probability value assigns a higher prob to longer lengths;
-          // however, this should be inverse. Consequently, we substract the prob
-          // from 100 percent and divide it by lengths.size()-1 to get the inverse
-          // probability value
-          if( lengths.size() > 1 )
-            probValues.at(l) = (100. - prob);// /(lengths.size()-1);
-          else
-            probValues.at(l) = 100.;
-          
-          //std::cout << "prob value: " << probValues.at(l) << std::endl;
-        }
-      }
-      else
-      {
-        double mu = 0.;
-        double sd = std::sqrt(0.5);
-        std::vector<double> normLengths;
-        normLengths.resize( divData.size() );
-        for( std::size_t l=0; l<normLengths.size(); l++ )
-        {
-          normLengths.at(l) = (lengths.at(l)-minLength)/(maxLength-minLength);
-          double prob = ModelUtils::getNormalDistribution( normLengths.at(l), mu, sd );
-      
-          if( lengths.size() > 1 )
-            probValues.at(l) = prob*100.;
-          else
-            probValues.at(l) = 100.;
-          
-          //std::cout << l << " prob value: " << probValues.at(l) << std::endl;
-        }
-      }
-      
-      std::size_t choice = ModelUtils::getRandomResultOfDistribution( probValues );
-      
-      // store choice for later usage
-      if( !_loadLastModel )
-        _randomChoices.push_back( choice );
-      else
-      {
-        if( _choiceCounter < _randomChoices.size() )
-        {
-          choice = _randomChoices.at(_choiceCounter);
-          ddata = divData.at( choice );
-          _choiceCounter++;
-        }
-      }
-      
-      //std::cout << "choice: " << choice << std::endl;
-      ddata = divData.at( choice );
-      vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
-      
-      // apply cell pinching
-      tissue::CellPinchingParams params;
-      params.cellPinch = _cellPinch;
-      params.cellMaxPinch = _cellMaxPinch;
-      tissue::cellPinching( c, T, ddata, params );
-      empty = false;
-    }
-    else
-      empty = true;
-    
-    return ddata;
-  }
-  
-  //----------------------------------------------------------------
-  
-  MyTissue::division_data getBessonDumaisDivisionData( const cell& c,
-                                                       bool &empty )
-  {
-    std::vector<MyTissue::division_data> divData;
-    divData = ModelUtils::determinePossibleDivisionData(
-      c, _avoidTrianglesThreshold, _LODThreshold, T );
-    
-    std::size_t numLines = divData.size();
-    //std::cout << "possible Divisions: " << numLines << std::endl;
-    
-    // fixed parameter from paper determined by experimental results
-    const double beta = 20.6;
-    
-    // compute the lengths of all division lines and sort them
-    // in ascending order
-    std::vector<double> lengths;
-    lengths.resize( numLines );
-    
-    // compute area size and mean cell diameter
-    std::vector<Point3d> polygon;
-    forall(const junction& j, T.S.neighbors(c))
-      polygon.push_back( j->getPos() );
-    
-    double area = geometry::polygonArea( polygon );
-    // mean cell diameter
-    double rho = std::sqrt( area );
-    
-    for( std::size_t l=0; l<numLines; l++ )
-    {
-      Point3d pu = divData.at(l).pu;
-      Point3d pv = divData.at(l).pv;
-      //std::cout << "pu: " << pu << std::endl;
-      //std::cout << "pv: " << pv << std::endl;
-      lengths.at(l) = norm( pu - pv );
-      //std::cout << l << " length: " << lengths.at(l) << std::endl;
-    }
-    
-    MyTissue::division_data ddata;
-    if( numLines != 0 )
-    {
-      double sum = 0.;
-      for( std::size_t l=0; l<numLines; l++ )
-        sum += std::exp( (-1. * beta * lengths.at(l)) / rho );
-      
-      std::vector<double> probValues;
-      probValues.resize( numLines );
-      for( std::size_t l=0; l<numLines; l++ )
-      {
-        probValues.at(l) = 100. * std::exp( (-1. * beta * lengths.at(l)) / rho ) / sum;
-        //std::cout << l << " prob value: " << probValues.at(l) << std::endl;
-        //ddata = divData.at( l );
-        //ModelUtils::checkDivisionArea( c, ddata, T, _equalAreaRatio );
-      }
-      
-      //unsigned int attempts = 0;
-      std::size_t choice = ModelUtils::getRandomResultOfDistribution( probValues );
-      //std::cout << "choice: " << choice << std::endl;
-      //std::cout << " selected prob value: " << probValues.at(choice) << std::endl;
-      //ddata = divData.at( choice );
-      //ModelUtils::checkDivisionArea( c, ddata, T, _equalAreaRatio );
-      
-//       if( true )
-//       {
-//         // check the two possible area of the daughter cells
-//         do
-//         {
-//           choice = ModelUtils::getRandomResultOfDistribution( probValues );
-//   //         std::cout << "c: " << choice << std::endl;
-//           ddata = divData.at( choice );
-//           attempts++;
-//           
-//           if( attempts > 50 )
-//             break;
-//         }
-//         while( !ModelUtils::checkDivisionArea( c, ddata, T, _equalAreaRatio ) );
-//       }
-//       else
-//       {
-//         choice = ModelUtils::getRandomResultOfDistribution( probValues );
-//         ddata = divData.at( choice );
-//       }
-      
-      // store choice for later usage
-      if( !_loadLastModel )
-        _randomChoices.push_back( choice );
-      else
-      {
-        if( _choiceCounter < _randomChoices.size() )
-        {
-          choice = _randomChoices.at(_choiceCounter);
-          _choiceCounter++;
-        }
-      }
-      
-      ddata = divData.at( choice );
-      
-      vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
-      
-      _probValues.push_back( probValues );
-      _lengths.push_back( lengths );
-      _choices.push_back( choice );
-      
-      // apply cell pinching
-      tissue::CellPinchingParams params;
-      params.cellPinch = _cellPinch;
-      params.cellMaxPinch = _cellMaxPinch;
-      tissue::cellPinching( c, T, ddata, params );
-      empty = false;
-    }
-    else
-      empty = true;
-    
-    return ddata;
-  }
-  
-  //----------------------------------------------------------------
-  
-  MyTissue::division_data setDivisionPoints( const cell& c )
-  {
-    MyTissue::division_data ddata;
-    const Point3d& center = c->center;
-    double a = M_PI/180. * c->angle;
-    Point3d direction = Point3d(-sin(a), cos(a), 0);
-    forall( const junction& j,T.S.neighbors(c) )
-    {
-      Point3d jpos, jnpos;
-      const junction& jn = T.S.nextTo(c, j);
-      jpos = j->getPos();
-      jnpos = jn->getPos();
-      
-      Point3d u;
-      double s;
-      if(geometry::planeLineIntersection(u, s, center, direction, jpos, jnpos) and s >= 0 and s <= 1)
-      {
-        if((jpos - center)*direction > 0)
-        {
-          ddata.v1 = j;
-          ddata.pv = u;
-        }
-        else if((jpos - center)*direction < 0)
-        {
-          ddata.u1 = j;
-          ddata.pu = u;
-        }
-        if(ddata.u1 and ddata.v1)
-          break;
-      }
-    }
-    
-    vvcomplex::testDivisionOnVertices(c, ddata, T, 0.01);
-    
-    // apply cell pinching
-    tissue::CellPinchingParams params;
-    params.cellPinch = _cellPinch;
-    params.cellMaxPinch = _cellMaxPinch;
-    tissue::cellPinching( c, T, ddata, params );
-    
-    return ddata;
-  }
-  
-  //----------------------------------------------------------------
-  
-  bool step_divisions()
-  {
-    // for which number of cells should the division area ratio check apply
-    // this is required since at the beginning only few divisions occur due
-    // to the small increasing of area based on the initial area size
-    std::size_t areaRatioStart;
-    if( T.C.size() > 1 )
-      areaRatioStart = 0;
-    else
-      areaRatioStart = 1;
-    
-    // Find cells to be divided
-    std::list<cell> to_divide;
-    
-    // wait after the six cell stage until the predefined time has passed
-    bool wait = false;
-    if( T.C.size() == 4 && _initialSituationType == 1 )
-    {
-      std::size_t curTime = _initSurface.getTime();
-      if( curTime - _timeFourCellStage > _timeDelay )
-        wait = false;
-      else
-        wait = true;
-    }
-    
-    if( T.C.size() == 6 &&
-        ( _initialSituationType == 2 || _initialSituationType == 3 ) )
-    {
-      std::size_t curTime = _initSurface.getTime();
-      if( curTime - _timeSixCellStage > _timeDelay )
-        wait = false;
-      else
-        wait = true;
-    }
-    
-    // at first determine the min and max values for each cell
-    forall(const cell& c, T.C)
-      ModelUtils::determineXMinMax( c, T );
-    
-    // wait for the four-cell stage some time steps such that the
-    // the future divisions are not occurring too fast
-    // and only update the center of cells
-    if( T.C.size() == 4 &&
-        _initialSituationType == 1 && wait )
-    {
-      forall(const cell& c, T.C)
-      {
-        // update center position
-        Point3d center;
-        double area;
-        this->setCellCenter( c, center, area );
-        this->setPosition( c, center );
-        c->area = area;
-        c->center = center;
-        // add the current center position to the set
-        c->centerPos.push_back( center );
-        c->timeStep = _initSurface.getTime();
-        c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
-      }
-    }
-    // force the initial start of the VLR
-    else if( T.C.size() < 6 && _initialSituationType != 0 )
-    {
-      forall(const cell& c, T.C)
-      {
-        // update center position
-        Point3d center;
-        double area;
-        this->setCellCenter( c, center, area );
-        if( T.C.size() < 4 )
-        {
-          double xLength = std::fabs( c->xMax - c->xMin );
-          if( c->id == 1 )
-            center.i() = c->xMin + 2.*xLength/3.; 
-          else if( c->id == 2 )
-            center.i() = c->xMin + 1.*xLength/3.;
-        }
-        this->setPosition( c, center );
-        c->area = area;
-        c->center = center;
-        // add the current center position to the set
-        c->centerPos.push_back( center );
-        c->timeStep = _initSurface.getTime();
-        c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
-        
-        double a = c->area;
-        double l = c->longestWallLength;
-        
-        // divide cells if their area size has increased by a certain percentage amount
-        double initialArea = c->initialArea;
-        if( T.C.size() < 4 )
-          initialArea += initialArea*_firstDivisionsAreaRatio;
-        else
-          initialArea += initialArea*_secondDivisionsAreaRatio;
-        
-        if( T.C.size() == 3 )
-        {
-          // when one of the two founder cells has already divided
-          // then assure that the second founder cell will divide
-          // before one of the two daughter cells of the first division
-          // divide again
-          if( c->id == 2 || c->id == 1 )
-          {
-            if( a > initialArea )
-              to_divide.push_back(c);
-          }
-          
-          _timeFourCellStage = _initSurface.getTime();
-        }
-        // else perform the "normal" division routine
         else
         {
-          if( a > initialArea )
-          {
-            // if there are 5 cells and if we are in this loop
-            // a next division will occur; so we store the time
-            // of the six cell stage
-            if( T.C.size() == 5 )
-              _timeSixCellStage = _initSurface.getTime();
-              
-            to_divide.push_back(c);
-          }
+          cr->cellFileColoringIndex = 2*c->cellFileColoringIndex+2;
+          cl->cellFileColoringIndex = 2*c->cellFileColoringIndex+3;
         }
-      }
-    }
-    // wait for the six-cell stage some time steps such that the
-    // the future divisions are not occurring too fast
-    // and only update the center of cells
-    else if( T.C.size() == 6 &&
-             _initialSituationType != 0 && wait )
-    {
-      forall(const cell& c, T.C)
-      {
-        // update center position
-        Point3d center;
-        double area;
-        this->setCellCenter( c, center, area );
-        this->setPosition( c, center );
-        c->area = area;
-        c->center = center;
-        // add the current center position to the set
-        c->centerPos.push_back( center );
-        c->timeStep = _initSurface.getTime();
-        c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
+        
+        cl->cellFileSequence = c->cellFileSequence + "1";
+        cr->cellFileSequence = c->cellFileSequence + "0";
       }
     }
     else
-    {      
-      forall(const cell& c, T.C)
-      {
-        // update center position
-        Point3d center;
-        double area;
-        this->setCellCenter( c, center, area );
-        this->setPosition( c, center );  
-        c->area = area;
-        c->center = center;
-        // add the current center position to the set
-        c->centerPos.push_back( center );
-        c->timeStep = _initSurface.getTime();
-        c->longestWallLength = ModelUtils::determineLongestWallLength( c, T );
-        
-        double a = c->area;
-        double l = c->longestWallLength;
-        if( useAreaRatio && useWallRatio && c->id > areaRatioStart )
-        {
-          // divide cells if their area size has increased by a certain percentage amount
-          double initialArea = c->initialArea;
-          initialArea += initialArea*divisionAreaRatio;
-          // divide cell if its wall length has increased by a certain percentage amount
-          double initialLongestLength = c->initialLongestWallLength;
-          initialLongestLength += initialLongestLength*divisionWallRatio;
-          
-          if( a > initialArea || l > initialLongestLength )
-            to_divide.push_back(c);
-        } 
-        // apply a division if the cells area exceeds a certain threshold or area ratio
-        else if( useCombinedAreaRatio && c->id > areaRatioStart )
-        {
-          // divide cells if their area size has increased by a certain percentage amount
-          double initialArea = c->initialArea;
-          initialArea += initialArea*divisionAreaRatio;
-          if( a > initialArea && a > divisionArea )
-            to_divide.push_back(c);
-        }
-        // only apply the division based on ratio with at least areaRatioStart cells
-        else if( useAreaRatio && c->id > areaRatioStart )
-        {
-          // divide cells if their area size has increased by a certain percentage amount
-          double initialArea = c->initialArea;
-          initialArea += initialArea*divisionAreaRatio;
-          if( a > initialArea )
-            to_divide.push_back(c);
-        }
-        // only apply the division based on ratio with at least areaRatioStart cells
-        else if( useWallRatio && c->id > areaRatioStart )
-        {
-          // divide cell if its wall length has increased by a certain percentage amount
-          double initialLongestLength = c->longestWallLength;
-          initialLongestLength += initialLongestLength*divisionWallRatio;
-          if( l > initialLongestLength )
-            to_divide.push_back(c);
-        }
-        else
-        {
-          if( a > divisionArea )
-            to_divide.push_back(c);
-        }
-      }
-    }
-    
-    // Divide the cells
-    forall(const cell& c, to_divide)
     {
-      // perform the "normal" division routine for the initial two founder cells
-      if( T.C.size() < 4 )//&& _initialSituationType != 0 )
-      {
-        // HACKING HERE for first randomized division
-        bool empty = false;
-        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty, false );
-        if( empty )
-          T.divideCell( c );
-        else
-          T.divideCell( c, ddata );
-        
-        //T.divideCell(c);
-      }
-      // set the division properties for the second division
-      // periclinal division resulting in six cells
-      // **********************************
-      // *         *     *     *          *
-      // *         *************          *
-      // *         *     *     *          *
-      // **********************************
-      else if( T.C.size() > 3 && T.C.size() < 6 )//&& _initialSituationType == 2 )
-      {
-        // HACKING HERE for first randomized division
-        bool empty = false;
-        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty, false );
-        if( empty )
-          T.divideCell( c );
-        else
-          T.divideCell( c, ddata );
-        
-//         if( c->innerCell )
-//         {
-//           c->angle = 180.;
-//           MyTissue::division_data ddata = this->setDivisionPoints( c );
-//           T.divideCell( c, ddata );
-//         }
-      }
-      // set the division properties for the second division
-      // anticlinal division resulting in six cells
-      // **********************************
-      // *         *  *  *  *  *          *
-      // *         *  *  *  *  *          *
-      // *         *  *  *  *  *          *
-      // **********************************
-      else if( T.C.size() > 3 && T.C.size() < 6 && _initialSituationType == 3 )
-      {
-        if( c->innerCell )
-        {
-          c->angle = 90.;
-          MyTissue::division_data ddata = this->setDivisionPoints( c );
-          T.divideCell( c, ddata );
-        }
-      }
-      else if( _divisionType == "Decussation" &&
-               c->id > areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // if true then the next division is perpendicular to the last one
-        // else the division is collinear to the previous division direction
-        if( this->setNextDecussationDivision() )
-        {          
-          double noise = this->generateNoiseInRange( -10., 10., 1000 );
-          c->angle = fmod( c->angle + 90., 360. ) + noise;
-        }
-        
-        MyTissue::division_data ddata = this->setDivisionPoints( c );
-        T.divideCell( c, ddata );
-      }
-      else if( _divisionType == "PerToGrowth" &&
-               c->id > areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // if true then the next division is perpendicular to the principal
-        // component growth of the center deformation since the cell was born
-        // determine principal growth direction
-        if( c->centerPos.size() > 2 )
-          c->principalGrowthDir = this->determineLongestPCGrowth( c->centerPos );
-        else
-          std::cout << "Too few center positions!" << std::endl;
-        
-        Point3d xaxisDir = Point3d( 1., 0., 0. );
-        double noise = this->generateNoiseInRange( -10., 10., 1000 );
-        c->angle = 180./M_PI * acos( c->principalGrowthDir*xaxisDir );
-        if( ModelUtils::determineSlope( c->principalGrowthDir ) > 0 )
-        {
-          // only add the property that it is perpendicular to the PCA dir
-          c->angle += 90. + noise;
-        }
-        else
-        {
-          // add the property AND handle the missing degrees for having a negative slope
-          if( c->principalGrowthDir.i() > 0 )
-            c->angle = 180. - c->angle;
-          
-          c->angle += 90. + noise;
-        }
-        // update the division angle
-        MyTissue::division_data ddata = this->setDivisionPoints( c );
-        
-        // store the line positions for later drawing
-        Point3d midDiv = (ddata.pu+ddata.pv)/2.;
-        _pcLines.push_back( std::make_pair( midDiv - 5.*c->principalGrowthDir,
-                                            midDiv + 5.*c->principalGrowthDir ) );
-        
-        T.divideCell( c, ddata );
-      }
-      else if( _divisionType == "Energy" &&
-               c->id > areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // if true then all division planes are determined preserving
-        // almost non-triangle cells with same area sizes and the shortest cell wall
-        // has the lowest energy while the longest one has the highest energy;
-        // probability values are then assigned like this:
-        // lowest energy -> high probability
-        // highest energy -> low probability
-        bool empty = false;
-        MyTissue::division_data ddata = this->getEnergyDivisionData( c, empty );
-        // if the division data is empty then just use the default division
-        // rule (e.g. ShortestWall)
-        if( empty )
-          T.divideCell( c );
-        else
-          T.divideCell( c, ddata );
-      }
-      else if( _divisionType == "Besson-Dumais" &&
-               c->id > areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // the division plane is chosen based on Gibbs measure as described
-        // in the paper of Besson and Dumais, 2011 (Universal rule for the 
-        // symmetric division of plant cells)
-        bool empty = false;
-        MyTissue::division_data ddata = this->getBessonDumaisDivisionData( c, empty );
-        // if the division data is empty then just use the default division
-        // rule (e.g. ShortestWall)
-        if( empty )
-          T.divideCell( c );
-        else
-          T.divideCell( c, ddata );
-      }
-      else if( _divisionType == "RandomEqualAreas" &&
-               c->id > areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // if true then all division planes are determined randomly preserving
-        // cells with almost same area sizes
-        bool empty = false;
-        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty, true );
-        // if the division data is empty then just use the default division
-        // rule (e.g. ShortestWall)
-        if( empty )
-          T.divideCell( c );
-        else
-          T.divideCell( c, ddata );
-      }
-      else if( _divisionType == "Random" &&
-               c->id > areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // if true then all division planes are determined randomly
-        bool empty = false;
-        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty, false );
-        // if the division data is empty then just use the default division
-        // rule (e.g. ShortestWall)
-        if( empty )
-          T.divideCell( c );
-        else
-          T.divideCell( c, ddata );
-      }
-      else
-        T.divideCell(c);
-    }
-
-    return !to_divide.empty();
-  }
-  
-  //----------------------------------------------------------------
-  
-  double generateNoiseInRange( const double start,
-                               const double end,
-                               const unsigned int steps )
-  {
-    std::vector<double> values;
-    double stepSize = fabs( end - start )/steps;
-    
-    for( double v = start; v < end+stepSize; v+=stepSize )
-      values.push_back( v );
-    
-    // store choice for later usage
-    std::size_t choice;
-    if( !_loadLastModel )
-    {
-      std::random_device rd;
-      std::mt19937 gen(rd());
-      std::uniform_int_distribution<int> d( 0, values.size()-1 );
-      choice = d(gen);
-      _randomChoices.push_back( choice );
-    }
-    else
-    {
-      if( _choiceCounter < _randomChoices.size() )
-      {
-        choice = _randomChoices.at(_choiceCounter);
-        _choiceCounter++;
-      }
-    }
-    
-    return values.at( choice );
-  }
-  
-  //----------------------------------------------------------------
-  
-  void step_cellWalls()
-  {    
-    if( !_lastStep )
-    {
-      forall(const cell& c, T.C)
-        ModelExporter::exportCellWalls( _cellWallsFileName, c, T, false );
-    }
-  }
-  
-  //----------------------------------------------------------------
-  
-  void step_tracking()
-  {
-    if( !_lastStep )
-    {
-      forall(const cell& c, T.C)
-        ModelExporter::exportLineageInformation( _lineageFileName, c, T, false );
-    }
-  }
-  
-  //----------------------------------------------------------------
-  
-  void step_growth()
-  {
-    if( SURFACETYPE == 0 )
-    {
-      _VLRBezierSurface.growStep( dt );
-      forall(const junction& j, T.W)
-        _VLRBezierSurface.getPos( j->sp );
-    }
-    else
-    {
-      // generate new triangulation surface based on real data points
-      std::vector<SurfacePoint> sps;
-      forall(const junction& j, T.W)
-        sps.push_back( j->sp );
-
-      _VLRDataPointSurface.growStep( dt, sps );
-      
-      int i = 0;
-      forall(const junction& j, T.W)
-      {
-        j->sp = sps[i++];
-        _VLRDataPointSurface.getPos( j->sp );
-      }
+      cl->cellFileSequence = c->cellFileSequence;
+      cl->cellFileColoringIndex = c->cellFileColoringIndex;
+      cr->cellFileSequence = c->cellFileSequence;
+      cr->cellFileColoringIndex = c->cellFileColoringIndex;
     }
   }
   
@@ -1906,12 +994,19 @@ public:
     if( SURFACETYPE == 0 )
     {
       curTime = _initSurface.getTime();
-      maxTime = _initSurface.getMaxTime();
+      maxTime = _maxTimeSteps;
     }
     else
     {
       curTime = _VLRDataPointSurface.getCurTimeStep();
       maxTime = _VLRDataPointSurface.getMaxTimeStep() - 1;
+    }
+   
+    if( curTime == 200 )
+    {
+      // check different division sequences and store them
+      this->storeDivisionSequences();
+      this->stopModel();
     }
     
     if( curTime == maxTime && _avoidTrianglesThreshold <= 0.00001 )
@@ -1947,7 +1042,7 @@ public:
     this->renderImage();
     
     if( _useLoop && curTime >= maxTime )
-    {
+    {      
       // before restart the model, save the model information such
       // as the division occurrences as well as the layering
       this->updateLayerCount();
@@ -2016,10 +1111,15 @@ public:
     
     for(int i = 0 ; i < stepPerView ; ++i)
     {
-      this->step_divisions();
-      this->step_tracking();
-      this->step_cellWalls();
-      this->step_growth();
+      _divSetting->step_divisions( _initSurface.getTime() );
+      
+      if( !_lastStep )
+      {
+        _divSetting->step_tracking( _lineageFileName );
+        _divSetting->step_cellWalls( _cellWallsFileName );
+      }
+      
+      _divSetting->step_growth( dt );
     }
     this->setStatus();
     
@@ -2100,25 +1200,19 @@ public:
   
   //----------------------------------------------------------------
   
-  Point3d determineLongestPCGrowth( const std::vector<Point3d> &positions )
+  void storeDivisionSequences()
   {
-    Point3d principalGrowthDir;
-    
-    Eigen::MatrixXd points( positions.size(), 2 );
-    
-    for( std::size_t r=0;r<positions.size();r++ )
+    for( auto iter = _divisionSequences.begin(); iter != _divisionSequences.end(); iter++ )
     {
-      points( r, 0 ) = positions.at(r).i();
-      points( r, 1 ) = positions.at(r).j();
-    }
+      std::cout << iter->first << " ";
+      for( std::size_t f = 0; f < iter->second.size(); f++ )
+        std::cout << iter->second.at(f) << " ";
       
-    //std::cout << "Matrix: " << points << std::endl;
-    std::vector<double> lpc = PCA::compute( points );
-    principalGrowthDir = Point3d( lpc.at(0), lpc.at(1), lpc.at(2) );
-    //std::cout << "LPC: " << principalGrowthDir << std::endl;
-    
-    return principalGrowthDir;
+      std::cout << std::endl;
+    }
   }
+  
+ 
   
   //----------------------------------------------------------------
   
@@ -2306,6 +1400,9 @@ public:
         // inner cell
         else
           return _palette.getColor(2);
+      case 3:
+        return _palette.getColor(
+          _layerColorIndex.at((c->cellFileColoringIndex-1)%_layerColorIndex.size()) );
     }
   }
 
@@ -2381,16 +1478,16 @@ public:
     out << _initialSituationType << "\n";
     out << _LODThreshold << "\n";
     out << _avoidTrianglesThreshold << "\n";
-    out << divisionArea << "\n";
-    out << divisionAreaRatio << "\n";
+    out << _divisionArea << "\n";
+    out << _divisionAreaRatio << "\n";
     out << _equalAreaRatio << "\n";
-    out << useAreaRatio << "\n";
-    out << useCombinedAreaRatio << "\n";
-    out << useWallRatio << "\n";
-    out << divisionWallRatio << "\n";
+    out << _useAreaRatio << "\n";
+    out << _useCombinedAreaRatio << "\n";
+    out << _useWallRatio << "\n";
+    out << _divisionWallRatio << "\n";
     out << _useAlternativeDT << "\n";
     out << _divisionType << "\n";
-    out << probabilityOfDecussationDivision << "\n";
+    out << _probabilityOfDecussationDivision << "\n";
     out << _angleThreshold << "\n";
     out << _firstDivisionsAreaRatio << "\n";
     out << _secondDivisionsAreaRatio << "\n";
@@ -2419,16 +1516,16 @@ public:
        >> _initialSituationType
        >> _LODThreshold
        >> _avoidTrianglesThreshold
-       >> divisionArea
-       >> divisionAreaRatio
+       >> _divisionArea
+       >> _divisionAreaRatio
        >> _equalAreaRatio
-       >> useAreaRatio
-       >> useCombinedAreaRatio
-       >> useWallRatio
-       >> divisionWallRatio
+       >> _useAreaRatio
+       >> _useCombinedAreaRatio
+       >> _useWallRatio
+       >> _divisionWallRatio
        >> _useAlternativeDT
        >> _divisionType
-       >> probabilityOfDecussationDivision
+       >> _probabilityOfDecussationDivision
        >> _angleThreshold
        >> _firstDivisionsAreaRatio
        >> _secondDivisionsAreaRatio

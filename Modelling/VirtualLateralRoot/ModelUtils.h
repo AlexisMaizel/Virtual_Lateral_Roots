@@ -22,7 +22,14 @@ namespace ModelUtils
   double determineLongestWallLength( const cell& c,
                                      const MyTissue& T );
   
+  Point3d determineLongestPCGrowth( const std::vector<Point3d> &positions );
+  
+  bool setNextDecussationDivision( const double prob );
+  
   void determineXMinMax( const cell &c, const MyTissue& T );
+  
+  Point3d computeCellCenter( const MyTissue& T, const cell &c,
+                             double &area, const bool accurateCenterOfMass );
   
   void findAppropriateJunctionPoint( Point3d &p,
                                    const std::set<junction> &juncs,
@@ -81,7 +88,14 @@ namespace ModelUtils
   bool checkDivisionArea( const cell& c,
                           const MyTissue::division_data &ddata,
                           const MyTissue& T,
-                          const double equalAreaRatio );
+                          const double equalAreaRatio,
+                          double &areaDiff );
+  
+  std::size_t determineDivisionDataBasedOnAlmostEqualArea(
+                        const cell& c,
+                        const std::vector<MyTissue::division_data> divData,
+                        const MyTissue& T,
+                        const int attempts );
   
   std::vector<Point3d> loadContourPoints( const std::string &fileName,
                                           const double surfaceScale );

@@ -1,4 +1,4 @@
-OBJECTS=model.o bezier.o surface.o ModelExporter.o SurfacePoints.o RealSurface.o ModelUtils.o GraphicsClass.o InitSurface.o SurfaceBaseClass.o
+OBJECTS=model.o bezier.o surface.o ModelExporter.o SurfacePoints.o RealSurface.o ModelUtils.o DivisionSetting.o GraphicsClass.o InitSurface.o SurfaceBaseClass.o
 
 default: model.vve
 
@@ -18,6 +18,8 @@ LD_SO_FLAGS+=
 LD_EXE_FLAGS+=
 
 model.o: model.moc ModelHeader.h PrincipalComponentAnalysis.h
+
+DivisionSetting.o: DivisionSetting.cpp DivisionSetting.h
 
 GraphicsClass.o: GraphicsClass.cpp GraphicsClass.h
 

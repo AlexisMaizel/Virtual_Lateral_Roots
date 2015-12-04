@@ -95,10 +95,19 @@ struct CellContent
   // layer 4 -> red (12) etc.
   std::size_t layerValue;
   std::string divisionSequence;
+  // division sequence given by A, P, R
+  std::string divisionLetterSequence;
   // corresponding cell cycle
   std::size_t cellCycle;
   // periCycle
   std::size_t periCycle;
+  // cell file
+  int cellFile;
+  // actually the cell file value is constant but the color index
+  // should change after a radial division
+  int cellFileColoringIndex;
+  // cell file division sequence
+  std::string cellFileSequence;
   // previous division direction of cell
   Point3d previousDivDir;
   // current division direction of cell

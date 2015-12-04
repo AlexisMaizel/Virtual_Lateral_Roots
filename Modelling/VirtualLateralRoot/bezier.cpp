@@ -576,7 +576,7 @@ void Bezier::setRadialSurface( const int numControlPoints,
   
   double r = 300.;
   double rBottom = 7.*r/10.;
-  double rTop = 6.*r;
+  double rTop = 8.*r;
   double angle = 15.;
   double angleStep = 25.;
   int variant = 1;

@@ -12,7 +12,7 @@ UseAutomaticContourPoints: false // use contour points that are generated automa
 InitialSituationType: 0 // forced division situation at the beginning; can be 0, 1, 2, or 3 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells, 3: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards anticlinally again resulting in 6 cells
 CenterOfMassBasedOnTriangleFan: true // compute the center of mass based on the center of a triangle fan of all boundary nodes
 Loop: false
-AvoidTrianglesThreshold: 15 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
+AvoidTrianglesThreshold: 20 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
 LoadLastModel: false // if true load the last created model for which this variable was set to false -> this is required to rerun models that are generated with randomized parameters
 OnlyGrowthInHeight: true // the idealized bezier surface changes in width and height -> setting this parameter to true results in a bezier surface only increasing in height
 RenderMovies: false // if set to true then create movies from the same model (even if randomized) visualized by cells, spheres, and layercurves, all colored by layers and additionally one movie where the cells are colored by founder cells
@@ -23,7 +23,7 @@ StepPerView: 1
 BackgroundColor: 255
 RenderCells: true
 RenderJunctions: false
-RenderSpheres: true
+RenderSpheres: false
 RenderLayerCurves: false
 RenderControlPoints: true
 RenderBezierSurface: false
@@ -32,7 +32,7 @@ RenderPCLine: false // only when PerToGrowth as division type is used
 
 [Division]
 DivisionArea: 1100 // 1100 ... 0.025 threshold size of cells before they divide
-DivisionAreaRatio: 0.79 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
+DivisionAreaRatio: 0.45 // 0.145 ... 0.45 threshold of division area ratio in percentage, for example 0.5 means that a cell divides if its initial area has grown by 50%
 EqualAreaRatio: 10.
 UseAreaRatio: true // only use area ratio for divisions
 UseCombinedAreaRatio: true // use the area ratio and the area threshold to prevent the cells becoming smaller step by step
@@ -42,7 +42,7 @@ UseAlternativeDivisionType: true
 DivisionType: Besson-Dumais // Decussation PerToGrowth Energy Besson-Dumais Random RandomEqualAreas; defines the type of division which then replaces the chosen type of division set by the variable DivisionAlgorithm below
 ProbabilityOfDecussationDivision: 100 // probability for having a decussation division (has to be in [0, 100])
 DivisionAngleThreshold: 45. // angle threshold to distinguish between anticlinal and periclinal division
-CellColoringType: 1 // cell coloring type: 0 -> cells are colored based on founder cells/lineage trees; 1 -> cells are colored based on layer assignments after each periclinal division; 2 -> cells are colored based on type: interior or boundary
+CellColoringType: 3 // cell coloring type: 0 -> cells are colored based on founder cells/lineage trees; 1 -> cells are colored based on layer assignments after each periclinal division; 2 -> cells are colored based on type: interior or boundary; 3 -> cells are colored based on cell file assignments
 FirstDivisionsAreaRatio: 0.001 // first division ratio if forced initial situation is used
 SecondDivisionsAreaRatio: 0.3 // second division ratio if forced initial situation is used
 TimeDelay: 20 // time delay for next division after the six cell stage if forced initial situation is used

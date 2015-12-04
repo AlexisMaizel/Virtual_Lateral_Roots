@@ -25,7 +25,7 @@ namespace ModelExporter
   void exportDivisionDaughterProperties( const std::string &filename,
                                          const cell& cl,
                                          const cell& cr,
-                                         const MyTissue::division_data& ddata,
+                                         const DivisionType::type divType,
                                          const double angleThreshold,
                                          std::pair<std::size_t, std::size_t> &divOccurrences,
                                          const bool init );

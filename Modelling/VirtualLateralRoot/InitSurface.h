@@ -18,7 +18,6 @@ public:
   
   void init( const std::size_t lod,
              const std::string &lineageFileName,
-             const std::size_t timeSteps,
              const bool forceInitialSituation,
              const bool useAutomaticContourPoints,
              const double surfaceScale,
@@ -39,7 +38,8 @@ public:
                      const std::pair<double, double> &length,
                      const std::size_t treeId,
                      SurfaceBaseClass &surface,
-                     const std::size_t addJunctionToWall = 4 );
+                     const std::size_t addJunctionToWall = 4,
+                     const int cellFile = 0 );
   
   Point3d determinePos( const double u, const double v );
   
@@ -47,7 +47,6 @@ public:
   void incrementCellID(){ _IDCounter++; }
   
   std::size_t getTime() const { return _time; }
-  std::size_t getMaxTime() const { return _maxTime; }
   std::size_t getCellID() const { return _IDCounter; }
 private:
   
@@ -61,8 +60,6 @@ private:
   std::size_t _jIDCounter;
   // current time step
   std::size_t _time;
-  // max time step of data set
-  std::size_t _maxTime;
   
   std::string _lineageFileName;
   

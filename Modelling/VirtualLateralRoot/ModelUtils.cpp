@@ -1,5 +1,7 @@
 #include "ModelUtils.h"
 
+#include "PrincipalComponentAnalysis.h"
+
 /**
   @file   ModelUtils.cpp
   @brief  Contains namespace for util methods used in the model
@@ -31,6 +33,43 @@ double determineLongestWallLength( const cell& c,
       maxLength = length;
   }
   return maxLength;
+}
+
+//----------------------------------------------------------------
+  
+Point3d determineLongestPCGrowth( const std::vector<Point3d> &positions )
+{
+  Point3d principalGrowthDir;
+  
+  Eigen::MatrixXd points( positions.size(), 2 );
+  
+  for( std::size_t r=0;r<positions.size();r++ )
+  {
+    points( r, 0 ) = positions.at(r).i();
+    points( r, 1 ) = positions.at(r).j();
+  }
+    
+  //std::cout << "Matrix: " << points << std::endl;
+  std::vector<double> lpc = PCA::compute( points );
+  principalGrowthDir = Point3d( lpc.at(0), lpc.at(1), lpc.at(2) );
+  //std::cout << "LPC: " << principalGrowthDir << std::endl;
+  
+  return principalGrowthDir;
+}
+
+//----------------------------------------------------------------
+
+bool setNextDecussationDivision( const double prob )
+{
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  double p = prob;
+  std::discrete_distribution<int> d({p, 100.-p});
+  
+  if(d(gen) == 0)
+    return true;
+  else
+    return false;
 }
 
 //----------------------------------------------------------------
@@ -117,6 +156,31 @@ bool equalPoints( const Point3d &p1, const Point3d &p2 )
     return true;
   else
     return false;
+}
+
+//----------------------------------------------------------------
+
+Point3d computeCellCenter( const MyTissue& T, const cell &c,
+                           double &area,
+                           const bool accurateCenterOfMass )
+{
+  Point3d center = Point3d( 0., 0., 0. );
+  if( !accurateCenterOfMass )
+  {
+    std::vector<Point3d> polygon;
+    forall(const junction& j, T.S.neighbors(c))
+    {
+      polygon.push_back( j->getPos() );
+      center += j->getPos();
+    }
+    
+    center /= polygon.size();
+    area = geometry::polygonArea(polygon);
+  }
+  else
+    center = ModelUtils::getCenterBasedOnTriangleFan( c, T, area );
+  
+  return center;
 }
 
 //----------------------------------------------------------------
@@ -775,7 +839,8 @@ std::vector<MyTissue::division_data> determinePossibleDivisionData(
 bool checkDivisionArea( const cell& c,
                         const MyTissue::division_data &ddata,
                         const MyTissue& T,
-                        const double equalAreaRatio )
+                        const double equalAreaRatio,
+                        double &areaDiff )
 {
   Point3d startPos = ddata.u1->getPos();
   Point3d endPos = ddata.v1->getPos();
@@ -835,9 +900,47 @@ bool checkDivisionArea( const cell& c,
   
   //std::cout << "ratio1: " << ratio1 << std::endl;
   //std::cout << "ratio2: " << ratio2 << std::endl;
-  std::cout << "diffRatio: " << fabs( ratio1 - ratio2 ) << std::endl;
+  areaDiff = fabs( ratio1 - ratio2 );
+  //std::cout << "diffRatio: " << fabs( ratio1 - ratio2 ) << std::endl;
   
   return (fabs( ratio1 - ratio2 ) <= equalAreaRatio);
+}
+
+//----------------------------------------------------------------
+
+std::size_t determineDivisionDataBasedOnAlmostEqualArea(
+                        const cell& c,
+                        const std::vector<MyTissue::division_data> divData,
+                        const MyTissue& T,
+                        const int attempts )
+{
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int> d( 0, divData.size()-1 );
+
+  // get a random choice of all possible division data
+  std::size_t choice;
+  MyTissue::division_data ddata;
+  std::size_t minChoice;
+  double minAreaDiff = 100.;
+  
+  for( std::size_t i = 0; i < attempts; i++ )
+  {
+    choice = d(gen);
+    ddata = divData.at( choice );
+    double areaDiff;
+    
+    ModelUtils::checkDivisionArea( c, ddata, T, 10., areaDiff );
+    
+    if( areaDiff < minAreaDiff )
+    {
+      minAreaDiff = areaDiff;
+      minChoice = choice;
+    }     
+  }
+  
+  std::cout << "min area diff: " << minAreaDiff << std::endl;
+  return minChoice;
 }
 
 //----------------------------------------------------------------

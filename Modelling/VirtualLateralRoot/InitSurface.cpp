@@ -12,7 +12,6 @@
 
 void InitSurface::init( const std::size_t lod,
                         const std::string &lineageFileName,
-                        const std::size_t timeSteps,
                         const bool forceInitialSituation,
                         const bool useAutomaticContourPoints,
                         const double surfaceScale,
@@ -26,7 +25,6 @@ void InitSurface::init( const std::size_t lod,
   _IDCounter = 1;
   _jIDCounter = 0;
   _time = 1;
-  _maxTime = timeSteps;
   _lineageFileName = lineageFileName;
   _forceInitialSituation = forceInitialSituation;
   _useAutomaticContourPoints = useAutomaticContourPoints;
@@ -173,13 +171,14 @@ void InitSurface::initRadialCells( MyTissue &T,
                                    SurfaceBaseClass &surface )
 {
   std::size_t lCounter = 1;
-  int maxCells = 6;
+  int maxCells = 5;
+  int cellFile = -2;
   double uPos = 0.;
-  for( std::size_t c=1; c <= maxCells; c++, lCounter++ )
+  for( std::size_t c=1; c <= maxCells; c++, lCounter++, cellFile += 1 )
   {
     this->generateCell( T, std::make_pair( uPos, 0. ),
                         std::make_pair( 1./(double)maxCells, 1. ),
-                        lCounter, surface );
+                        lCounter, surface, 4, cellFile );
     uPos += 1./(double)maxCells;
   }
 }
@@ -321,7 +320,8 @@ void InitSurface::generateCell( MyTissue &T,
                                 const std::pair<double, double> &length,
                                 const std::size_t treeId,
                                 SurfaceBaseClass &surface,
-                                const std::size_t addJunctionToWall )
+                                const std::size_t addJunctionToWall,
+                                const int cellFile )
 {
   // first determine which kind of surface is used
   bool bezier = true;
@@ -454,7 +454,11 @@ void InitSurface::generateCell( MyTissue &T,
   c->divType = DivisionType::NONE;
   c->layerValue = 1;
   c->divisionSequence = "0";
+  c->divisionLetterSequence = "";
   c->cellCycle = 0;
+  c->cellFile = cellFile;
+  c->cellFileColoringIndex = 1 + std::abs(c->cellFile);
+  c->cellFileSequence = std::to_string( cellFile );
   c->periCycle = 0;
   T.addCell( c, vs );
   

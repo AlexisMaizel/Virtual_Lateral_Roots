@@ -27,7 +27,7 @@ void exportLineageInformation( const std::string &filename,
     // dimension
     out << "3 2 0\n";
     // header
-    out << "ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer\n";
+    out << "ObjectID X Y Z Timepoint Radius Precursors Color Lineage TrackID TrackColor TrackGroup Layer DivisionType\n";
     out.close();
     return;
   }
@@ -59,8 +59,15 @@ void exportLineageInformation( const std::string &filename,
       << c->treeId << " "
       << "TrackId "
       << "TrackColor "
-      << "0 "
-      << c->layerValue << "\n";
+      << c->cellFile << " "
+      << c->layerValue << " ";
+      
+  if( c->divType == DivisionType::ANTICLINAL )
+    out << "0 \n";
+  else if( c->divType == DivisionType::PERICLINAL )
+    out << "1 \n";
+  else
+    out << "2 \n";
   
   out.close();
 }
@@ -130,7 +137,7 @@ void exportCellWalls( const std::string &filename,
 void exportDivisionDaughterProperties( const std::string &filename,
                                        const cell& cl,
                                        const cell& cr,
-                                       const MyTissue::division_data& ddata,
+                                       const DivisionType::type divType,
                                        const double angleThreshold,
                                        std::pair<std::size_t, std::size_t> &divOccurrences,
                                        const bool init )
@@ -142,7 +149,7 @@ void exportDivisionDaughterProperties( const std::string &filename,
     out << "'Cell ID' 'Parent ID' 'Lineage ID' 'Timestep' 'Cell Cycle' " //'Area' 'LongestCellWall'
         << "'Dir of last Division X' 'Dir of last Division Y' 'Dir of last Division Z' "
         << "'Dir of this Division X' 'Dir of this Division Y' 'Dir of this Division Z' "
-        << "'Angle' 'Cell File' 'Cell Layer' 'Division Type' 'XPos' 'YPos' 'ZPos'\n";
+        << "'Angle' 'Cell File' 'Cell File Sequence' 'Cell Layer' 'Division Type' 'XPos' 'YPos' 'ZPos'\n";
     out.close();
     return;
   }
@@ -176,15 +183,18 @@ void exportDivisionDaughterProperties( const std::string &filename,
   else
     out << "NA ";
   
-  // master cell file
-  out << "0 "
+  out << cl->cellFile << " \""
+      << cl->cellFileSequence << "\" "
       << cl->layerValue << " ";
   
-  DivisionType::type divType = ModelUtils::determineDivisionType( ddata, angleThreshold );
-  if( divType == DivisionType::ANTICLINAL )
+  if( divType == DivisionType::ANTICLINAL ||
+      divType == DivisionType::RADIAL )
   {
     divOccurrences.first++;
-    out << "0 ";
+    if( divType == DivisionType::ANTICLINAL )
+      out << "0 ";
+    else
+      out << "2 ";
   }
   else
   {
@@ -225,12 +235,18 @@ void exportDivisionDaughterProperties( const std::string &filename,
   else
     out << "NA ";
   
-  // master cell file
-  out << "0 "
+  out << cr->cellFile << " \""
+      << cr->cellFileSequence << "\" "
       << cr->layerValue << " ";
   
-  if( divType == DivisionType::ANTICLINAL )
-    out << "0 ";
+  if( divType == DivisionType::ANTICLINAL ||
+      divType == DivisionType::RADIAL )
+  {
+    if( divType == DivisionType::ANTICLINAL )
+      out << "0 ";
+    else
+      out << "2 ";
+  }
   else
     out << "1 ";
   
