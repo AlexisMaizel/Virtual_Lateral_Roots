@@ -141,7 +141,6 @@ struct lessXPos
   }
 };
 
-class MyViewer;
 class MyModel;
 
 typedef tissue::Tissue<MyModel, CellContent, JunctionContent, WallContent, graph::_EmptyEdgeContent, graph::_EmptyEdgeContent, graph::_EmptyEdgeContent, false> MyTissue;
@@ -161,7 +160,6 @@ typedef MyTissue::const_cell_junction_edge const_cell_junction_edge;
 typedef MyTissue::wall_graph wall_graph;
 typedef MyTissue::complex_graph complex_graph;
 typedef MyTissue::cell_graph cell_graph;
-
 typedef util::Colorf Colorf;
 
 #endif // ModelHeader_HH

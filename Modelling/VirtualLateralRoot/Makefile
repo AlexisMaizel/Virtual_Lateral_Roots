@@ -17,7 +17,7 @@ LD_SO_FLAGS+=
 #    for compiling the model as a stand-alone program
 LD_EXE_FLAGS+=
 
-model.o: model.moc ModelHeader.h PrincipalComponentAnalysis.h
+model.o: model.moc model.h ModelHeader.h PrincipalComponentAnalysis.h
 
 DivisionSetting.o: DivisionSetting.cpp DivisionSetting.h
 

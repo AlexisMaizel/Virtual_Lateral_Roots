@@ -23,6 +23,7 @@ public:
                      const bool accurateCenterOfMass,
                      const double probabilityOfDecussationDivision,
                      const bool useAreaRatio,
+                     const double equalAreaRatio,
                      const bool useCombinedAreaRatio,
                      const bool useWallRatio,
                      const double divisionArea,
@@ -31,13 +32,11 @@ public:
                      const double LODThreshold,
                      const double avoidTrianglesThreshold,
                      const bool loadLastModel,
-                     const double cellPinch,
-                     const double cellMaxPinch,
                      const bool onlyGrowthInHeight,
                      Surface &VLRBezierSurface,
                      RealSurface &VLRDataPointSurface );
   
-  void step_divisions( const std::size_t curTime );
+  void clear();
 
   void step_cellWalls( const std::string &fileName );
 
@@ -48,7 +47,8 @@ public:
   void setAreaRatios( const bool loadLastModel,
                       const std::size_t initialSituationType );
   
-private:
+  const std::vector<std::size_t> &getRandomChoices() const
+  { return _randomChoices; }
 
   void setCellDivisionSettings( const cell &c,
                                 const std::size_t curTime,
@@ -65,6 +65,8 @@ private:
   
   double generateNoiseInRange( const double start, const double end,
                                const unsigned int steps );
+
+private:
   
   MyTissue *_T;
   std::size_t _initialSituationType;
@@ -76,6 +78,7 @@ private:
   bool _accurateCenterOfMass;
   double _probabilityOfDecussationDivision;
   bool _useAreaRatio;
+  double _equalAreaRatio;
   bool _useCombinedAreaRatio;
   bool _useWallRatio;
   double _divisionArea;
@@ -84,14 +87,13 @@ private:
   double _LODThreshold;
   double _avoidTrianglesThreshold;
   bool _loadLastModel;
-  double _cellPinch;
-  double _cellMaxPinch;
   bool _onlyGrowthInHeight;
+  
+  std::vector<std::size_t> _randomChoices;
+  std::size_t _choiceCounter;
+  
   Surface *_VLRBezierSurface;
   RealSurface *_VLRDataPointSurface;
-  
-  std::size_t _timeFourCellStage;
-  std::size_t _timeSixCellStage;
   
   std::vector<std::pair<Point3d, Point3d> > _pcLines;
 };

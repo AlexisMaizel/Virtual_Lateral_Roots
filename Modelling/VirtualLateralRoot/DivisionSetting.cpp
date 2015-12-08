@@ -21,6 +21,7 @@ DivisionSetting::DivisionSetting( MyTissue &T,
                      const bool accurateCenterOfMass,
                      const double probabilityOfDecussationDivision,
                      const bool useAreaRatio,
+                     const double equalAreaRatio,
                      const bool useCombinedAreaRatio,
                      const bool useWallRatio,
                      const double divisionArea,
@@ -29,8 +30,6 @@ DivisionSetting::DivisionSetting( MyTissue &T,
                      const double LODThreshold,
                      const double avoidTrianglesThreshold,
                      const bool loadLastModel,
-                     const double cellPinch,
-                     const double cellMaxPinch,
                      const bool onlyGrowthInHeight,
                      Surface &VLRBezierSurface,
                      RealSurface &VLRDataPointSurface )
@@ -44,6 +43,7 @@ DivisionSetting::DivisionSetting( MyTissue &T,
     _accurateCenterOfMass( accurateCenterOfMass ),
     _probabilityOfDecussationDivision( probabilityOfDecussationDivision ),
     _useAreaRatio( useAreaRatio ),
+    _equalAreaRatio( equalAreaRatio ),
     _useCombinedAreaRatio( useCombinedAreaRatio ),
     _useWallRatio( useWallRatio ),
     _divisionArea( divisionArea ),
@@ -52,325 +52,20 @@ DivisionSetting::DivisionSetting( MyTissue &T,
     _LODThreshold( LODThreshold ),
     _avoidTrianglesThreshold( avoidTrianglesThreshold ),
     _loadLastModel( loadLastModel ),
-    _cellPinch( cellPinch ),
-    _cellMaxPinch( cellMaxPinch ),
     _onlyGrowthInHeight( onlyGrowthInHeight ),
     _VLRBezierSurface( &VLRBezierSurface ),
-    _VLRDataPointSurface( &VLRDataPointSurface )
+    _VLRDataPointSurface( &VLRDataPointSurface ),
+    _choiceCounter( 0 )
 {
   
 }
 
 //----------------------------------------------------------------
-  
-void DivisionSetting::step_divisions( const std::size_t curTime )
-{
-  // for which number of cells should the division area ratio check apply
-    // this is required since at the beginning only few divisions occur due
-    // to the small increasing of area based on the initial area size
-    std::size_t areaRatioStart;
-    if( _T->C.size() > 1 )
-      areaRatioStart = 0;
-    else
-      areaRatioStart = 1;
-    
-    // Find cells to be divided
-    std::list<cell> to_divide;
-    
-    // wait after the six cell stage until the predefined time has passed
-    bool wait = false;
-    if( _T->C.size() == 4 && _initialSituationType == 1 )
-    {
-      if( curTime - _timeFourCellStage > _timeDelay )
-        wait = false;
-      else
-        wait = true;
-    }
-    
-    if( _T->C.size() == 6 &&
-        ( _initialSituationType == 2 || _initialSituationType == 3 ) )
-    {
-      if( curTime - _timeSixCellStage > _timeDelay )
-        wait = false;
-      else
-        wait = true;
-    }
-    
-    // at first determine the min and max values for each cell
-    forall(const cell& c, _T->C)
-      ModelUtils::determineXMinMax( c, *_T );
-    
-    // wait for the four-cell stage some time steps such that the
-    // the future divisions are not occurring too fast
-    // and only update the center of cells
-    if( _T->C.size() == 4 && _initialSituationType == 1 && wait )
-    {
-      forall(const cell& c, _T->C)
-        this->setCellDivisionSettings( c, curTime );
-    }
-    // force the initial start of the VLR
-    else if( _T->C.size() < 6 && _initialSituationType != 0 )
-    {
-      forall(const cell& c, _T->C)
-      {
-        this->setCellDivisionSettings( c, curTime, true );
-        
-        double a = c->area;
-        double l = c->longestWallLength;
-        
-        // divide cells if their area size has increased by a certain percentage amount
-        double initialArea = c->initialArea;
-        if( _T->C.size() < 4 )
-          initialArea += initialArea*_firstDivisionsAreaRatio;
-        else
-          initialArea += initialArea*_secondDivisionsAreaRatio;
-        
-        if( _T->C.size() == 3 )
-        {
-          // when one of the two founder cells has already divided
-          // then assure that the second founder cell will divide
-          // before one of the two daughter cells of the first division
-          // divide again
-          if( c->id == 2 || c->id == 1 )
-          {
-            if( a > initialArea )
-              to_divide.push_back(c);
-          }
-          
-          _timeFourCellStage = curTime;
-        }
-        // else perform the "normal" division routine
-        else
-        {
-          if( a > initialArea )
-          {
-            // if there are 5 cells and if we are in this loop
-            // a next division will occur; so we store the time
-            // of the six cell stage
-            if( _T->C.size() == 5 )
-              _timeSixCellStage = curTime;
-              
-            to_divide.push_back(c);
-          }
-        }
-      }
-    }
-    // wait for the six-cell stage some time steps such that the
-    // the future divisions are not occurring too fast
-    // and only update the center of cells
-    else if( _T->C.size() == 6 && _initialSituationType != 0 && wait )
-    {
-      forall(const cell& c, _T->C)
-        this->setCellDivisionSettings( c, curTime );
-    }
-    else
-    {      
-      forall(const cell& c, _T->C)
-      {
-        this->setCellDivisionSettings( c, curTime );
-        
-        double a = c->area;
-        double l = c->longestWallLength;
-        if( _useAreaRatio && _useWallRatio && c->id > _areaRatioStart )
-        {
-          // divide cells if their area size has increased by a certain percentage amount
-          double initialArea = c->initialArea;
-          initialArea += initialArea*_divisionAreaRatio;
-          // divide cell if its wall length has increased by a certain percentage amount
-          double initialLongestLength = c->initialLongestWallLength;
-          initialLongestLength += initialLongestLength*_divisionWallRatio;
-          
-          if( a > initialArea || l > initialLongestLength )
-            to_divide.push_back(c);
-        } 
-        // apply a division if the cells area exceeds a certain threshold or area ratio
-        else if( _useCombinedAreaRatio && c->id > _areaRatioStart )
-        {
-          // divide cells if their area size has increased by a certain percentage amount
-          double initialArea = c->initialArea;
-          initialArea += initialArea*_divisionAreaRatio;
-          if( a > initialArea && a > _divisionArea )
-            to_divide.push_back(c);
-        }
-        // only apply the division based on ratio with at least areaRatioStart cells
-        else if( _useAreaRatio && c->id > _areaRatioStart )
-        {
-          // divide cells if their area size has increased by a certain percentage amount
-          double initialArea = c->initialArea;
-          initialArea += initialArea*_divisionAreaRatio;
-          if( a > initialArea )
-            to_divide.push_back(c);
-        }
-        // only apply the division based on ratio with at least areaRatioStart cells
-        else if( _useWallRatio && c->id > _areaRatioStart )
-        {
-          // divide cell if its wall length has increased by a certain percentage amount
-          double initialLongestLength = c->longestWallLength;
-          initialLongestLength += initialLongestLength*_divisionWallRatio;
-          if( l > initialLongestLength )
-            to_divide.push_back(c);
-        }
-        else
-        {
-          if( a > _divisionArea )
-            to_divide.push_back(c);
-        }
-      }
-    }
-    
-    // Divide the cells
-    forall(const cell& c, to_divide)
-    {
-      // perform the "normal" division routine for the initial two founder cells
-      if( _T->C.size() < 4 && _initialSituationType != 0 )
-        _T->divideCell(c);
-      // set the division properties for the second division
-      // periclinal division resulting in six cells
-      // **********************************
-      // *         *     *     *          *
-      // *         *************          *
-      // *         *     *     *          *
-      // **********************************
-      else if( _T->C.size() > 3 && _T->C.size() < 6 && _initialSituationType == 2 )
-      {
-        if( c->innerCell )
-        {
-          c->angle = 180.;
-          MyTissue::division_data ddata = this->setDivisionPoints( c );
-          _T->divideCell( c, ddata );
-        }
-      }
-      // set the division properties for the second division
-      // anticlinal division resulting in six cells
-      // **********************************
-      // *         *  *  *  *  *          *
-      // *         *  *  *  *  *          *
-      // *         *  *  *  *  *          *
-      // **********************************
-      else if( _T->C.size() > 3 && _T->C.size() < 6 && _initialSituationType == 3 )
-      {
-        if( c->innerCell )
-        {
-          c->angle = 90.;
-          MyTissue::division_data ddata = this->setDivisionPoints( c );
-          _T->divideCell( c, ddata );
-        }
-      }
-      else if( _divisionType == "Decussation" && c->id > _areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // if true then the next division is perpendicular to the last one
-        // else the division is collinear to the previous division direction
-        if( ModelUtils::setNextDecussationDivision( _probabilityOfDecussationDivision ) )
-        {          
-          double noise = this->generateNoiseInRange( -10., 10., 1000 );
-          c->angle = fmod( c->angle + 90., 360. ) + noise;
-        }
-        
-        MyTissue::division_data ddata = this->setDivisionPoints( c );
-        _T->divideCell( c, ddata );
-      }
-      else if( _divisionType == "PerToGrowth" && c->id > _areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // if true then the next division is perpendicular to the principal
-        // component growth of the center deformation since the cell was born
-        // determine principal growth direction
-        if( c->centerPos.size() > 2 )
-          c->principalGrowthDir = ModelUtils::determineLongestPCGrowth( c->centerPos );
-        else
-          std::cout << "Too few center positions!" << std::endl;
-        
-        Point3d xaxisDir = Point3d( 1., 0., 0. );
-        double noise = this->generateNoiseInRange( -10., 10., 1000 );
-        c->angle = 180./M_PI * acos( c->principalGrowthDir*xaxisDir );
-        if( ModelUtils::determineSlope( c->principalGrowthDir ) > 0 )
-        {
-          // only add the property that it is perpendicular to the PCA dir
-          c->angle += 90. + noise;
-        }
-        else
-        {
-          // add the property AND handle the missing degrees for having a negative slope
-          if( c->principalGrowthDir.i() > 0 )
-            c->angle = 180. - c->angle;
-          
-          c->angle += 90. + noise;
-        }
-        // update the division angle
-        MyTissue::division_data ddata = this->setDivisionPoints( c );
-        
-        // store the line positions for later drawing
-        Point3d midDiv = (ddata.pu+ddata.pv)/2.;
-        _pcLines.push_back( std::make_pair( midDiv - 5.*c->principalGrowthDir,
-                                            midDiv + 5.*c->principalGrowthDir ) );
-        
-        _T->divideCell( c, ddata );
-      }
-      else if( _divisionType == "Energy" && c->id > _areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // if true then all division planes are determined preserving
-        // almost non-triangle cells with same area sizes and the shortest cell wall
-        // has the lowest energy while the longest one has the highest energy;
-        // probability values are then assigned like this:
-        // lowest energy -> high probability
-        // highest energy -> low probability
-        bool empty = false;
-        MyTissue::division_data ddata = this->getEnergyDivisionData( c, empty );
-        // if the division data is empty then just use the default division
-        // rule (e.g. ShortestWall)
-        if( empty )
-          _T->divideCell( c );
-        else
-          _T->divideCell( c, ddata );
-      }
-      else if( _divisionType == "Besson-Dumais" && c->id > _areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // the division plane is chosen based on Gibbs measure as described
-        // in the paper of Besson and Dumais, 2011 (Universal rule for the 
-        // symmetric division of plant cells)
-        bool empty = false;
-        MyTissue::division_data ddata = this->getBessonDumaisDivisionData( c, empty );
-        // if the division data is empty then just use the default division
-        // rule (e.g. ShortestWall)
-        if( empty )
-          _T->divideCell( c );
-        else
-          _T->divideCell( c, ddata );
-      }
-      else if( _divisionType == "RandomEqualAreas" && c->id > _areaRatioStart &&
-               _useAlternativeDT )
-      {
-        // if true then all division planes are determined randomly preserving
-        // cells with almost same area sizes
-        bool empty = false;
-        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty, true );
-        // if the division data is empty then just use the default division
-        // rule (e.g. ShortestWall)
-        if( empty )
-          _T->divideCell( c );
-        else
-          _T->divideCell( c, ddata );
-      }
-      else if( _divisionType == "Random" && c->id > _areaRatioStart && _useAlternativeDT )
-      {
-        // if true then all division planes are determined randomly
-        bool empty = false;
-        MyTissue::division_data ddata = this->getRandomDivisionData( c, empty, false );
-        // if the division data is empty then just use the default division
-        // rule (e.g. ShortestWall)
-        if( empty )
-          _T->divideCell( c );
-        else
-          _T->divideCell( c, ddata );
-      }
-      else
-        _T->divideCell(c);
-    }
 
-    return !to_divide.empty();  
+void DivisionSetting::clear()
+{
+  _randomChoices.clear();
+  _choiceCounter = 0;
 }
 
 //----------------------------------------------------------------
@@ -399,7 +94,7 @@ void DivisionSetting::setCellDivisionSettings( const cell &c,
   c->center = center;
   c->centerPos.push_back( center );
   c->timeStep = curTime;
-  c->longestWallLength = ModelUtils::determineLongestWallLength( c, &_T ); 
+  c->longestWallLength = ModelUtils::determineLongestWallLength( c, *_T ); 
 }
 
 //----------------------------------------------------------------
@@ -435,14 +130,6 @@ MyTissue::division_data DivisionSetting::setDivisionPoints( const cell& c )
         break;
     }
   }
-  
-  vvcomplex::testDivisionOnVertices(c, ddata, *_T, 0.01);
-  
-  // apply cell pinching
-  tissue::CellPinchingParams params;
-  params.cellPinch = _cellPinch;
-  params.cellMaxPinch = _cellMaxPinch;
-  tissue::cellPinching( c, &_T, ddata, params );
   
   return ddata;
 }
@@ -554,13 +241,6 @@ MyTissue::division_data DivisionSetting::getEnergyDivisionData( const cell& c,
     
     //std::cout << "choice: " << choice << std::endl;
     ddata = divData.at( choice );
-    vvcomplex::testDivisionOnVertices(c, ddata, *_T, 0.01);
-    
-    // apply cell pinching
-    tissue::CellPinchingParams params;
-    params.cellPinch = _cellPinch;
-    params.cellMaxPinch = _cellMaxPinch;
-    tissue::cellPinching( c, *_T, ddata, params );
     empty = false;
   }
   else
@@ -665,18 +345,11 @@ MyTissue::division_data DivisionSetting::getBessonDumaisDivisionData( const cell
     }
     
     ddata = divData.at( choice );
+   
+    //_probValues.push_back( probValues );
+    //_lengths.push_back( lengths );
+    //_choices.push_back( choice );
     
-    vvcomplex::testDivisionOnVertices(c, ddata, *_T, 0.01);
-    
-    _probValues.push_back( probValues );
-    _lengths.push_back( lengths );
-    _choices.push_back( choice );
-    
-    // apply cell pinching
-    tissue::CellPinchingParams params;
-    params.cellPinch = _cellPinch;
-    params.cellMaxPinch = _cellMaxPinch;
-    tissue::cellPinching( c, *_T, ddata, params );
     empty = false;
   }
   else
@@ -725,7 +398,7 @@ MyTissue::division_data DivisionSetting::getRandomDivisionData( const cell& c,
         if( attempts > 50 )
           break;
       }
-      while( !ModelUtils::checkDivisionArea( c, ddata, T, _equalAreaRatio, areaDiff ) );
+      while( !ModelUtils::checkDivisionArea( c, ddata, *_T, _equalAreaRatio, areaDiff ) );
     }
     else
     {
@@ -746,13 +419,6 @@ MyTissue::division_data DivisionSetting::getRandomDivisionData( const cell& c,
       }
     }
     
-    vvcomplex::testDivisionOnVertices(c, ddata, *_T, 0.01);
-    
-    // apply cell pinching
-    tissue::CellPinchingParams params;
-    params.cellPinch = _cellPinch;
-    params.cellMaxPinch = _cellMaxPinch;
-    tissue::cellPinching( c, *_T, ddata, params );
     empty = false;
   }
   else
@@ -987,8 +653,4 @@ void DivisionSetting::setAreaRatios( const bool loadLastModel,
     _avoidTrianglesThreshold = 15.;
   else
     _avoidTrianglesThreshold = 0.;
-}
-
-//----------------------------------------------------------------
-  
 }

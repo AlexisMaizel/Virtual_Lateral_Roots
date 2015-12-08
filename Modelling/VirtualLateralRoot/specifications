@@ -17,6 +17,7 @@ SurfacePoints.h
 DivisionSetting.cpp
 DivisionSetting.h
 model.cpp
+model.h
 model.expmap
 bezier.cpp
 bezier.h
@@ -89,7 +90,7 @@ VVE:
 
 Files:
 	all:
-		EDIT model.cpp ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h GraphicsClass.cpp GraphicsClass.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h SurfacePoints.cpp SurfacePoints.h DivisionSetting.cpp DivisionSetting.h RealSurface.cpp RealSurface.h specifications InitSurface.cpp InitSurface.h PrincipalComponentAnalysis.h SurfaceBaseClass.cpp SurfaceBaseClass.h
+		EDIT model.cpp model.h ModelExporter.cpp ModelExporter.h ModelUtils.cpp ModelUtils.h GraphicsClass.cpp GraphicsClass.h ModelHeader.h view.v surface.cpp surface.h bezier.cpp bezier.h SurfacePoints.cpp SurfacePoints.h DivisionSetting.cpp DivisionSetting.h RealSurface.cpp RealSurface.h specifications InitSurface.cpp InitSurface.h PrincipalComponentAnalysis.h SurfaceBaseClass.cpp SurfaceBaseClass.h
 	program:
 		EDIT model.cpp
 	parameters:
