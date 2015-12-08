@@ -135,8 +135,7 @@ void exportCellWalls( const std::string &filename,
 // ---------------------------------------------------------------------
 
 void exportDivisionDaughterProperties( const std::string &filename,
-                                       const cell& cl,
-                                       const cell& cr,
+                                       const std::vector<cell> &dC,
                                        const DivisionType::type divType,
                                        const double angleThreshold,
                                        std::pair<std::size_t, std::size_t> &divOccurrences,
@@ -149,111 +148,59 @@ void exportDivisionDaughterProperties( const std::string &filename,
     out << "'Cell ID' 'Parent ID' 'Lineage ID' 'Timestep' 'Cell Cycle' " //'Area' 'LongestCellWall'
         << "'Dir of last Division X' 'Dir of last Division Y' 'Dir of last Division Z' "
         << "'Dir of this Division X' 'Dir of this Division Y' 'Dir of this Division Z' "
-        << "'Angle' 'Cell File' 'Cell File Sequence' 'Cell Layer' 'Division Type' 'XPos' 'YPos' 'ZPos'\n";
+        << "'Angle' 'Cell File' 'Cell File Sequence' 'Cell Layer' 'Division Type' 'Division Sequence' 'XPos' 'YPos' 'ZPos'\n";
     out.close();
     return;
   }
   
   std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
-  // left daughter cell
-  out << cl->id << " "
-      << cl->parentId << " "
-      << cl->treeId << " " 
-      << cl->timeStep << " "
-      << cl->cellCycle << " "
-      //<< cl->area << " "
-      //<< cl->longestWallLength << " "
-      << cl->previousDivDir.i() << " "
-      << cl->previousDivDir.j() << " "
-      << cl->previousDivDir.k() << " "
-      << cl->divDir.i() << " "
-      << cl->divDir.j() << " "
-      << cl->divDir.k() << " ";
+  
+  for( std::size_t i = 0; i < dC.size(); i++ )
+  {
+    cell c = dC.at(i);
+    
+    out << c->id << " " << c->parentId << " "
+        << c->treeId << " " << c->timeStep << " "
+        << c->cellCycle << " " << c->previousDivDir.i() << " "
+        << c->previousDivDir.j() << " " << c->previousDivDir.k() << " "
+        << c->divDir.i() << " " << c->divDir.j() << " "
+        << c->divDir.k() << " ";
       
-  if( cl->cellCycle != 1 )
-  {
-    Point3d lastDir = cl->previousDivDir;
-    Point3d curDir = cl->divDir;
-    
-    lastDir.normalize();
-    curDir.normalize();
-    
-    out << acos( lastDir*curDir )*180./M_PI << " ";
-  }
-  else
-    out << "NA ";
-  
-  out << cl->cellFile << " \""
-      << cl->cellFileSequence << "\" "
-      << cl->layerValue << " ";
-  
-  if( divType == DivisionType::ANTICLINAL ||
-      divType == DivisionType::RADIAL )
-  {
-    divOccurrences.first++;
-    if( divType == DivisionType::ANTICLINAL )
-      out << "0 ";
-    else
-      out << "2 ";
-  }
-  else
-  {
-    divOccurrences.second++;
-    out << "1 ";
-  }
-  
-  // at last position of nucleus
-  out << cl->center.i() << " "
-      << cl->center.j() << " "
-      << cl->center.k() << "\n";
-  
-  // right daughter cell
-  out << cr->id << " "
-      << cr->parentId << " "
-      << cr->treeId << " " 
-      << cr->timeStep << " "
-      << cr->cellCycle << " "
-      //<< cr->area << " "
-      //<< cr->longestWallLength << " "
-      << cr->previousDivDir.i() << " "
-      << cr->previousDivDir.j() << " "
-      << cr->previousDivDir.k() << " "
-      << cr->divDir.i() << " "
-      << cr->divDir.j() << " "
-      << cr->divDir.k() << " ";
+    if( c->cellCycle != 1 )
+    {
+      Point3d lastDir = c->previousDivDir;
+      Point3d curDir = c->divDir;
       
-  if( cr->cellCycle != 1 )
-  {
-    Point3d lastDir = cr->previousDivDir;
-    Point3d curDir = cr->divDir;
-    
-    lastDir.normalize();
-    curDir.normalize();
-    
-    out << acos( lastDir*curDir )*180./M_PI << " ";
-  }
-  else
-    out << "NA ";
-  
-  out << cr->cellFile << " \""
-      << cr->cellFileSequence << "\" "
-      << cr->layerValue << " ";
-  
-  if( divType == DivisionType::ANTICLINAL ||
-      divType == DivisionType::RADIAL )
-  {
-    if( divType == DivisionType::ANTICLINAL )
-      out << "0 ";
+      lastDir.normalize();
+      curDir.normalize();
+      
+      out << acos( lastDir*curDir )*180./M_PI << " ";
+    }
     else
-      out << "2 ";
+      out << "NA ";
+    
+    out << c->cellFile << " \"" << c->cellFileSequence << "\" " << c->layerValue << " ";
+    
+    if( divType == DivisionType::ANTICLINAL ||
+        divType == DivisionType::RADIAL )
+    {
+      divOccurrences.first++;
+      if( divType == DivisionType::ANTICLINAL )
+        out << "0 ";
+      else
+        out << "2 ";
+    }
+    else
+    {
+      divOccurrences.second++;
+      out << "1 ";
+    }
+    
+    out << "\"" << c->divisionLetterSequence << "\" ";
+    
+    // at last position of nucleus
+    out << c->center.i() << " " << c->center.j() << " " << c->center.k() << "\n";
   }
-  else
-    out << "1 ";
-  
-  // at last position of nucleus
-  out << cr->center.i() << " "
-      << cr->center.j() << " "
-      << cr->center.k() << "\n";
   
   out.close();
 }
@@ -359,6 +306,27 @@ void exportModelProperties( const std::string &filename,
   }
   
   out << "\n";
+  out.close();
+}
+
+// ---------------------------------------------------------------------
+
+void exportDivisionSequences( const std::string &filename,
+                              const std::map< std::string, std::vector<std::size_t> > &divisionSequences )
+{
+  std::ofstream out;
+  out.open( filename.c_str(), std::ofstream::out );
+  
+  for( auto iter = divisionSequences.begin();
+       iter != divisionSequences.end(); iter++ )
+  {
+    out << iter->first << " ";
+    for( std::size_t f = 0; f < iter->second.size(); f++ )
+      out << iter->second.at(f) << " ";
+    
+    out << "\n";
+  }
+  
   out.close();
 }
 

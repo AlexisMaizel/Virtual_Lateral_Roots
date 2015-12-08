@@ -23,8 +23,7 @@ namespace ModelExporter
                                const bool init );
   
   void exportDivisionDaughterProperties( const std::string &filename,
-                                         const cell& cl,
-                                         const cell& cr,
+                                         const std::vector<cell> &dC,
                                          const DivisionType::type divType,
                                          const double angleThreshold,
                                          std::pair<std::size_t, std::size_t> &divOccurrences,
@@ -44,6 +43,9 @@ namespace ModelExporter
                               const std::size_t numCells,
                               const std::size_t numSamples,
                               const bool init );
+  
+  void exportDivisionSequences( const std::string &filename,
+                                const std::map< std::string, std::vector<std::size_t> > &divisionSequences );
   
   void exportPropabilityDistribution( const std::string &filename,
                                     const std::vector<std::vector<double> > &probValues,

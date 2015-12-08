@@ -92,7 +92,7 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
   _divOccurrences( std::make_pair( 0, 0 ) ),
   _lastStep( false ),
   _loopCounter( 1 ),
-  _amountLoops( 100 ),
+  _amountLoops( 2 ),
   _interpolateBezierSurfaces( true ),
   _renderMoviesIndex( 0 ),
   _imagesFilename( "/tmp/images/m-" )
@@ -214,8 +214,11 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
   ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
   
   std::pair<std::size_t, std::size_t> pair;
+  std::vector<cell> dummies;
+  dummies.push_back( dummy );
+  dummies.push_back( dummy );
   ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
-                                                    dummy, dummy,
+                                                    dummies,
                                                     DivisionType::ANTICLINAL, 0.,
                                                     pair, true );
   
@@ -428,20 +431,31 @@ void MyModel::restartModel()
   // bezier
   if( SURFACETYPE == 0 )
   {
-    _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
-                            _interpolateBezierSurfaces,
-                            _onlyGrowthInHeight, _realDataName,
-                            _highOrderPattern );
-    
-    _VLRBezierSurface.growStep( 0 );
-    
-    // special cases of number of cells at the beginning
-    if( _realDataName == "none" )
-      _initSurface.initIdealizedCells( T, _initialCellNumber,
-                                        _VLRBezierSurface );
-    // else constellation of founder cells according to real data
+    // side
+    if( _surfaceType == 0 )
+    {
+      _VLRBezierSurface.init( _parms, "Surface", _bezierGrowthSurface,
+                              _interpolateBezierSurfaces,
+                              _onlyGrowthInHeight, _realDataName,
+                              _highOrderPattern );
+      
+      _VLRBezierSurface.growStep( 0 );
+      
+      // special cases of number of cells at the beginning
+      if( _realDataName == "none" )
+        _initSurface.initIdealizedCells( T, _initialCellNumber,
+                                          _VLRBezierSurface );
+      // else constellation of founder cells according to real data
+      else
+        _initSurface.initRealDataCells( T, _VLRBezierSurface );
+    }
+    // radial
     else
-      _initSurface.initRealDataCells( T, _VLRBezierSurface );
+    {
+      _VLRBezierSurface.initRadialSurface( _parms, "Surface" );
+      _VLRBezierSurface.growStep( 0 );
+      _initSurface.initRadialCells( T, _VLRBezierSurface );
+    }
   }
   // real data points
   else
@@ -701,11 +715,15 @@ void MyModel::updateFromOld( const cell& cl, const cell& cr, const cell& c,
   }
   
   // export division properties
+  std::vector<cell> daughterCells;
+  daughterCells.push_back( cl );
+  daughterCells.push_back( cr );
   ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
-                                                    cl, cr, c->divType,
-                                                    _angleThreshold,
-                                                    _divOccurrences,
-                                                    false );
+                                                   daughterCells,
+                                                   c->divType,
+                                                   _angleThreshold,
+                                                   _divOccurrences,
+                                                   false );
 }
 
 //----------------------------------------------------------------
@@ -876,12 +894,12 @@ void MyModel::step()
     maxTime = _VLRDataPointSurface.getMaxTimeStep() - 1;
   }
   
-  if( curTime == 200 )
-  {
-    // check different division sequences and store them
-    this->storeDivisionSequences();
-    this->stopModel();
-  }
+//   if( curTime == 200 )
+//   {
+//     // check different division sequences and store them
+//     this->storeDivisionSequences();
+//     this->stopModel();
+//   }
   
 //   if( curTime == maxTime && _avoidTrianglesThreshold <= 0.00001 )
 //   {
@@ -890,39 +908,40 @@ void MyModel::step()
 //     _probValues, _lengths, _choices );
 //   }
   
-  if( curTime == maxTime && !_loadLastModel )
-  {
-    std::string fileName = "/tmp/modelDataProp";
-    ModelUtils::appendCellSituationType( fileName, _initialSituationType );
-    if( _highOrderPattern != 0 )
-      fileName += "_HOP" + std::to_string( _highOrderPattern );
-    
-    fileName += ".csv";
-    this->exportDataProperties( fileName );
-    
-    unsigned int counter = 0;
-    std::vector<unsigned int> cycleCounter;
-    cycleCounter.resize( 10, 0 );
-    forall(const cell& c, T.C)
-    {
-      if( c->periCycle < cycleCounter.size() )
-        cycleCounter.at( c->periCycle )++;
-    }
-    
-//       for( std::size_t c=0; c < cycleCounter.size(); c++ )
-//         std::cout << cycleCounter.at(c) << " cells in cycle " << c << std::endl;
-  }
+//   if( curTime == maxTime && !_loadLastModel )
+//   {
+//     std::string fileName = "/tmp/modelDataProp";
+//     ModelUtils::appendCellSituationType( fileName, _initialSituationType );
+//     if( _highOrderPattern != 0 )
+//       fileName += "_HOP" + std::to_string( _highOrderPattern );
+//     
+//     fileName += ".csv";
+//     this->exportDataProperties( fileName );
+//     
+//     unsigned int counter = 0;
+//     std::vector<unsigned int> cycleCounter;
+//     cycleCounter.resize( 10, 0 );
+//     forall(const cell& c, T.C)
+//     {
+//       if( c->periCycle < cycleCounter.size() )
+//         cycleCounter.at( c->periCycle )++;
+//     }
+//     
+// //       for( std::size_t c=0; c < cycleCounter.size(); c++ )
+// //         std::cout << cycleCounter.at(c) << " cells in cycle " << c << std::endl;
+//   }
   
   this->renderImage();
   
-  if( _useLoop && curTime >= maxTime )
+  // side model using loop
+  if( _useLoop && curTime >= maxTime && _surfaceType == 0 )
   {      
     // before restart the model, save the model information such
     // as the division occurrences as well as the layering
     this->updateLayerCount();
       
     // export information of periclinal divisions
-    std::string filename = "/tmp/ModelDivProperties";
+    std::string filename = "/tmp/SideModelDivProperties";
     
     if( SURFACETYPE == 1 )
       filename += _realDataName;
@@ -951,6 +970,40 @@ void MyModel::step()
                                           _amountLoops,
                                           _loopCounter == 1 );
               
+    this->restartModel();
+    if( _loopCounter < _amountLoops )
+      _loopCounter++;
+    else
+      this->stopModel();
+    return;
+  }
+  
+  // radial model using loop
+  if( _useLoop && curTime >= 200 && _surfaceType == 1 )
+  {   
+    this->storeDivisionSequences();
+      
+    // export information of periclinal divisions
+    std::string filename = "/tmp/RadialModelDivProperties";
+    
+    ModelUtils::appendCellSituationType( filename, _initialSituationType );
+    
+    if( _useAlternativeDT )
+    {
+      filename += _divisionType;
+      if( _divisionType != "Besson-Dumais" )
+        filename += std::to_string( (unsigned int)_avoidTrianglesThreshold );
+    }
+    else
+      filename += "ShortestWall";
+    
+    filename += ".csv";
+              
+    // export all division sequence information before a radial division
+    // of the maximum amount of loops is reached
+    if( _loopCounter == _amountLoops )
+      ModelExporter::exportDivisionSequences( filename, _divisionSequences );
+    
     this->restartModel();
     if( _loopCounter < _amountLoops )
       _loopCounter++;
