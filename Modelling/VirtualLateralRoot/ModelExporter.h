@@ -29,11 +29,11 @@ namespace ModelExporter
                                          std::pair<std::size_t, std::size_t> &divOccurrences,
                                          const bool init );
   
-  void exportDivisionProperties( const std::string &filename,
-                                 const cell& c,
-                                 const MyTissue::division_data& ddata,
-                                 const double angleThreshold,
-                                 const bool init );
+//   void exportDivisionProperties( const std::string &filename,
+//                                  const cell& c,
+//                                  const MyTissue::division_data& ddata,
+//                                  const double angleThreshold,
+//                                  const bool init );
   
   void exportModelProperties( const std::string &filename,
                               const std::size_t loopCounter,

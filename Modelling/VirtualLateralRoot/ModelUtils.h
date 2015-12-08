@@ -52,8 +52,12 @@ namespace ModelUtils
   
   bool equalPoints( const Point3d &p1, const Point3d &p2 );
   
-  DivisionType::type determineDivisionType( const MyTissue::division_data& ddata,
+  DivisionType::type determineSideModelDivisionType( const MyTissue::division_data& ddata,
                                             const double angleThreshold );
+  
+  DivisionType::type determineRadialModelDivisionType( const MyTissue::division_data& ddata,
+                                          const double angleThreshold,
+                                          const Point3d &center );
   
   double getDivisionAngle( const MyTissue::division_data& ddata );
   

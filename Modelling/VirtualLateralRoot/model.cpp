@@ -637,8 +637,14 @@ void MyModel::updateFromOld( const cell& cl, const cell& cr, const cell& c,
                     const MyTissue::division_data& ddata, MyTissue& )
 {
   double angle = ModelUtils::determineDivisionAngle( ddata );
-  DivisionType::type divType = ModelUtils::determineDivisionType( ddata,
-                                                                  _angleThreshold );
+  DivisionType::type divType;
+  
+  // side model
+  if( _surfaceType == 0 )
+    divType = ModelUtils::determineSideModelDivisionType( ddata, _angleThreshold );
+  // radial model
+  else if( _surfaceType == 1 )
+    divType = ModelUtils::determineRadialModelDivisionType( ddata, _angleThreshold, c->center );
   
   // in the radial view an anticlinal division is a radial one
   if( _surfaceType == 1 && divType == DivisionType::ANTICLINAL )

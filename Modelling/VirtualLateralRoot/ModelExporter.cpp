@@ -184,7 +184,9 @@ void exportDivisionDaughterProperties( const std::string &filename,
     if( divType == DivisionType::ANTICLINAL ||
         divType == DivisionType::RADIAL )
     {
-      divOccurrences.first++;
+      if( i == 0 )
+        divOccurrences.first++;
+      
       if( divType == DivisionType::ANTICLINAL )
         out << "0 ";
       else
@@ -192,7 +194,9 @@ void exportDivisionDaughterProperties( const std::string &filename,
     }
     else
     {
-      divOccurrences.second++;
+      if( i == 0 )
+        divOccurrences.second++;
+      
       out << "1 ";
     }
     
@@ -364,63 +368,63 @@ void exportPropabilityDistribution( const std::string &filename,
 
 // ---------------------------------------------------------------------
 
-void exportDivisionProperties( const std::string &filename,
-                               const cell& c,
-                               const MyTissue::division_data& ddata,
-                               const double angleThreshold,
-                               const bool init )
-{
-  if( init )
-  {
-    std::ofstream out( filename.c_str(), std::ofstream::out );
-    // header
-    out << "'ID' 'ParentID' 'X' 'Y' 'Z' 'Time' 'CellCycle' 'Area' 'LongestCellWall' 'Lineage' 'Layer' 'DivisionAngle' 'AngleBetweenCurrentAndPreviousDivision' 'DivisionType'\n";
-    out.close();
-    return;
-  }
-  
-  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
-  out << c->id << " ";
-  
-  if( c->cellCycle != 0 )
-    out << c->parentId << " ";
-  else
-    out << "NA "; 
-  
-  out << c->center.i() << " "
-      << c->center.j() << " "
-      << c->center.k() << " "
-      << c->timeStep << " "
-      << c->cellCycle << " "
-      << c->area << " "
-      << c->longestWallLength << " "
-      << c->treeId << " "
-      << c->layerValue << " "
-      << c->angle << " ";
-  if( c->cellCycle != 0 )
-  {
-    double a, pa;
-    a = c->angle;
-    pa = c->previousAngle;
-    if( a > 90. )
-      a = 180. - a;
-    
-    if( pa > 90. )
-      pa = 180. - pa;
-    
-    out << fabs( a - pa ) << " ";
-  }
-  else
-    out << "NA ";
-  
-  DivisionType::type divType = ModelUtils::determineDivisionType( ddata, angleThreshold );
-  if( divType == DivisionType::ANTICLINAL )
-    out << "0\n";
-  else
-    out << "1\n";
-      
-  out.close();
-}
+// void exportDivisionProperties( const std::string &filename,
+//                                const cell& c,
+//                                const MyTissue::division_data& ddata,
+//                                const double angleThreshold,
+//                                const bool init )
+// {
+//   if( init )
+//   {
+//     std::ofstream out( filename.c_str(), std::ofstream::out );
+//     // header
+//     out << "'ID' 'ParentID' 'X' 'Y' 'Z' 'Time' 'CellCycle' 'Area' 'LongestCellWall' 'Lineage' 'Layer' 'DivisionAngle' 'AngleBetweenCurrentAndPreviousDivision' 'DivisionType'\n";
+//     out.close();
+//     return;
+//   }
+//   
+//   std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+//   out << c->id << " ";
+//   
+//   if( c->cellCycle != 0 )
+//     out << c->parentId << " ";
+//   else
+//     out << "NA "; 
+//   
+//   out << c->center.i() << " "
+//       << c->center.j() << " "
+//       << c->center.k() << " "
+//       << c->timeStep << " "
+//       << c->cellCycle << " "
+//       << c->area << " "
+//       << c->longestWallLength << " "
+//       << c->treeId << " "
+//       << c->layerValue << " "
+//       << c->angle << " ";
+//   if( c->cellCycle != 0 )
+//   {
+//     double a, pa;
+//     a = c->angle;
+//     pa = c->previousAngle;
+//     if( a > 90. )
+//       a = 180. - a;
+//     
+//     if( pa > 90. )
+//       pa = 180. - pa;
+//     
+//     out << fabs( a - pa ) << " ";
+//   }
+//   else
+//     out << "NA ";
+//   
+//   DivisionType::type divType = ModelUtils::determineDivisionType( ddata, angleThreshold );
+//   if( divType == DivisionType::ANTICLINAL )
+//     out << "0\n";
+//   else
+//     out << "1\n";
+//       
+//   out.close();
+// }
 
 // ---------------------------------------------------------------------
 

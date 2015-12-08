@@ -185,7 +185,7 @@ Point3d computeCellCenter( const MyTissue& T, const cell &c,
 
 //----------------------------------------------------------------
 
-DivisionType::type determineDivisionType( const MyTissue::division_data& ddata,
+DivisionType::type determineSideModelDivisionType( const MyTissue::division_data& ddata,
                                           const double angleThreshold )
 {
   // get pair of points of division wall
@@ -206,6 +206,35 @@ DivisionType::type determineDivisionType( const MyTissue::division_data& ddata,
   // anticlinal
   if( angle <= angleThreshold )
     return DivisionType::ANTICLINAL;
+  // periclinal
+  else
+    return DivisionType::PERICLINAL;
+}
+
+//----------------------------------------------------------------
+
+DivisionType::type determineRadialModelDivisionType( const MyTissue::division_data& ddata,
+                                          const double angleThreshold,
+                                          const Point3d &center )
+{
+  // get pair of points of division wall
+  Point3d u = ddata.pu;
+  Point3d v = ddata.pv;
+  
+  Point3d wallDir = u-v;
+  Point3d centerDir = center;
+  
+  wallDir.normalize();
+  centerDir.normalize();
+  
+  double angle = 180./M_PI * acos( wallDir*centerDir );
+  
+  if( angle > 90. )
+    angle = 180. - angle;
+  
+  // radial
+  if( angle <= angleThreshold )
+    return DivisionType::RADIAL;
   // periclinal
   else
     return DivisionType::PERICLINAL;
