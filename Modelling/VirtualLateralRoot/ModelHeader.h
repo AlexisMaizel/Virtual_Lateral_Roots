@@ -97,6 +97,8 @@ struct CellContent
   std::string divisionSequence;
   // division sequence given by A, P, R
   std::string divisionLetterSequence;
+  // radial division sequence
+  std::string radialDivisionSequence;
   // corresponding cell cycle
   std::size_t cellCycle;
   // periCycle

@@ -206,7 +206,7 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
   for( std::size_t l = 14; l < 45; l++ )
     _layerColorIndex.push_back( l );
   
-  for( std::size_t l = 45; l < 53; l++ )
+  for( std::size_t l = 45; l < 48; l++ )
     _cellFileColorIndex.push_back( l );
   
   cell dummy;
@@ -700,7 +700,6 @@ void MyModel::updateFromOld( const cell& cl, const cell& cr, const cell& c,
   this->setLayerValues( cl, cr, c, divType, true );
   this->checkLayerAppearance( cl );
   this->checkLayerAppearance( cr );
-  
   this->setCellFileSequence( cl, cr, c, divType, true );
   
   // update precursors
@@ -718,6 +717,7 @@ void MyModel::updateFromOld( const cell& cl, const cell& cr, const cell& c,
   std::vector<cell> daughterCells;
   daughterCells.push_back( cl );
   daughterCells.push_back( cr );
+  
   ModelExporter::exportDivisionDaughterProperties( _divisionFileName,
                                                    daughterCells,
                                                    c->divType,
@@ -851,6 +851,8 @@ void MyModel::setCellFileSequence( const cell& cl, const cell& cr, const cell& c
       
       cl->cellFileSequence = c->cellFileSequence + "0";
       cr->cellFileSequence = c->cellFileSequence + "1";
+      cl->radialDivisionSequence = c->radialDivisionSequence + "0";
+      cr->radialDivisionSequence = c->radialDivisionSequence + "1";
     }
     else
     {
@@ -867,6 +869,8 @@ void MyModel::setCellFileSequence( const cell& cl, const cell& cr, const cell& c
       
       cl->cellFileSequence = c->cellFileSequence + "1";
       cr->cellFileSequence = c->cellFileSequence + "0";
+      cl->radialDivisionSequence = c->radialDivisionSequence + "1";
+      cr->radialDivisionSequence = c->radialDivisionSequence + "0";
     }
   }
   else
@@ -875,6 +879,8 @@ void MyModel::setCellFileSequence( const cell& cl, const cell& cr, const cell& c
     cl->cellFileColoringIndex = c->cellFileColoringIndex;
     cr->cellFileSequence = c->cellFileSequence;
     cr->cellFileColoringIndex = c->cellFileColoringIndex;
+    cl->radialDivisionSequence = c->radialDivisionSequence;
+    cr->radialDivisionSequence = c->radialDivisionSequence;
   }
 }
 
@@ -1503,6 +1509,10 @@ void MyModel::preDraw()
 
 void MyModel::draw( Viewer* viewer )
 {
+  // center sphere
+  GraphicsClass::drawSphere( Point3d( 0., 0., 0. ), 8., 20., 20.,
+                              Colorf( 0.5, 0.5, 0.5, 1. ), quadratic );
+  
   forall(const cell& c, T.C)
   {
     //T.drawBorders = false;
@@ -1663,8 +1673,30 @@ Colorf MyModel::cellColor(const cell& c)
       else
         return _palette.getColor(2);
     case 3:
-      return _palette.getColor(
-        _layerColorIndex.at((c->cellFileColoringIndex-1)%_layerColorIndex.size()) );
+      Colorf col = _palette.getColor(
+        _cellFileColorIndex.at( ( std::abs(c->cellFile) )%_cellFileColorIndex.size() ) );
+      
+      if( c->cellCycle > 0 )
+      {
+        Point3d hsv = ModelUtils::transformRGBToHSV( Point3d( col.r(), col.g(), col.b() ), false );
+        
+        if( c->radialDivisionSequence.back() == '1' )
+        {
+          hsv[1] += 0.2 * c->radialDivisionSequence.size();
+          hsv[2] += 0.2 * c->radialDivisionSequence.size();
+        }
+        else
+        {
+          hsv[1] -= 0.2 * c->radialDivisionSequence.size();
+          hsv[2] -= 0.2 * c->radialDivisionSequence.size();
+        }
+        
+        Point3d rgb = ModelUtils::transformHSVToRGB( hsv );
+        
+        return Colorf( rgb[0], rgb[1], rgb[2], 1. );
+      }
+      else
+        return col;
   }
 }
 

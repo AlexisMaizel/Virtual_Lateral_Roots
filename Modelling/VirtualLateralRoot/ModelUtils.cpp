@@ -1172,4 +1172,101 @@ std::size_t getRandomResultOfDistribution( const std::vector<double> &probs )
 
 //----------------------------------------------------------------
 
+Point3d transformRGBToHSV( Point3d RGB, const bool use255 )
+{
+  Point3d rgb = RGB;
+  if( use255 )
+  {
+    rgb[0] /= 255.;
+    rgb[1] /= 255.;
+    rgb[2] /= 255.;
+  }
+  
+  double max = 0.;
+  double min = 1.;
+  
+  for( std::size_t i = 0; i < 3; i++ )
+  {
+    if( rgb[i] >= max )
+      max = rgb[i];
+    
+    if( rgb[i] < min )
+      min = rgb[i];
+  }
+  
+  double h = 0.;
+  
+  if( (max-min) == 0. )
+    h = 0.;
+  else if( max == rgb[0] )
+    h = 60. * ( rgb[1] - rgb[2] )/( max - min );
+  else if( max == rgb[1] )
+    h = 60. * (2.+ ( rgb[2] - rgb[0] )/( max - min ) );
+  else if( max == rgb[0] )
+    h = 60. * (4.+ ( rgb[0] - rgb[1] )/( max - min ) );
+  
+  if( h < 0. )
+    h += 360.;
+  
+  double s = 0.;
+  
+  if( max == 0. )
+    s = 0.;
+  else
+    s = ( max - min )/max;
+  
+  double v = max;
+  
+  return Point3d( h, s, v );
+}
+
+//----------------------------------------------------------------
+
+Point3d transformHSVToRGB( Point3d HSV )
+{
+  Point3d hsv = HSV;
+  if( hsv[0] < 0. )
+    hsv[0] = 0.;
+  
+  if( hsv[0] > 360. )
+    hsv[0] = 360.;
+  
+  if( hsv[1] < 0. )
+    hsv[1] = 0.;
+  
+  if( hsv[1] > 1. )
+    hsv[1] = 1.;
+  
+  if( hsv[2] < 0. )
+    hsv[2] = 0.;
+  
+  if( hsv[2] > 1. )
+    hsv[2] = 1.;
+  
+  int h_i = std::floor( hsv[0]/60. );
+  double f = hsv[0]/60. - (double)h_i;
+  
+  double p = hsv[2] * ( 1. - hsv[1] );
+  double q = hsv[2] * ( 1. - hsv[1] * f );
+  double t = hsv[2] * ( 1. - hsv[1] * ( 1. - f ) );
+  
+  Point3d rgb;
+  if( h_i == 0 || h_i == 6 )
+    rgb = Point3d( hsv[2], t, p );
+  else if( h_i == 1 )
+    rgb = Point3d( q, hsv[2], p );
+  else if( h_i == 2 )
+    rgb = Point3d( p, hsv[2], t );
+  else if( h_i == 3 )
+    rgb = Point3d( p, q, hsv[2] );
+  else if( h_i == 4 )
+    rgb = Point3d( t, p, hsv[2] );
+  else if( h_i == 5 )
+    rgb = Point3d( hsv[2], p, q );
+  
+  return rgb;
+}
+
+//----------------------------------------------------------------
+
 }

@@ -455,6 +455,7 @@ void InitSurface::generateCell( MyTissue &T,
   c->layerValue = 1;
   c->divisionSequence = "0";
   c->divisionLetterSequence = "";
+  c->radialDivisionSequence = "";
   c->cellCycle = 0;
   c->cellFile = cellFile;
   c->cellFileColoringIndex = 1 + std::abs(c->cellFile);

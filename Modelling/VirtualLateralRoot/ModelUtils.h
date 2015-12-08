@@ -134,6 +134,10 @@ namespace ModelUtils
   int binomR( unsigned int n, unsigned int k );
   
   std::size_t getRandomResultOfDistribution( const std::vector<double> &probs );
+  
+  Point3d transformRGBToHSV( Point3d RGB, const bool use255 = true );
+  
+  Point3d transformHSVToRGB( Point3d HSV );
 }
 
 #endif // ModelUtils_HH
