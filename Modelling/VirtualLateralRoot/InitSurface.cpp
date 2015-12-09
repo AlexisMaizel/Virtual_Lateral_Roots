@@ -38,6 +38,7 @@ void InitSurface::initIdealizedCells( MyTissue &T,
                                       const std::size_t founderCells,
                                       SurfaceBaseClass &surface )
 {
+  _radialModel = false;
   std::size_t lCounter = 1;
   switch( founderCells )
   {
@@ -170,6 +171,7 @@ void InitSurface::initIdealizedCells( MyTissue &T,
 void InitSurface::initRadialCells( MyTissue &T,
                                    SurfaceBaseClass &surface )
 {
+  _radialModel = true;
   std::size_t lCounter = 1;
   int maxCells = 5;
   int cellFile = -2;
@@ -187,6 +189,7 @@ void InitSurface::initRadialCells( MyTissue &T,
 
 void InitSurface::initRealDataCells( MyTissue &T, SurfaceBaseClass &surface )
 {
+  _radialModel = false;
   std::cout << "Lateral root constellation of data: " << _dataset << std::endl;
   std::size_t lCounter = 1;
   // 2 cells
@@ -496,7 +499,7 @@ void InitSurface::generateCell( MyTissue &T,
   // *         *     *     *          *
   // *         *     *     *          *
   // **********************************
-  if( _forceInitialSituation && c->id <= 2 )
+  if( _forceInitialSituation && c->id <= 2 && !_radialModel )
   {
     // determine xLength of cell
     double xLength = std::fabs( c->xMax - c->xMin );

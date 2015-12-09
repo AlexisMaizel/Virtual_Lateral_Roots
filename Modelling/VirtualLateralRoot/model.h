@@ -13,26 +13,26 @@ public:
   
   MyModel(QObject *parent);
   
-    ~MyModel();
+  ~MyModel();
   
-    void readParms();
+  void readParms();
     
-    void modifiedFiles( const std::set<std::string>& filenames );
+  void modifiedFiles( const std::set<std::string>& filenames );
     
-    void renderImage();
+  void renderImage();
   
-    void restartModel();
+  void restartModel();
   
-    void setMovieParameters();
+  void setMovieParameters();
   
-   void setStatus();
+  void setStatus();
   
-    void updateFromOld( const cell& cl, const cell& cr, const cell& c,
+  void updateFromOld( const cell& cl, const cell& cr, const cell& c,
                       const MyTissue::division_data& ddata, MyTissue& );
   
-    void checkLayerAppearance( const cell &c );
+  void checkLayerAppearance( const cell &c );
   
-    void setCellProperties( const cell &c, const cell &parentCell );
+  void setCellProperties( const cell &c, const cell &parentCell );
   
   void setLayerValues( const cell& cl, const cell& cr, const cell& c,
                        const DivisionType::type divType, const bool updateBothLayers );
@@ -44,11 +44,11 @@ public:
   
   void step_divisions();
 
+  void applyDivisionRule( const cell &c, const std::size_t type );
+  
   void applyDivision( const cell &c, MyTissue::division_data &ddata );
   
   void updateLayerCount();
-  
-  void storeDivisionSequences();
   
   void initDraw( Viewer* viewer );
   
@@ -92,7 +92,7 @@ public:
   
   void readDataProperties( const std::string &filename );
   
-    util::Parms _parms;
+  util::Parms _parms;
   Surface _VLRBezierSurface;
   RealSurface _VLRDataPointSurface;
   DivisionSetting *_divSetting;
@@ -159,7 +159,6 @@ public:
   bool _onlyGrowthInHeight;
   std::size_t _highOrderPattern;
   GLUquadricObj *quadratic;
-  std::vector<std::size_t> _randomChoices;
   std::size_t _maxTimeSteps;
   
   std::map< std::string, std::vector<std::size_t> > _divisionSequences;

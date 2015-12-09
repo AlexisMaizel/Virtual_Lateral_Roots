@@ -71,6 +71,8 @@ private:
   double _surfaceScale;
   
   std::string _dataset;
+  
+  bool _radialModel;
 };
 
 #endif // InitSurface_H

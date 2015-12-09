@@ -33,6 +33,7 @@ public:
                      const double avoidTrianglesThreshold,
                      const bool loadLastModel,
                      const bool onlyGrowthInHeight,
+                     const std::size_t surfaceType,
                      Surface &VLRBezierSurface,
                      RealSurface &VLRDataPointSurface );
   
@@ -50,6 +51,9 @@ public:
   const std::vector<std::size_t> &getRandomChoices() const
   { return _randomChoices; }
 
+  void setRandomChoices( const std::vector<std::size_t> &randomChoices )
+  { _randomChoices = randomChoices; _choiceCounter = 0; }
+  
   void setCellDivisionSettings( const cell &c,
                                 const std::size_t curTime,
                                 const bool fixedCenterPos = false );
@@ -88,6 +92,7 @@ private:
   double _avoidTrianglesThreshold;
   bool _loadLastModel;
   bool _onlyGrowthInHeight;
+  std::size_t _surfaceType;
   
   std::vector<std::size_t> _randomChoices;
   std::size_t _choiceCounter;

@@ -69,6 +69,7 @@ bezierTensorSurfaceFirst.txt
 bezierTensorSurfaceLast.txt
 bezierHeader.txt
 processModelImages
+processRadialModelImages
 ignore:
 .*.swp
 model.vve

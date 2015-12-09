@@ -1,0 +1,46 @@
+#!/bin/bash
+shopt -s nullglob
+cd ..
+cd images
+#delete redundant images
+#declare count=0
+#for f in *.jpg
+#do
+#	if ((count > 499))
+#	then
+#		echo $f
+#		rm -rf $f
+#	fi
+#	((count++))
+#done
+
+#create movies
+# NH
+NAME1="Model${NAME}_NH_C.avi"
+~/Tools/ffmpeg-2.0.1-64bit-static/./ffmpeg -framerate 16 -i m-NH_C%04d.jpg -vframes 200 -vcodec libx264 ${NAME1}
+
+NAME2="Model${NAME}_NH_S.avi"
+~/Tools/ffmpeg-2.0.1-64bit-static/./ffmpeg -framerate 16 -i m-NH_S%04d.jpg -vframes 200 -vcodec libx264 ${NAME2}
+
+# 1DC
+NAME4="Model${NAME}_1DC_C.avi"
+~/Tools/ffmpeg-2.0.1-64bit-static/./ffmpeg -framerate 16 -i m-1DC_C%04d.jpg -vframes 200 -vcodec libx264 ${NAME4}
+
+NAME5="Model${NAME}_1DC_S.avi"
+~/Tools/ffmpeg-2.0.1-64bit-static/./ffmpeg -framerate 16 -i m-1DC_S%04d.jpg -vframes 200 -vcodec libx264 ${NAME5}
+
+# 2DC
+NAME7="Model${NAME}_2DC_C.avi"
+~/Tools/ffmpeg-2.0.1-64bit-static/./ffmpeg -framerate 16 -i m-2DC_C%04d.jpg -vframes 200 -vcodec libx264 ${NAME7}
+
+NAME8="Model${NAME}_2DC_S.avi"
+~/Tools/ffmpeg-2.0.1-64bit-static/./ffmpeg -framerate 16 -i m-2DC_S%04d.jpg -vframes 200 -vcodec libx264 ${NAME8}
+
+rm -rf temp*.avi
+FOLDER="/home/necrolyte/Uni/LateralRootGrowth/091215/"
+mv ${NAME1} $FOLDER
+mv ${NAME2} $FOLDER
+mv ${NAME4} $FOLDER
+mv ${NAME5} $FOLDER
+mv ${NAME7} $FOLDER
+mv ${NAME8} $FOLDER

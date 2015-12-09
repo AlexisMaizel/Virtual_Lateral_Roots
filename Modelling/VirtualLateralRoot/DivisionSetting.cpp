@@ -31,6 +31,7 @@ DivisionSetting::DivisionSetting( MyTissue &T,
                      const double avoidTrianglesThreshold,
                      const bool loadLastModel,
                      const bool onlyGrowthInHeight,
+                     const std::size_t surfaceType,
                      Surface &VLRBezierSurface,
                      RealSurface &VLRDataPointSurface )
   : _T( &T ),
@@ -53,6 +54,7 @@ DivisionSetting::DivisionSetting( MyTissue &T,
     _avoidTrianglesThreshold( avoidTrianglesThreshold ),
     _loadLastModel( loadLastModel ),
     _onlyGrowthInHeight( onlyGrowthInHeight ),
+    _surfaceType( surfaceType ),
     _VLRBezierSurface( &VLRBezierSurface ),
     _VLRDataPointSurface( &VLRDataPointSurface ),
     _choiceCounter( 0 )
@@ -77,7 +79,7 @@ void DivisionSetting::setCellDivisionSettings( const cell &c,
   double area;
   Point3d center = ModelUtils::computeCellCenter( *_T, c, area, _accurateCenterOfMass );
   
-  if( fixedCenterPos && _T->C.size() < 4 )
+  if( fixedCenterPos && c->cellCycle == 0 && _surfaceType == 0 )
   {
     double xLength = std::fabs( c->xMax - c->xMin );
     if( c->id == 1 )
@@ -512,6 +514,14 @@ void DivisionSetting::setAreaRatios( const bool loadLastModel,
 {
   _loadLastModel = loadLastModel;
   _initialSituationType = initialSituationType;
+  
+  // TODO: at the moment set constant ratio for radial model
+  if( _surfaceType == 1 )
+  {
+    _divisionAreaRatio = 0.45;
+    _avoidTrianglesThreshold = 15.;
+    return;
+  }
   
   switch( _initialSituationType )
   {
