@@ -134,6 +134,40 @@ void exportCellWalls( const std::string &filename,
 
 // ---------------------------------------------------------------------
 
+void exportDivisionAngles( const std::string &filename,
+                           const cell& c,
+                           const MyTissue &T,
+                           const bool init )
+{
+  // header
+  if( init )
+  {
+    std::ofstream out( filename.c_str(), std::ofstream::out );
+    out << "CellID TimeStep CellNumber File DivisionType Theta\n";
+    out.close();
+    return;
+  }
+  
+  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  out << c->id << " "
+      << c->timeStep << " "
+      << c->cellNumber << " "
+      << c->cellFile << " ";
+
+  if( c->divType == DivisionType::ANTICLINAL )
+    out << "0 ";
+  else if( c->divType == DivisionType::PERICLINAL )
+    out << "1 ";
+  else
+    out << "2 ";
+  
+  out << c->angle << "\n";
+  
+  out.close();
+}
+
+// ---------------------------------------------------------------------
+
 void exportDivisionDaughterProperties( const std::string &filename,
                                        const std::vector<cell> &dC,
                                        const DivisionType::type divType,

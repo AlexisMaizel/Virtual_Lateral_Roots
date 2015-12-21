@@ -164,6 +164,9 @@ void InitSurface::initIdealizedCells( MyTissue &T,
     std::cerr << "Selected number of cells at the beginning is not implemented yet!" << std::endl;
     break;
   }
+  
+  forall(const cell& c, T.C)
+    c->cellNumber = T.C.size();
 }
 
 // ---------------------------------------------------------------------
@@ -183,6 +186,9 @@ void InitSurface::initRadialCells( MyTissue &T,
                         lCounter, surface, 4, cellFile );
     uPos += 1./(double)maxCells;
   }
+  
+  forall(const cell& c, T.C)
+    c->cellNumber = T.C.size();
 }
 
 // ---------------------------------------------------------------------
@@ -311,7 +317,10 @@ void InitSurface::initRealDataCells( MyTissue &T, SurfaceBaseClass &surface )
     }
   }
   else
-    std::cerr << "Selected data set is not supported!" << std::endl;  
+    std::cerr << "Selected data set is not supported!" << std::endl;
+  
+  forall(const cell& c, T.C)
+    c->cellNumber = T.C.size();
 }
 
 // ---------------------------------------------------------------------

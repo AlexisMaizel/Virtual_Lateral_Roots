@@ -22,6 +22,11 @@ namespace ModelExporter
                                const std::size_t numCells,
                                const bool init );
   
+  void exportDivisionAngles( const std::string &filename,
+                             const cell& c,
+                             const MyTissue &T,
+                             const bool init );
+  
   void exportDivisionDaughterProperties( const std::string &filename,
                                          const std::vector<cell> &dC,
                                          const DivisionType::type divType,

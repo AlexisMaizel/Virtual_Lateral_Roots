@@ -127,18 +127,42 @@ void Surface::initRadialSurface( util::Parms &parms,
   _numPatches = 1;
   _numControlPoints = 7;
   
+  std::size_t mid = 10;
+  
   // init first and last radial bezier surface
-  surface[0].setRadialSurface( _numControlPoints, true );
+  surface[0].setRadialSurfaces( 0 );
+  //surface[0].setRadialSurface( _numControlPoints, true );
   surface[0].setCount( 1 );
-  surface[_numSurfaces-1].setRadialSurface( _numControlPoints, false );
+  surface[mid-1].setRadialSurfaces( 1 );
+  surface[mid-1].setCount( 1 );
+  surface[_numSurfaces-1].setRadialSurfaces( 2 );
+  //surface[_numSurfaces-1].setRadialSurface( _numControlPoints, false );
   surface[_numSurfaces-1].setCount( 1 );
   
   for( std::size_t i = 1; i < _numSurfaces-1; i++ )
   {
-    double s = (double)i/(double)(_numSurfaces-1);
-    surface[i].Interpolate( surface[0], surface[_numSurfaces-1], 1., 1., s );
-    surface[i].setCount( 1 );
+    double s;
+    
+    if( i < mid-1 )
+    {
+      s = (double)i/(double)(mid-1);
+      surface[i].Interpolate( surface[0], surface[mid-1], 1., 1., s );
+      surface[i].setCount( 1 );
+    }
+    else if( i >= mid )
+    {
+      s = (double)(i-mid+1)/(double)(mid-1);
+      surface[i].Interpolate( surface[mid-1], surface[_numSurfaces-1], 1., 1., s );
+      surface[i].setCount( 1 );
+    }
   }
+  
+//   for( std::size_t i = 1; i < _numSurfaces-1; i++ )
+//   {
+//     double s = (double)i/(double)(_numSurfaces-1);
+//     surface[i].Interpolate( surface[0], surface[_numSurfaces-1], 1., 1., s );
+//     surface[i].setCount( 1 );
+//   }
 }
 
 //----------------------------------------------------------------

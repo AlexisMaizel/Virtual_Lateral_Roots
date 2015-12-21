@@ -25,6 +25,8 @@ public:
   
   void setMovieParameters();
   
+  double determineTotalArea();
+  
   void setStatus();
   
   void updateFromOld( const cell& cl, const cell& cr, const cell& c,
@@ -162,6 +164,13 @@ public:
   std::size_t _maxTimeSteps;
   
   std::map< std::string, std::vector<std::size_t> > _divisionSequences;
+  
+  std::string _divisioAngleFileName;
+  
+  double _initialArea;
+  double _curArea;
+  double _totalArea;
+  double _areaGrowthFactor;
   
   bool _renderMovies;
   unsigned int _renderMoviesIndex;

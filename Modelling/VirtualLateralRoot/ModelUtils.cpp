@@ -215,7 +215,8 @@ DivisionType::type determineSideModelDivisionType( const MyTissue::division_data
 
 DivisionType::type determineRadialModelDivisionType( const MyTissue::division_data& ddata,
                                           const double angleThreshold,
-                                          const Point3d &center )
+                                          const Point3d &center,
+                                          double &ang )
 {
   // get pair of points of division wall
   Point3d u = ddata.pu;
@@ -231,6 +232,8 @@ DivisionType::type determineRadialModelDivisionType( const MyTissue::division_da
   
   if( angle > 90. )
     angle = 180. - angle;
+  
+  ang = angle;
   
   // radial
   if( angle <= angleThreshold )

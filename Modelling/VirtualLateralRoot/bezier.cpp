@@ -461,59 +461,6 @@ void Bezier::Interpolate( Bezier &src1, Bezier &src2,
 
 //----------------------------------------------------------------
 
-void Bezier::ParabolicGrowth( Bezier &src1, double s,
-                              const double height )
-{
-  s = InBounds(s, 0.0, 1.0);
-  conpoi mat1 = src1._cpMatrix;
-  // initialize control points matrix
-  _cpMatrix.resize( mat1.size() );
-  for( std::size_t r=0;r<_cpMatrix.size();r++ )
-    _cpMatrix.at(r).resize( mat1.size() );
-  
-  for(std::size_t i = 0; i < _cpMatrix.size(); i++) 
-    for(std::size_t j = 0; j < _cpMatrix.at(i).size(); j++)
-    {
-      double xPos = 1.;
-      double x, y;
-      double a, h, k;
-      double x2;
-      switch( j )
-      {
-        // mid
-        case 3:
-          _cpMatrix.at(i).at(j).i() = mat1.at(i).at(j).i();
-          _cpMatrix.at(i).at(j).j() = mat1.at(i).at(j).j() + s * height * i;
-        break;
-        case 1:
-        case 5:
-          if( j==1 )
-            xPos = -1.;
-          x = mat1.at(i).at(j).i();
-          //x0 = mat1.at(0).at(j).i();
-          _cpMatrix.at(i).at(j).i() = x;
-          //y = -6.*(x+xPos*3.)*(x+xPos*3.) + x0;
-          x2 = s*i - (double)j-3.;
-          y = mat1.at(i).at(j).j() + x2 * x2 * height;
-          _cpMatrix.at(i).at(j).j() = y;
-        break;
-        case 2:
-        case 4:
-          _cpMatrix.at(i).at(j).i() = mat1.at(i).at(j).i();
-          _cpMatrix.at(i).at(j).j() = mat1.at(i).at(j).j() + s * height * i;
-        break;
-        case 0:
-        case 6:
-          _cpMatrix.at(i).at(j).i() = mat1.at(i).at(j).i();
-          _cpMatrix.at(i).at(j).j() = mat1.at(i).at(j).j() + s * height * i;
-        break;
-        
-      }
-    }
-}
-
-//----------------------------------------------------------------
-
 // Print out points (debugging)
 void Bezier::Print()
 { 
@@ -573,6 +520,8 @@ void Bezier::setRadialSurface( const int numControlPoints,
   _cpMatrix.resize( numControlPoints );
   for( std::size_t r=0;r<numControlPoints;r++ )
     _cpMatrix.at(r).resize( numControlPoints );
+  
+  // first dimension is the row while second one is the column
   
   double r = 300.;
   double rBottom = 7.*r/10.;
@@ -710,6 +659,222 @@ void Bezier::setRadialSurface( const int numControlPoints,
         _cpMatrix.at(i).at(j) = (1.-s) * bottom + s * top;
       }
   }
+}
+
+//----------------------------------------------------------------
+
+void Bezier::setRadialSurfaces( const std::size_t surf )
+{
+  std::size_t numControlPoints = 7;
+  // initialize control points matrix
+  _cpMatrix.resize( numControlPoints );
+  for( std::size_t r=0;r<numControlPoints;r++ )
+    _cpMatrix.at(r).resize( numControlPoints );
+  
+  double r = 300.;
+  double rBottom = 6.*r/10.;
+  double rTop = 6.*r;
+  double rMid = 3.*r;
+  double angle = 15.;
+  double angleStep = 25.;
+  
+  // start
+  if( surf == 0 )
+  {
+    // set bottom and top boundary points
+    for(std::size_t j = 0; j < numControlPoints; j++)
+    {
+      double a = angle * M_PI/180.;
+      // bottom
+      if( j >= 2 && j <= 4 )
+        this->setControlPoint( 0, j,
+                               -rBottom*cos( a ),
+                               rBottom*sin( a ) - 30. );
+      else
+        this->setControlPoint( 0, j,
+                               -rBottom*cos( a ),
+                               rBottom*sin( a ) );
+      // top
+      if( j >= 2 && j <= 4 )
+        this->setControlPoint( 6, j,
+                               -r*cos( a ),
+                               r*sin( a ) - 30. );
+      else
+        this->setControlPoint( 6, j,
+                               -r*cos( a ),
+                               r*sin( a ) );
+      angle += angleStep;
+    }
+    
+    // interpolate in between
+    for(std::size_t i = 1; i < _cpMatrix.size()-1; i++)
+      for(std::size_t j = 0; j < _cpMatrix.at(i).size(); j++)
+      {
+        Point3d top = _cpMatrix.back().at(j);
+        Point3d bottom = _cpMatrix.front().at(j);
+        double s = (double)i/(double)(_cpMatrix.size()-1);
+        _cpMatrix.at(i).at(j) = (1.-s) * bottom + s * top;
+      }
+  }
+  // mid and end
+  else if( surf == 1 || surf == 2 )
+  {
+    // set bottom boundary points
+    for(std::size_t j = 0; j < numControlPoints; j++)
+    {
+      double a = angle * M_PI/180.;
+      // bottom
+      if( j >= 2 && j <= 4 )
+        this->setControlPoint( 0, j,
+                               -rBottom*cos( a ),
+                               rBottom*sin( a ) - 30. );
+      else if( j == 0 || j == 6 )
+        this->setControlPoint( 0, j,
+                               -rBottom*cos( a ),
+                               rBottom*sin( a ) + 20. );
+      else
+        this->setControlPoint( 0, j,
+                               -rBottom*cos( a ),
+                               rBottom*sin( a ) );
+      angle += angleStep;
+    }
+    
+    for(std::size_t i = 1; i < _cpMatrix.size(); i++)
+    {
+      double s = (double)i/(double)(_cpMatrix.size());
+      
+      // mid is just growing in height and interpolated linearly
+      double a = 90.* M_PI/180.;
+      Point3d top = Point3d( -rMid * cos( a ), rMid * sin( a ), 0 );
+      Point3d bottom = Point3d( -rBottom * cos( a ), rBottom * sin( a ), 0 );
+      _cpMatrix.at(i).at(3) = (1.-s) * bottom + s * top;
+      
+      // set the x positions for the inner columns
+      a = 15.* M_PI/180.;
+      double t = -r * cos( a ) * 1.7;
+      double b = -rBottom * cos( a );
+      _cpMatrix.at(i).at(0).i() = (1.-s) * b + s * t;
+      
+      a = 40.* M_PI/180.;
+      t = -r * cos( a ) * 1.8;
+      b = -rBottom * cos( a );
+      _cpMatrix.at(i).at(1).i() = (1.-s) * b + s * t;
+      
+      a = 65.* M_PI/180.;
+      t = -r * cos( a ) * 4.2;
+      b = -rBottom * cos( a );
+      _cpMatrix.at(i).at(2).i() = (1.-s) * b + s * t;
+      
+      a = 115.* M_PI/180.;
+      t = -r * cos( a ) * 4.2;
+      b = -rBottom * cos( a );
+      _cpMatrix.at(i).at(4).i() = (1.-s) * b + s * t;
+      
+      a = 140.* M_PI/180.;
+      t = -r * cos( a ) * 1.8;
+      b = -rBottom * cos( a );
+      _cpMatrix.at(i).at(5).i() = (1.-s) * b + s * t;
+
+      a = 165.* M_PI/180.;
+      t = -r * cos( a ) * 1.7;
+      b = -rBottom * cos( a );
+      _cpMatrix.at(i).at(6).i() = (1.-s) * b + s * t;
+    }
+    
+    std::size_t j = 0;
+    double height = fabs( rMid - r );
+    double para[] = { r+0.1*height,
+                      r+0.6*height,
+                      r+0.8*height,
+                      r+0.9*height,
+                      r+0.95*height,
+                      rMid };
+    double para2[] = { 0.01*height,
+                      0.1*height,
+                      0.2*height,
+                      0.4*height,
+                      0.8*height,
+                      2.*height };
+    double prevY = _cpMatrix.at(0).at(j).j();
+    for( std::size_t c = 1; c<=6; c++ )
+      _cpMatrix.at(c).at(j).j() = prevY + para2[c-1]/16.;
+    
+    j = 1;
+    prevY = _cpMatrix.at(0).at(j).j();
+    for( std::size_t c = 1; c<=6; c++ )
+      _cpMatrix.at(c).at(j).j() = prevY + para[c-1]/8.;
+    
+    j = 2;
+    prevY = _cpMatrix.at(0).at(j).j();
+    for( std::size_t c = 1; c<=6; c++ )
+      _cpMatrix.at(c).at(j).j() = prevY + para[c-1]/2.;
+    
+    j = 4;
+    prevY = _cpMatrix.at(0).at(j).j();
+    for( std::size_t c = 1; c<=6; c++ )
+      _cpMatrix.at(c).at(j).j() = prevY + para[c-1]/2.;
+    
+    j = 5;
+    prevY = _cpMatrix.at(0).at(j).j();
+    for( std::size_t c = 1; c<=6; c++ )
+      _cpMatrix.at(c).at(j).j() = prevY + para[c-1]/8.;
+    
+    j = 6;
+    prevY = _cpMatrix.at(0).at(j).j();
+    for( std::size_t c = 1; c<=6; c++ )
+      _cpMatrix.at(c).at(j).j() = prevY + para2[c-1]/16.;
+   
+    if( surf == 2 )
+    {
+      double height = fabs( rTop - r );
+      double para[] = { r+0.1*height,
+                      r+0.1*height,
+                      r+0.2*height,
+                      r+0.6*height,
+                      r+0.2*height,
+                      r+0.1*height,
+                      r+0.1*height };
+      // set top boundary points
+      for( std::size_t i = 1; i < numControlPoints; i++ )
+        for( std::size_t j = 1; j < numControlPoints-1; j++ )
+        { 
+          if( j == 1 || j == 5 )
+            _cpMatrix.at(i).at(j).j() += para[j] * i/16.;
+          else
+            _cpMatrix.at(i).at(j).j() += para[j];
+        }
+        
+      _cpMatrix.at(6).at(0).j() += 60.;
+      _cpMatrix.at(5).at(0).j() += 30.;
+      _cpMatrix.at(6).at(6).j() += 60.;
+      _cpMatrix.at(5).at(6).j() += 30.;
+      
+      // increase width
+      for(std::size_t i = 1; i < _cpMatrix.size(); i++)
+      {
+        double s = (double)i/(double)(_cpMatrix.size()-1);
+        double t = _cpMatrix.at(6).at(1).i() - 150.;
+        double b = _cpMatrix.at(0).at(1).i();
+        _cpMatrix.at(i).at(1).i() = (1.-s) * b + s * t;
+        
+        t = _cpMatrix.at(6).at(5).i() + 150.;
+        b = _cpMatrix.at(0).at(5).i();
+        _cpMatrix.at(i).at(5).i() = (1.-s) * b + s * t;
+      }
+    }
+  }
+}
+
+//----------------------------------------------------------------
+
+void Bezier::setControlPoint( const std::size_t row,
+                              const std::size_t column,
+                              const double x,
+                              const double y )
+{
+  _cpMatrix.at(row).at(column).i() = x;
+  _cpMatrix.at(row).at(column).j() = y;
+  _cpMatrix.at(row).at(column).k() = 0.;
 }
 
 //----------------------------------------------------------------

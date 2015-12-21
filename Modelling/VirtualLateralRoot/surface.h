@@ -45,6 +45,9 @@ class Surface : public SurfaceBaseClass
     conpoi getCurrentControlPoints() const
     { return surfCurr.getControlPoints(); }
     
+    conpoi getInitialControlPoints() const
+    { return surface[0].getControlPoints(); }
+    
     void increaseDomeTipHeight( Bezier &surface );
     
     void applyControlpointsVariation( Bezier &surface,

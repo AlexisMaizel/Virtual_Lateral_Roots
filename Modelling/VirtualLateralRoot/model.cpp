@@ -95,7 +95,12 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
   _amountLoops( 100 ),
   _interpolateBezierSurfaces( true ),
   _renderMoviesIndex( 0 ),
-  _imagesFilename( "/tmp/images/m-" )
+  _imagesFilename( "/tmp/images/m-" ),
+  _initialArea( 0. ),
+  _curArea( 0. ),
+  _totalArea( 0. ),
+  // area growth factor is given by average growth area ratio of real datasets
+  _areaGrowthFactor( 11. )
 {
   quadratic = gluNewQuadric();
   gluQuadricNormals( quadratic, GLU_SMOOTH );
@@ -170,11 +175,18 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
   _lineageFileName = "/tmp/model";
   _cellWallsFileName = "/tmp/modelCellWalls";
   _divisionFileName = "/tmp/divisionProperties";
+  _divisioAngleFileName = "/tmp/divisionAngles";
   
   if( _surfaceType == 0 )
+  {
     _divisionFileName += "SideModel";
+    _divisioAngleFileName += "SideModel";
+  }
   else
+  {
     _divisionFileName += "RadialModel";
+    _divisioAngleFileName += "RadialModel";
+  }
   
   if( SURFACETYPE == 1 )
   {
@@ -190,6 +202,7 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
   if( _useAlternativeDT )
   {
     _divisionFileName += _divisionType;
+    _divisioAngleFileName += _divisionType;
     if( _divisionType != "Besson-Dumais" )
     {
       _divisionFileName += std::to_string( (unsigned int)_avoidTrianglesThreshold );
@@ -202,6 +215,7 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
     _divisionFileName += "ShortestWall";
     _lineageFileName += "ShortestWall";
     _cellWallsFileName += "ShortestWall";
+    _divisioAngleFileName += "ShortestWall";
     
   }
   
@@ -215,6 +229,7 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
   _divisionFileName += ".csv";
   _lineageFileName += ".csv";
   _cellWallsFileName += ".csv";
+  _divisioAngleFileName += ".csv";
   
   // single layer assignment
   //for( std::size_t l = 9; l < 14; l++ )
@@ -228,6 +243,7 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
   cell dummy;
   ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
   ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
+  ModelExporter::exportDivisionAngles( _divisioAngleFileName, dummy, T, true );
   
   std::pair<std::size_t, std::size_t> pair;
   std::vector<cell> dummies;
@@ -274,6 +290,11 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
       _VLRBezierSurface.initRadialSurface( _parms, "Surface" );
       _VLRBezierSurface.growStep( 0 );
       _initSurface.initRadialCells( T, _VLRBezierSurface );
+      // determine initial area and final area size based on growth factor
+      _initialArea = this->determineTotalArea();
+      _totalArea = _areaGrowthFactor * _initialArea;
+      _curArea = _initialArea;
+      std::cout << "Final Area: " << _totalArea << std::endl;
     }
   }
   // real data points
@@ -422,6 +443,9 @@ void MyModel::restartModel()
   _firstLayerAppearances.clear();
   _totalLayerCount.clear();
   _lastStep = false;
+  _initialArea = 0.;
+  _curArea = 0.;
+  _totalArea = 0.;
   
   // read the properties of the saved data model
   if( _loadLastModel )
@@ -474,6 +498,10 @@ void MyModel::restartModel()
       _VLRBezierSurface.initRadialSurface( _parms, "Surface" );
       _VLRBezierSurface.growStep( 0 );
       _initSurface.initRadialCells( T, _VLRBezierSurface );
+      // determine initial area and final area size based on growth factor
+      _initialArea = this->determineTotalArea();
+      _totalArea = _areaGrowthFactor * _initialArea;
+      _curArea = _initialArea;
     }
   }
   // real data points
@@ -593,6 +621,17 @@ void MyModel::setMovieParameters()
 
 //----------------------------------------------------------------
 
+double MyModel::determineTotalArea()
+{
+  double curArea = 0.;
+  forall(const cell& c, T.C)
+    curArea += c->area;
+  
+  return curArea;
+}
+
+//----------------------------------------------------------------
+
 void MyModel::setStatus()
 {
   std::size_t time = _initSurface.getTime();
@@ -633,6 +672,8 @@ void MyModel::setStatus()
   else
     status += QString( "Area div: %1\t" ).arg(_divisionArea);
   
+  status += QString( "TArea: %1\t" ).arg(_curArea);
+  
   if( _useWallRatio )
     status += QString( "Wall div ratio: %1\t" ).arg(_divisionWallRatio);
   
@@ -660,13 +701,15 @@ void MyModel::updateFromOld( const cell& cl, const cell& cr, const cell& c,
   
   // side model
   if( _surfaceType == 0 )
+  {
     divType = ModelUtils::determineSideModelDivisionType( ddata, _angleThreshold );
+    c->angle = angle;
+  }
   // radial model
   else if( _surfaceType == 1 )
-    divType = ModelUtils::determineRadialModelDivisionType( ddata, _angleThreshold, c->center );
+    divType = ModelUtils::determineRadialModelDivisionType( ddata, _angleThreshold, c->center, c->angle );
   
   // set properties of dividing cell
-  c->angle = angle;
   c->divType = divType;
   
   // set cell properties for left cell
@@ -745,6 +788,10 @@ void MyModel::updateFromOld( const cell& cl, const cell& cr, const cell& c,
                                                    _angleThreshold,
                                                    _divOccurrences,
                                                    false );
+  
+  c->cellNumber = T.C.size();
+  ModelExporter::exportDivisionAngles( _divisioAngleFileName,
+                                       c, T, false );
 }
 
 //----------------------------------------------------------------
@@ -768,7 +815,7 @@ void MyModel::setCellProperties( const cell &c, const cell &parentCell )
   Point3d center = ModelUtils::computeCellCenter( T, c, area, _accurateCenterOfMass );
   c->initialArea = area;
   c->center = center;
-  c->divType = DivisionType::NONE;
+  c->divType = parentCell->divType;//DivisionType::NONE;
   c->centerPos.push_back( center );
   c->area = c->initialArea;
   c->initialLongestWallLength = ModelUtils::determineLongestWallLength( c, T );
@@ -783,6 +830,7 @@ void MyModel::setCellProperties( const cell &c, const cell &parentCell )
   c->divDir = c->center - parentCell->center;
   c->cellCycle = parentCell->cellCycle+1;
   c->cellFile = parentCell->cellFile;
+  c->cellNumber = T.C.size();
   
   if( parentCell->divType == DivisionType::ANTICLINAL )
     c->divisionLetterSequence = parentCell->divisionLetterSequence + "A";
@@ -909,7 +957,7 @@ void MyModel::setCellFileSequence( const cell& cl, const cell& cr, const cell& c
 
 void MyModel::step()
 {
-  std::size_t curTime, maxTime, breakTime, numMovies;
+  std::size_t curTime, maxTime, numMovies;
   if( SURFACETYPE == 0 )
   {
     curTime = _initSurface.getTime();
@@ -923,7 +971,7 @@ void MyModel::step()
   
   if( _surfaceType == 1 )
   {
-    breakTime = 200;
+    _curArea = this->determineTotalArea();
     numMovies = 8;
   }
   else
@@ -959,7 +1007,7 @@ void MyModel::step()
 //         std::cout << cycleCounter.at(c) << " cells in cycle " << c << std::endl;
   }
   
-  if( curTime == breakTime && !_loadLastModel && _surfaceType == 1 )
+  if( _curArea > _totalArea && !_loadLastModel && _surfaceType == 1 )
   {
     std::string fileName = "/tmp/modelDataProp";
     ModelUtils::appendCellSituationType( fileName, _initialSituationType );
@@ -1030,7 +1078,7 @@ void MyModel::step()
   }
   
   // radial model using loop
-  if( _useLoop && curTime >= breakTime && _surfaceType == 1 )
+  if( _useLoop && _curArea > _totalArea && _surfaceType == 1 )
   {
     // export information of periclinal divisions
     std::string filename = "/tmp/RadialModelDivProperties";
@@ -1060,7 +1108,7 @@ void MyModel::step()
       this->stopModel();
     return;
   }
-  else if( !_useLoop && curTime >= breakTime &&
+  else if( !_useLoop && _curArea > _totalArea &&
             _surfaceType == 1 && !_renderMovies )
     this->stopModel();
   
@@ -1086,7 +1134,7 @@ void MyModel::step()
     return;
   }
    
-  if( _renderMovies && curTime >= breakTime && _surfaceType == 1 )
+  if( _renderMovies && _curArea > _totalArea && _surfaceType == 1 )
   {
     if( _renderMoviesIndex < numMovies )
     {
@@ -1740,7 +1788,11 @@ void MyModel::draw( Viewer* viewer )
     }
     
     if( _drawBezierSurface )
+    {
+      conpoi icps = _VLRBezierSurface.getInitialControlPoints();
       GraphicsClass::drawBezierSurface( cps, _palette.getColor(0) );
+      GraphicsClass::drawBezierSurface( icps, _palette.getColor(2) );
+    }
   }
 }
 

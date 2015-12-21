@@ -47,6 +47,13 @@ class Bezier {
     void setRadialSurface( const int numControlPoints,
                            const bool start );
     
+    void setRadialSurfaces( const std::size_t surf );
+    
+    void setControlPoint( const std::size_t row,
+                          const std::size_t column,
+                          const double x,
+                          const double y );
+    
     // Copy and/or scale
     void Scale( Bezier &b, double Scale );
 
@@ -54,9 +61,6 @@ class Bezier {
     void Interpolate( Bezier &src1, Bezier &src2, 
                       double scale1, double scale2, double s );
 
-    void ParabolicGrowth( Bezier &src1, double s,
-                          const double height );
-    
     // Return x,y,z point from u,v parameters
     Point3d EvalCoord( double u, double v );
 

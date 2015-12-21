@@ -57,7 +57,8 @@ namespace ModelUtils
   
   DivisionType::type determineRadialModelDivisionType( const MyTissue::division_data& ddata,
                                           const double angleThreshold,
-                                          const Point3d &center );
+                                          const Point3d &center,
+                                          double &ang );
   
   double getDivisionAngle( const MyTissue::division_data& ddata );
   
