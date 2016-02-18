@@ -243,7 +243,7 @@ MyModel::MyModel(QObject *parent) : Model(parent), _parms("view.v"),
   cell dummy;
   ModelExporter::exportLineageInformation( _lineageFileName, dummy, T, true );
   ModelExporter::exportCellWalls( _cellWallsFileName, dummy, T, true );
-  ModelExporter::exportDivisionAngles( _divisioAngleFileName, dummy, T, true );
+  ModelExporter::exportDivisionAngles( _divisioAngleFileName, dummy, true );
   
   std::pair<std::size_t, std::size_t> pair;
   std::vector<cell> dummies;
@@ -431,8 +431,6 @@ void MyModel::restartModel()
   _VLRBezierSurface, _VLRDataPointSurface );
   
   this->setMovieParameters();
-
-  std::cout << "_loadLastModel: " << _loadLastModel << std::endl;
   
   // Registering the configuration files
   registerFile("pal.map");
@@ -791,7 +789,7 @@ void MyModel::updateFromOld( const cell& cl, const cell& cr, const cell& c,
   
   c->cellNumber = T.C.size();
   ModelExporter::exportDivisionAngles( _divisioAngleFileName,
-                                       c, T, false );
+                                       c, false );
 }
 
 //----------------------------------------------------------------
@@ -1100,6 +1098,8 @@ void MyModel::step()
     // if the maximum amount of loops is reached
     if( _loopCounter == _amountLoops )
       ModelExporter::exportDivisionSequences( filename, _divisionSequences );
+    
+    ModelExporter::exportNumberOfCellsInFiles( "/tmp/cellsInFiles.csv", T, _loopCounter );
     
     this->restartModel();
     if( _loopCounter < _amountLoops )

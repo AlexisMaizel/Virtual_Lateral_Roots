@@ -136,7 +136,6 @@ void exportCellWalls( const std::string &filename,
 
 void exportDivisionAngles( const std::string &filename,
                            const cell& c,
-                           const MyTissue &T,
                            const bool init )
 {
   // header
@@ -164,6 +163,29 @@ void exportDivisionAngles( const std::string &filename,
   out << c->angle << "\n";
   
   out.close();
+}
+
+// ---------------------------------------------------------------------
+
+void exportNumberOfCellsInFiles( const std::string &filename,
+                                 const MyTissue &T,
+                                 const int run )
+{ 
+  std::vector<std::size_t> numCells;
+  numCells.resize(5);
+  
+  forall(const cell& c, T.C)
+    numCells.at( c->cellFile+2 )++;
+  
+  std::ofstream out( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  out << run << " ";
+  
+  for( std::size_t f=0; f < numCells.size(); f++ )
+    out << numCells.at(f) << " ";
+  
+  out << "\n";
+  
+  out.close(); 
 }
 
 // ---------------------------------------------------------------------

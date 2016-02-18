@@ -24,8 +24,11 @@ namespace ModelExporter
   
   void exportDivisionAngles( const std::string &filename,
                              const cell& c,
-                             const MyTissue &T,
                              const bool init );
+  
+  void exportNumberOfCellsInFiles( const std::string &filename,
+                                   const MyTissue &T,
+                                   const int run );
   
   void exportDivisionDaughterProperties( const std::string &filename,
                                          const std::vector<cell> &dC,

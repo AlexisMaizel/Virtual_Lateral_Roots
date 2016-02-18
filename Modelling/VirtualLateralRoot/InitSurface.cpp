@@ -179,12 +179,41 @@ void InitSurface::initRadialCells( MyTissue &T,
   int maxCells = 5;
   int cellFile = -2;
   double uPos = 0.;
-  for( std::size_t c=1; c <= maxCells; c++, lCounter++, cellFile += 1 )
+  
+  bool equidistant = false;
+  
+  // all cells share the same size
+  if( equidistant )
   {
-    this->generateCell( T, std::make_pair( uPos, 0. ),
-                        std::make_pair( 1./(double)maxCells, 1. ),
-                        lCounter, surface, 4, cellFile );
-    uPos += 1./(double)maxCells;
+    for( std::size_t c=1; c <= maxCells; c++, lCounter++, cellFile += 1 )
+    {
+      this->generateCell( T, std::make_pair( uPos, 0. ),
+                          std::make_pair( 1./(double)maxCells, 1. ),
+                          lCounter, surface, 4, cellFile );
+      uPos += 1./(double)maxCells;
+    }
+  }
+  else
+  {
+    double offset = 1./(double)maxCells;
+    
+    for( std::size_t c = 0; c < 5; c++, lCounter++, cellFile++ )
+    {
+      switch( c )
+      {
+        case 0: offset = 1./(double)maxCells; break;
+        case 1: offset = 1./(2.*(double)maxCells); break;
+        case 2: offset = 2./(double)maxCells; break;
+        case 3: offset = 1./(2.*(double)maxCells); break;
+        case 4: offset = 1./(double)maxCells; break;
+      }
+      
+      this->generateCell( T, std::make_pair( uPos, 0. ),
+                          std::make_pair( offset, 1. ),
+                          lCounter, surface, 4, cellFile );
+    
+      uPos += offset;
+    }
   }
   
   forall(const cell& c, T.C)
