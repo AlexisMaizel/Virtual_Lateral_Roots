@@ -19,7 +19,7 @@ for r=1:res+1
   lineY = [ bottomleft(2)+indexR bottomright(2)+indexR ];
   hold on;
   if lineY(1) <= max(2)+eps
-    %line( lineX, lineY, [ -50 -50 ], 'Color', [ 0.8 0.8 0.8 ], 'LineWidth', 1.5 );
+    line( lineX, lineY, [ -50 -50 ], 'Color', [ 0.8 0.8 0.8 ], 'LineWidth', 1.5 );
     rows = rows + 1;
   end
   % column lines
@@ -27,6 +27,6 @@ for r=1:res+1
   lineX = [ bottomleft(1)+indexC topleft(1)+indexC ];
   lineY = [ bottomleft(2) topleft(2) ];
   hold on;
-  %line( lineX, lineY, [ -50 -50 ], 'Color', [ 0.8 0.8 0.8 ], 'LineWidth', 1.5 );
+  line( lineX, lineY, [ -50 -50 ], 'Color', [ 0.8 0.8 0.8 ], 'LineWidth', 1.5 );
   columns = columns + 1;
 end

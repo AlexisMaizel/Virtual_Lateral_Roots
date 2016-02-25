@@ -1,5 +1,6 @@
 % execute compileMex.m before to generate mex files
 
+cd('C:\Jens\VLRRepository\VLRInMatlab')
 GeomPath = strcat( pwd, '/geom3d' );
 addpath( GeomPath );
 ExportPath = strcat( pwd, '/export_fig' );
@@ -7,18 +8,24 @@ addpath( ExportPath );
 TGMMPath = strcat( pwd, '/readTGMM_XMLoutput' );
 addpath( TGMMPath );
 
-requireNewSegmentationAndTracking = 1;
+requireNewSegmentationAndTracking = 0;
 startT = 1;
 endT = 10;
+dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
+rawDataStr = { '120830' '121204' '121211' '130508' '130607' };
+chosenData = 3;
 
 % execute TGMM segmentation and tracking
 if requireNewSegmentationAndTracking == 1
   cd('C:\Jens\TGMM_Supplementary_Software_1_0\build')
   tRange = strcat( num2str(startT), {' '}, num2str(endT) );
-  cmdSegmentation = strcat( 'nucleiChSvWshedPBC\Release\ProcessStackBatchMulticore.exe VLRConfig\TGMM_configFile.txt', {' '}, tRange );
+  % first create TGMMconfigfile
+  exportTGMMConfigFile( rawDataStr( 1, chosenData ) );
+  dataSelect = strcat( 'TGMM_configFile', rawDataStr( 1, chosenData ), '.txt' );
+  cmdSegmentation = strcat( 'nucleiChSvWshedPBC\Release\ProcessStackBatchMulticore.exe AutoTGMMConfig\', dataSelect, {' '}, tRange );
   system( char(cmdSegmentation), '-echo');
   disp( 'Segmentation done.' );
-  cmdTracking = strcat( 'Release\TGMM VLRConfig\TGMM_configFile.txt', {' '}, tRange );
+  cmdTracking = strcat( 'Release\TGMM AutoTGMMConfig\', dataSelect, {' '}, tRange );
   system( char(cmdTracking), '-echo');
   disp( 'Tracking done.' );
   cd('C:\Jens\VLRRepository\VLRInMatlab')
@@ -31,14 +38,11 @@ format longG
 imageDir = strcat( 'images/Segmentation/' );
 mkdir( char(imageDir) );
 
-dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' '131203_raw' };
-chosenData = 3;
-
 % read raw data
 [ cellData, dimData ] = readRawData( dataStr( 1, chosenData ) );
 
-resultPath = 'I:\SegmentationResults\TGMM\';
-newestResult = getNewestFolder( resultPath );
+resultPath = strcat( 'I:\SegmentationResults\TGMM\', rawDataStr( 1, chosenData ), '\' );
+newestResult = getNewestFolder( char( resultPath ) );
 totalPath = strcat( resultPath, newestResult, '\XML_finalResult_lht\GMEMfinalResult_frame');
 radEllip = 10;
 lineWidth = 1;
@@ -58,22 +62,29 @@ numPlots = 2;
 % 8.	Time point of the nucleus.
 % 9.	Confidence level in the tracking result. Value of 3 indicates high confidence that the object was correctly tracked. Value of 0 indicates low confidence.
 % 10.	Skeleton id. All cells belonging to the same lineage have the same unique skeleton id.
-[trackingMatrix, svIdxCell] = parseMixtureGaussiansXml2trackingMatrixCATMAIDformat( totalPath, startT, endT );
+[trackingMatrix, svIdxCell] = parseMixtureGaussiansXml2trackingMatrixCATMAIDformat( char(totalPath), startT, endT );
 
 cmap = colorcube(numColors);
 
-f = figure( 'Name', 'Segmentation' );
+f = figure( 'Name', 'Segmentation', 'Position', [ 50 50 800 800 ] );
 ELLIP = [];
 ELLIPPATCH = [];
 nucleiCounter = 1;
+lineageAutoMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
+lineageManualMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
+resGrid = 10;
 
 for t=startT:endT
   clf(f)
-  for p=1:1
+  for p=1:2
     subplot( numPlots, 1, p );
     hold on
     xMinMax = [ -50 750 ];
-    yMinMax = [ -450 -50 ];
+    if p == 1
+      yMinMax = [ -450 -50 ];
+    else
+      yMinMax = [ 0 400 ];
+    end
     % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
     axis( [ xMinMax(1) xMinMax(2) yMinMax(1) yMinMax(2) -10000 10000 0 1 ] );
     axis on
@@ -82,8 +93,11 @@ for t=startT:endT
     ylabel('Y');
     zlabel('Z');
     camproj( 'orthographic' );
-    %   hideHandle( ELLIP );
-    %   hideHandle( ELLIPPATCH );
+    % initialize 2D grid
+    [ rows, columns ] =...
+      generate2DGrid(...
+      [xMinMax(1) yMinMax(1)],...
+      [xMinMax(2) yMinMax(2)], resGrid );
   end
   numCellsAuto = 0;
   numCellsManual = 0;
@@ -94,6 +108,11 @@ for t=startT:endT
     timeStep = trackingMatrix( i, 8 );
     if timeStep == t
       lineage = trackingMatrix( i, 10 );
+      if isKey( lineageAutoMap, lineage ) == 1
+        lineageAutoMap( lineage ) = lineageAutoMap( lineage ) + 1;
+      else
+        lineageAutoMap( lineage ) = 1;
+      end
       cen = trackingMatrix( i, 3:5 );
       color = cmap( mod( lineage, numColors )+1, : );
       
@@ -106,8 +125,10 @@ for t=startT:endT
     end
   end
   
-  tit = strcat( 'AutoSeg\_', 'T', {' '}, num2str(t) );
-  title( tit );
+  tit = strcat( 'AutoSeg\_', 'T', {' '}, num2str(t), ',',...
+  {' '}, '#Cells', {' '}, num2str(numCellsAuto), ',',...
+  {' '}, '#Lineages', {' '}, num2str(lineageAutoMap.Count) );
+  title( char(tit) );
   
   % manual segmentation result
   subplot( numPlots, 1, 2 );
@@ -118,6 +139,11 @@ for t=startT:endT
       % get position of current cell
       p = [ cellData{j, 2} cellData{j, 3} cellData{j, 4} ];
       lin = cellData{j, 6};
+      if isKey( lineageManualMap, lin ) == 1
+        lineageManualMap( lin ) = lineageManualMap( lin ) + 1;
+      else
+        lineageManualMap( lin ) = 1;
+      end
       color = cmap( mod( lin, numColors )+1, : );
       
       [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
@@ -129,20 +155,20 @@ for t=startT:endT
     end
   end
   
-  tit = strcat( 'ManualSeg\_', 'T', {' '}, num2str(t) );
-  title( tit );
+  tit = strcat( 'ManualSeg\_', 'T', {' '}, num2str(t), ',',...
+    {' '}, '#Cells', {' '}, num2str(numCellsManual), ',',...
+    {' '}, '#Lineages', {' '}, num2str(lineageManualMap.Count) );
+  title( char(tit) );
   
   % image output options
   if t < 10
-    digit = strcat( 'TimeStep', '_00' );
+    digit = strcat( rawDataStr( 1, chosenData ), 'TimeStep', '_00' );
   elseif t < 100
-    digit = strcat( 'TimeStep', '_0' );
+    digit = strcat( rawDataStr( 1, chosenData ), 'TimeStep', '_0' );
   else
-    digit = strcat( 'TimeStep', '_' );
+    digit = strcat( rawDataStr( 1, chosenData ), 'TimeStep', '_' );
   end
   
   filePath = strcat( imageDir, digit, num2str(t), '.png' );
   export_fig( gcf, char(filePath), '-m2', '-png' );
-  disp( strcat( {'#Cells(Auto): '}, num2str(numCellsAuto),...
-      {', #Cells(Manual): '} , num2str(numCellsManual), ' at t=', num2str(t) ) );
 end
