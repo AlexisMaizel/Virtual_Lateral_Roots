@@ -1,7 +1,28 @@
 % execute compileMex.m before to generate mex files
 
+GeomPath = strcat( pwd, '/geom3d' );
+addpath( GeomPath );
+ExportPath = strcat( pwd, '/export_fig' );
+addpath( ExportPath );
 TGMMPath = strcat( pwd, '/readTGMM_XMLoutput' );
 addpath( TGMMPath );
+
+requireNewSegmentationAndTracking = 1;
+startT = 1;
+endT = 10;
+
+% execute TGMM segmentation and tracking
+if requireNewSegmentationAndTracking == 1
+  cd('C:\Jens\TGMM_Supplementary_Software_1_0\build')
+  tRange = strcat( num2str(startT), {' '}, num2str(endT) );
+  cmdSegmentation = strcat( 'nucleiChSvWshedPBC\Release\ProcessStackBatchMulticore.exe VLRConfig\TGMM_configFile.txt', {' '}, tRange );
+  system( char(cmdSegmentation), '-echo');
+  disp( 'Segmentation done.' );
+  cmdTracking = strcat( 'Release\TGMM VLRConfig\TGMM_configFile.txt', {' '}, tRange );
+  system( char(cmdTracking), '-echo');
+  disp( 'Tracking done.' );
+  cd('C:\Jens\VLRRepository\VLRInMatlab')
+end
 
 % output format of values
 format longG
@@ -18,10 +39,7 @@ chosenData = 3;
 
 resultPath = 'I:\SegmentationResults\TGMM\';
 newestResult = getNewestFolder( resultPath );
-%newestResult = 'GMEMtracking3D_2016_2_23_14_8_35';
 totalPath = strcat( resultPath, newestResult, '\XML_finalResult_lht\GMEMfinalResult_frame');
-startT = 1;
-endT = 2;
 radEllip = 10;
 lineWidth = 1;
 numColors = 40;
