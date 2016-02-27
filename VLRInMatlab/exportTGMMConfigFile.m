@@ -1,13 +1,29 @@
-function exportTGMMConfigFile( dataStr )
+function exportTGMMConfigFile( dataStr,...
+  anisotropyZ, backgroundThreshold, persistanceSegmentationTau )
 mkdir( 'AutoTGMMConfig\' );
 fileName = strcat( 'AutoTGMMConfig\TGMM_configFile', dataStr, '.txt' );
 fileID = fopen( char(fileName), 'w' );
-fprintf( fileID, '%s\n', 'imgFilePattern=I:\FrankfurtLSFMDatasets\20121211_pGATA_H2B_Wave\3Ddrift_Stacks_cropped\cropped_t???_c1' );
+dataPathStr = 'imgFilePattern=I:\FrankfurtLSFMDatasets\';
+if strcmp(dataStr, '120830')
+  dataPathStr = strcat(dataPathStr, '20120830-pGATA_H2B_Wave\AllTimePoints\Registered\CH01\cropped_120830TM30162244SPC001TL????ANG000FRQ000PH00CM0CHN01.Resampled_reg');
+elseif strcmp(dataStr, '121204')
+  dataPathStr = strcat(dataPathStr, '20121204_pGATA_H2B_Wave\driftcorrected_stacks_cropped\ch01\crop_t???_c1');
+elseif strcmp(dataStr, '121211')
+  dataPathStr = strcat(dataPathStr, '20121211_pGATA_H2B_Wave\3Ddrift_Stacks_cropped\cropped_t???_c1');
+elseif strcmp(dataStr, '130508')
+  dataPathStr = strcat(dataPathStr, '130508\crop_t???_c1');
+elseif strcmp(dataStr, '130607')
+  dataPathStr = strcat(dataPathStr, '130607\c1\crop_t???_c1');
+end
+fprintf( fileID, '%s\n', char(dataPathStr) );
 output = strcat( 'debugPathPrefix=I:\SegmentationResults\TGMM\', dataStr );
 fprintf( fileID, '%s\n', char(output) );
-fprintf( fileID, '%s\n', 'anisotropyZ=2.0' );
-fprintf( fileID, '%s\n', 'backgroundThreshold=800' );
-fprintf( fileID, '%s\n', 'persistanceSegmentationTau=600' );
+anisoStr = strcat( 'anisotropyZ=', num2str( anisotropyZ ) );
+fprintf( fileID, '%s\n', char(anisoStr) );
+backStr = strcat( 'backgroundThreshold=', num2str( backgroundThreshold ) );
+fprintf( fileID, '%s\n', char(backStr) );
+tauStr = strcat( 'persistanceSegmentationTau=', num2str( persistanceSegmentationTau ) );
+fprintf( fileID, '%s\n', char(tauStr) );
 fprintf( fileID, '%s\n', 'betaPercentageOfN_k=1.0' );
 fprintf( fileID, '%s\n', 'nuPercentageOfN_k=1.0' );
 fprintf( fileID, '%s\n', 'alphaPercentage=5.0' );

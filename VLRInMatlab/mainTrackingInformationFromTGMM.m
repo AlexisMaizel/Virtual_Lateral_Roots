@@ -8,19 +8,48 @@ addpath( ExportPath );
 TGMMPath = strcat( pwd, '/readTGMM_XMLoutput' );
 addpath( TGMMPath );
 
-requireNewSegmentationAndTracking = 0;
+% output format of values
+format longG
+
+% path to image output
+imageDir = strcat( 'images/Segmentation/' );
+mkdir( char(imageDir) );
+
+%%%%%%%%%%%%%%%%%%%%% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%
+requireNewSegmentationAndTracking = 1;
 startT = 1;
 endT = 10;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' };
 chosenData = 3;
+% normalize data points based on their center
+spatialNormalization = 1;
+resultPath = strcat( 'I:\SegmentationResults\TGMM\', rawDataStr( 1, chosenData ), '\' );
+newestResult = getNewestFolder( char( resultPath ) );
+totalPath = strcat( resultPath, newestResult, '\XML_finalResult_lht\GMEMfinalResult_frame');
+radEllip = 10;
+lineWidth = 1;
+numColors = 40;
+%  amount of plots
+numPlots = 2;
+% colormap for ellipses
+cmap = colorcube(numColors);
+ELLIP = [];
+ELLIPPATCH = [];
+nucleiCounter = 1;
+lineageAutoMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
+lineageManualMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
+%%%%%%%%%%%%%%%%%%%%% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%
+
+% start measuring elapsed time
+tic
 
 % execute TGMM segmentation and tracking
 if requireNewSegmentationAndTracking == 1
   cd('C:\Jens\TGMM_Supplementary_Software_1_0\build')
   tRange = strcat( num2str(startT), {' '}, num2str(endT) );
   % first create TGMMconfigfile
-  exportTGMMConfigFile( rawDataStr( 1, chosenData ) );
+  exportTGMMConfigFile( rawDataStr( 1, chosenData ), 2.0, 800, 600 );
   dataSelect = strcat( 'TGMM_configFile', rawDataStr( 1, chosenData ), '.txt' );
   cmdSegmentation = strcat( 'nucleiChSvWshedPBC\Release\ProcessStackBatchMulticore.exe AutoTGMMConfig\', dataSelect, {' '}, tRange );
   system( char(cmdSegmentation), '-echo');
@@ -31,24 +60,10 @@ if requireNewSegmentationAndTracking == 1
   cd('C:\Jens\VLRRepository\VLRInMatlab')
 end
 
-% output format of values
-format longG
+% read raw data (manual segmentation and tracking)
+[ cellData, dimData, centerPosPerTimeStep ] = readRawData( dataStr( 1, chosenData ) );
 
-% path to image output
-imageDir = strcat( 'images/Segmentation/' );
-mkdir( char(imageDir) );
-
-% read raw data
-[ cellData, dimData ] = readRawData( dataStr( 1, chosenData ) );
-
-resultPath = strcat( 'I:\SegmentationResults\TGMM\', rawDataStr( 1, chosenData ), '\' );
-newestResult = getNewestFolder( char( resultPath ) );
-totalPath = strcat( resultPath, newestResult, '\XML_finalResult_lht\GMEMfinalResult_frame');
-radEllip = 10;
-lineWidth = 1;
-numColors = 40;
-numPlots = 2;
-
+% read TGMM data (automatic segmentation and tracking)
 % svIdxCell:		cell array of length N, where N is the total number of objects tracked. svIdxCell{i} contains the indexes of the supervoxels belonging to the i-th object in trackingMatrix array. This index is necessary to rescue the segmentation from the .svb files output by TGMM software. The index starts in 0 following C convention. 
 % trackingMatrix:		numericall array of size Nx10, where N is the number of points tracked bt TGMM over time. Each of the columns contains the following information:
 % 
@@ -64,26 +79,24 @@ numPlots = 2;
 % 10.	Skeleton id. All cells belonging to the same lineage have the same unique skeleton id.
 [trackingMatrix, svIdxCell] = parseMixtureGaussiansXml2trackingMatrixCATMAIDformat( char(totalPath), startT, endT );
 
-cmap = colorcube(numColors);
-
+% figure settings
 f = figure( 'Name', 'Segmentation', 'Position', [ 50 50 800 800 ] );
-ELLIP = [];
-ELLIPPATCH = [];
-nucleiCounter = 1;
-lineageAutoMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
-lineageManualMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
-resGrid = 10;
 
 for t=startT:endT
   clf(f)
   for p=1:2
     subplot( numPlots, 1, p );
     hold on
-    xMinMax = [ -50 750 ];
-    if p == 1
-      yMinMax = [ -450 -50 ];
+    if spatialNormalization == 0
+      xMinMax = [ -50 750 ];
+      if p == 1
+        yMinMax = [ -450 -50 ];
+      else
+        yMinMax = [ 0 400 ];
+      end
     else
-      yMinMax = [ 0 400 ];
+      xMinMax = [ -400 400 ];
+      yMinMax = [ -200 200 ];
     end
     % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
     axis( [ xMinMax(1) xMinMax(2) yMinMax(1) yMinMax(2) -10000 10000 0 1 ] );
@@ -93,14 +106,22 @@ for t=startT:endT
     ylabel('Y');
     zlabel('Z');
     camproj( 'orthographic' );
-    % initialize 2D grid
-    [ rows, columns ] =...
-      generate2DGrid(...
-      [xMinMax(1) yMinMax(1)],...
-      [xMinMax(2) yMinMax(2)], resGrid );
   end
   numCellsAuto = 0;
   numCellsManual = 0;
+  
+  % determine center of data points
+  centerPosAuto = zeros(1, 3);
+  for i=1:size(trackingMatrix,1)
+    timeStep = trackingMatrix( i, 8 );
+    if timeStep == t
+      cen = trackingMatrix( i, 3:5 );
+      centerPosAuto = centerPosAuto + cen;
+      numCellsAuto = numCellsAuto+1;
+    end
+  end
+  centerPosAuto = centerPosAuto./numCellsAuto;
+  
   % automatic segmentation result
   subplot( numPlots, 1, 1 );
   hold on
@@ -114,6 +135,9 @@ for t=startT:endT
         lineageAutoMap( lineage ) = 1;
       end
       cen = trackingMatrix( i, 3:5 );
+      if spatialNormalization == 1
+        cen = cen - centerPosAuto;
+      end
       color = cmap( mod( lineage, numColors )+1, : );
       
       [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
@@ -121,7 +145,6 @@ for t=startT:endT
       set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
       set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
       nucleiCounter = nucleiCounter+1;
-      numCellsAuto = numCellsAuto+1;
     end
   end
   
@@ -138,6 +161,9 @@ for t=startT:endT
     if cellData{j, 5} == t
       % get position of current cell
       p = [ cellData{j, 2} cellData{j, 3} cellData{j, 4} ];
+      if spatialNormalization == 1
+        p = p - centerPosPerTimeStep( t, : );
+      end
       lin = cellData{j, 6};
       if isKey( lineageManualMap, lin ) == 1
         lineageManualMap( lin ) = lineageManualMap( lin ) + 1;
@@ -172,3 +198,6 @@ for t=startT:endT
   filePath = strcat( imageDir, digit, num2str(t), '.png' );
   export_fig( gcf, char(filePath), '-m2', '-png' );
 end
+
+% print elapsed time
+toc

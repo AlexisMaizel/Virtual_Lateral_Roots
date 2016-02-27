@@ -1,4 +1,4 @@
-function [ cellData, dimData ] = readRawData( dataStr )
+function [ cellData, dimData, centerPosPerTimeStep ] = readRawData( dataStr )
 
 storeOnlyLastPrecursorInfo = 0;
 
@@ -176,4 +176,21 @@ while d<2*numDivisions
   %divisionData( c, 12 )
   d = d + 2;
   c = c + 1;
+end
+
+maxT = max( TCol );
+numCellsPerTimeStep = zeros(maxT, 1);
+centerPosPerTimeStep = zeros(maxT, 3);
+
+% get maximum number of cells for each data set and time step
+% as well as determine center of each position set at a time step
+for j=1:dimData
+  timeStep = cellData{j, 5};
+  pos = [ cellData{j, 2} cellData{j, 3} cellData{j, 4} ];
+  centerPosPerTimeStep(timeStep, :) = centerPosPerTimeStep(timeStep, :) + pos;
+  numCellsPerTimeStep(timeStep, 1) = numCellsPerTimeStep(timeStep, 1) + 1;
+end
+
+for t=1:maxT
+  centerPosPerTimeStep(t, :) = centerPosPerTimeStep(t, :)./numCellsPerTimeStep(t, 1);
 end
