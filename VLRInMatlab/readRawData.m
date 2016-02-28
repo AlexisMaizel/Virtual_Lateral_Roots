@@ -1,4 +1,4 @@
-function [ cellData, dimData, centerPosPerTimeStep ] = readRawData( dataStr )
+function [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] = readRawData( dataStr )
 
 storeOnlyLastPrecursorInfo = 0;
 

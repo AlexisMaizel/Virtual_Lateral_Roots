@@ -20,16 +20,23 @@
 % 9.	Confidence level in the tracking result. Value of 3 indicates high confidence that the object was correctly tracked. Value of 0 indicates low confidence.
 % 10.	Skeleton id. All cells belonging to the same lineage have the same unique skeleton id.
 
-function [trackingMatrix, svIdxCell]= parseMixtureGaussiansXml2trackingMatrixCATMAIDformat(basename,frameIni,frameEnd)
+function [trackingMatrix, svIdxCell, error]= parseMixtureGaussiansXml2trackingMatrixCATMAIDformat(basename,frameIni,frameEnd)
 
 numTM = frameEnd - frameIni + 1;
 trackingMatrix = zeros( 15000 * numTM, 10 );%preallocate memory
 svIdxCell = cell( size(trackingMatrix,1), 1);%stores supervoxel idx for each element in trackingMatrix
 trackingMatrixN = 0;
 skeletonN = 0;
+error = 0;
 for frame=frameIni:frameEnd
     
-    obj=readXMLmixtureGaussians([basename num2str(frame,'%.4d') '.xml']);        
+   try
+    obj=readXMLmixtureGaussians([basename num2str(frame,'%.4d') '.xml']);
+   catch
+     disp( 'An error occurred while reading the xml file' );
+     error = 1;
+     break;
+   end
     
     %process each object
     mapId = zeros(length(obj),1);
@@ -64,5 +71,7 @@ for frame=frameIni:frameEnd
     mapIdOld = mapId;
 end
 
-trackingMatrix = trackingMatrix( 1:trackingMatrixN, : );
-svIdxCell = svIdxCell(1:trackingMatrixN);
+if error == 0
+  trackingMatrix = trackingMatrix( 1:trackingMatrixN, : );
+  svIdxCell = svIdxCell(1:trackingMatrixN);
+end
