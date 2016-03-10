@@ -16,17 +16,18 @@ imageDir = strcat( 'images/Segmentation/' );
 mkdir( char(imageDir) );
 
 %%%%%%%%%%%%%%%%%%%%% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%
-requireNewSegmentationAndTracking = 1;
-performParameterOptimization = 1;
-paramThresStart = 200;
-paramThresEnd = 600;
+requireNewSegmentation = 1;
+requireNewTracking = 1;
+performParameterOptimization = 0;
+paramThresStart = 500;
+paramThresEnd = 500;
 paramThresStep = 100;
-paramTauStart = 300;
-paramTauEnd = 500;
+paramTauStart = 150;
+paramTauEnd = 150;
 paramTauStep = 50;
 cellDiffWeight = 100;
 startT = 1;
-endT = 200;
+endT = 10;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' };
 chosenData = 3;
@@ -59,18 +60,26 @@ minErrorsPerTimeStep = ones( endT-startT+1, 1 ).*realmax('double');
 minThresPerTimeStep = zeros( endT-startT+1, 1 );
 minTausPerTimeStep = zeros( endT-startT+1, 1 );
 
+oldThres = 0;
 for thres=paramThresStart:paramThresStep:paramThresEnd
   for tau=paramTauStart:paramTauStep:paramTauEnd
     % execute TGMM segmentation and tracking
-    if requireNewSegmentationAndTracking == 1
-      cd('C:\Jens\TGMM_Supplementary_Software_1_0\build')
-      tRange = strcat( num2str(startT), {' '}, num2str(endT) );
-      % first create TGMMconfigfile
-      exportTGMMConfigFile( rawDataStr( 1, chosenData ), 2.0, thres, tau );
-      dataSelect = strcat( 'TGMM_configFile', rawDataStr( 1, chosenData ), '.txt' );
+    cd('C:\Jens\TGMM_Supplementary_Software_1_0\build')
+    tRange = strcat( num2str(startT), {' '}, num2str(endT) );
+    dataSelect = strcat( 'TGMM_configFile', rawDataStr( 1, chosenData ), '.txt' );
+    % first create TGMMconfigfile
+    exportTGMMConfigFile( rawDataStr( 1, chosenData ), 2.0, thres, tau );
+    if requireNewSegmentation == 1
       cmdSegmentation = strcat( 'nucleiChSvWshedPBC\Release\ProcessStackBatchMulticore.exe AutoTGMMConfig\', dataSelect, {' '}, tRange );
-      system( char(cmdSegmentation), '-echo');
-      disp( 'Segmentation done.' );
+      % execute segementation only if the background threshold was changed
+      if oldThres ~= thres
+        system( char(cmdSegmentation), '-echo');
+        disp( 'Segmentation done.' );
+        oldThres = thres;
+      end
+    end
+    if requireNewTracking == 1
+      % execute tracking
       cmdTracking = strcat( 'Release\TGMM AutoTGMMConfig\', dataSelect, {' '}, tRange );
       system( char(cmdTracking), '-echo');
       disp( 'Tracking done.' );

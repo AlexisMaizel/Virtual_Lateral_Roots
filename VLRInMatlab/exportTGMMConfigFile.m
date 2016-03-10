@@ -9,7 +9,8 @@ if strcmp(dataStr, '120830')
 elseif strcmp(dataStr, '121204')
   dataPathStr = strcat(dataPathStr, '20121204_pGATA_H2B_Wave\driftcorrected_stacks_cropped\ch01\crop_t???_c1');
 elseif strcmp(dataStr, '121211')
-  dataPathStr = strcat(dataPathStr, '20121211_pGATA_H2B_Wave\3Ddrift_Stacks_cropped\cropped_t???_c1');
+  dataPathStr = 'imgFilePattern=I:\SegmentationResults\Preprocessing\121211\changed_t???_c1';
+  %dataPathStr = strcat(dataPathStr, '20121211_pGATA_H2B_Wave\3Ddrift_Stacks_cropped\cropped_t???_c1');
 elseif strcmp(dataStr, '130508')
   dataPathStr = strcat(dataPathStr, '130508\crop_t???_c1');
 elseif strcmp(dataStr, '130607')
@@ -31,7 +32,7 @@ fprintf( fileID, '%s\n', 'maxIterEM=100' );
 fprintf( fileID, '%s\n', 'tolLikelihood=1e-6' );
 fprintf( fileID, '%s\n', 'regularizePrecisionMatrixConstants_lambdaMin=0.002' );
 fprintf( fileID, '%s\n', 'regularizePrecisionMatrixConstants_lambdaMax=5.0' );
-fprintf( fileID, '%s\n', 'regularizePrecisionMatrixConstants_maxExcentricity=100.0' );
+fprintf( fileID, '%s\n', 'regularizePrecisionMatrixConstants_maxExcentricity=10.0' );
 fprintf( fileID, '%s\n', 'temporalWindowForLogicalRules=5' );
 fprintf( fileID, '%s\n', 'thrBackgroundDetectorHigh=0.8' );
 fprintf( fileID, '%s\n', 'thrBackgroundDetectorLow=0.2' );
@@ -42,8 +43,8 @@ fprintf( fileID, '%s\n', 'conn3D=74' );
 fprintf( fileID, '%s\n', 'estimateOpticalFlow=0' );
 fprintf( fileID, '%s\n', 'maxDistPartitionNeigh=80.0' );
 fprintf( fileID, '%s\n', 'deathThrOpticalFlow=-1' );
-fprintf( fileID, '%s\n', 'minNucleiSize=25' );
-fprintf( fileID, '%s\n', 'maxNucleiSize=6000' );
+fprintf( fileID, '%s\n', 'minNucleiSize=5' );
+fprintf( fileID, '%s\n', 'maxNucleiSize=16000' );
 fprintf( fileID, '%s\n', 'maxPercentileTrimSV=0.4' );
 fprintf( fileID, '%s\n', 'conn3DsvTrim=6' );
 fprintf( fileID, '%s\n', 'maxNumKNNsupervoxel=10' );
