@@ -1,7 +1,5 @@
 function [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] = readRawData( dataStr )
-
-storeOnlyLastPrecursorInfo = 0;
-
+storeOnlyLastPrecursorInfo = 1;
 % reading raw data
 path = strcat( '../FinalVLRForMatlab/', dataStr, '.csv' );
 fileID = fopen( char(path) );
@@ -119,7 +117,15 @@ while (l < numLines+1)
       z = double(1-k) * ZCol(l) + double(k) * ZCol(l+1);
       % insert all relevant data into main data structure
       if storeOnlyLastPrecursorInfo == 1
-        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) -1};
+        % TODO: have to check why I set this to -1 before
+        %cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) -1};
+        % if we interpolate the nodes between the root and the first
+        % division then use the current cell ID as the last precursor ID
+        if lastPrecur == -1
+          cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) firstCellId};
+        else
+          cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) lastPrecur};
+        end
       else
         cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) PCol(l)};
       end
@@ -128,7 +134,14 @@ while (l < numLines+1)
     
     % insert last line
     if storeOnlyLastPrecursorInfo == 1
-      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) -1};
+      % TODO: have to check why I set this to -1 before
+      %cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) -1};
+      nextLastPrecur = getLastPrecursorID( PCol(l+1) );
+      if nextLastPrecur == -1
+        cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) firstCellId};
+      else
+        cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) nextLastPrecur};
+      end
     else
       cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) PCol(l+1)};
     end

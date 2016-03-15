@@ -257,34 +257,7 @@ for thres=paramThresStart:paramThresStep:paramThresEnd
         filePath = strcat( imageDir, digit, num2str(t), '.png' );
         export_fig( gcf, char(filePath), '-m2', '-png' );
       else
-        % perform kNN search for determing similarity between auto and
-        % manual segmentation
-        [ IDX, D ] = knnsearch(X, Y, 'k',1,'distance','euclidean');
-        % calculate mean squared error
-        error = 0;
-        for d=1:size(D,1)
-          error = error + (D(d,1)*D(d,1));
-        end
-        % also add the difference in the number of cells with a weight
-        cellDiff = abs(numCellsAuto-numCellsManual);
-        error = error + cellDiffWeight*cellDiff*cellDiff;
-        error = error/(size(D,1)+1);
-        
-        %disp( strcat( 'Error=', num2str(error), {' '}, 'at T=', num2str(t),...
-        %  ' with', {' '}, num2str(numCellsAuto), '(A) and', {' '},...
-        %  num2str(numCellsManual), '(M) cells.') );
-        
-        % determine current minimum settings for time step
-        if error < minErrorsPerTimeStep( t, 1 )
-          minErrorsPerTimeStep( t, 1 ) = error;
-          minThresPerTimeStep( t, 1 ) = thres;
-          minTausPerTimeStep( t, 1 ) = tau;
-        end
-        exportCurrentMinError( rawDataStr( 1, chosenData ), t,...
-          minThresPerTimeStep( t, 1 ), minTausPerTimeStep( t, 1 ),...
-          minErrorsPerTimeStep( t, 1 ), numCellsAuto, numCellsManual );
-        exportErrorAnalyis( rawDataStr( 1, chosenData ), t, thres, tau,...
-          error, numCellsAuto, numCellsManual );
+        performErrorAnalysis( X, Y, 0 );
       end
     end
     disp( strcat( 'Parameters:', num2str(thres), {' '}, num2str(tau) ) );

@@ -1,8 +1,7 @@
 cd('C:\Jens\VLRRepository\VLRInMatlab')
-GeomPath = strcat( pwd, '/geom3d' );
-addpath( GeomPath );
-ExportPath = strcat( pwd, '/export_fig' );
-addpath( ExportPath );
+addpath( genpath( '/geom3d/' ) );
+addpath( genpath( '/export_fig/' ) );
+addpath( genpath( '/@tree/' ) );
 
 chosenData = 3;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
@@ -32,7 +31,7 @@ spatialNormalization = 0;
 minVoxelCount = 300;
 voxelCountPerCell = 2800;
 
-storeTIFF = 1;
+storeTIFF = 0;
 storePNGs = 0;
 cellRadius = 17;
 
@@ -46,6 +45,8 @@ mkdir( char(imageDir) );
 % read raw data (manual segmentation and tracking)
 [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] =...
   readRawData( dataStr( 1, chosenData ) );
+
+generateTreeStructureFromData( cellData, size(numCellsPerTimeStep,1), 1, 20 );
 
 if storePNGs == 1
   f = figure( 'Name', 'Segmentation', 'Position', [ 50 50 800 800 ] );
