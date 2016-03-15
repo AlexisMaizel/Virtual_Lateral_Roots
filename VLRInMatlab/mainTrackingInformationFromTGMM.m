@@ -12,18 +12,18 @@ addpath( TGMMPath );
 format longG
 
 % path to image output
-imageDir = strcat( 'images/Segmentation/' );
+imageDir = strcat( 'I:/SegmentationResults/Matlab/SegmentationTracking/' );
 mkdir( char(imageDir) );
 
 %%%%%%%%%%%%%%%%%%%%% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%
 requireNewSegmentation = 1;
 requireNewTracking = 1;
 performParameterOptimization = 0;
-paramThresStart = 500;
-paramThresEnd = 500;
+paramThresStart = 1000;
+paramThresEnd = 1000;
 paramThresStep = 100;
-paramTauStart = 150;
-paramTauEnd = 150;
+paramTauStart = 20;
+paramTauEnd = 20;
 paramTauStep = 50;
 cellDiffWeight = 100;
 startT = 1;
@@ -37,7 +37,7 @@ resultPath = strcat( 'I:\SegmentationResults\TGMM\', rawDataStr( 1, chosenData )
 radEllip = 10;
 lineWidth = 1;
 numColors = 40;
-%  amount of plots
+% amount of plots
 numPlots = 2;
 % colormap for ellipses
 cmap = colorcube(numColors);
@@ -63,6 +63,7 @@ minTausPerTimeStep = zeros( endT-startT+1, 1 );
 oldThres = 0;
 for thres=paramThresStart:paramThresStep:paramThresEnd
   for tau=paramTauStart:paramTauStep:paramTauEnd
+    disp( strcat( 'Parameters:', num2str(thres), {' '}, num2str(tau) ) );
     % execute TGMM segmentation and tracking
     cd('C:\Jens\TGMM_Supplementary_Software_1_0\build')
     tRange = strcat( num2str(startT), {' '}, num2str(endT) );
