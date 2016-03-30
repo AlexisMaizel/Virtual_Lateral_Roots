@@ -6,19 +6,36 @@ height = size( imageStack, 1);
 width = size( imageStack, 2);
 slices = size( imageStack, 3);
 
+% generate convex hull of cc and determine new cc size to apply the
+% clustering based on that size but to the original cc structure
+useConvexHull = 0;
+
+thicknessThreshold = 10;
+
 % determine connected components in image
 CC = bwconncomp( imageStack( :, :, : ) );
 
 % get the centroids of each cc
-S = regionprops( CC, 'Centroid', 'Area', 'PixelList', 'PixelIdxList' );
+S = regionprops( CC, 'Centroid', 'Area', 'BoundingBox', 'PixelList', 'PixelIdxList' );
 
 % testing
 %diary('matlabOutput.txt')
 cellCenters = [];
 maxIntensities = [];
+subplot( 2, 2, 2 );
+hold on;
 for i=1:size(S, 1)
   k = 2;
   areaVal = S(i, :).Area;
+  
+  if useConvexHull == 1 && areaVal > 10
+    coords = S(i,:).PixelList;
+    shp = alphaShape( coords(:,1), -coords(:,2), coords(:,3), 10 );
+    %[ K, areaVal ] = convhulln( S(i,:).PixelList );
+    areaVal = volume(shp);
+    plot(shp)
+  end
+  
   maxInt = max( imageStack( S(i, :).PixelIdxList ) );
   % ignore cc with pixeal area smaller than some threshold
   if areaVal < minVoxelCount
@@ -46,9 +63,18 @@ for i=1:size(S, 1)
       %disp('new centers');
       %C( c, : )
     end
+  % should be a single cell
   else
     %disp('current center');
     %cen = S(i,:).Centroid
+    
+    % determine max thickness values of single cc
+    [ xmax, ymax, zmax ] = determineCCThickness( S(i,:).PixelList, S(i,:).BoundingBox );
+    % ignore ccs with small thickness values (e.g. cell wall)
+    if xmax < thicknessThreshold || ymax < thicknessThreshold || zmax < thicknessThreshold
+      continue;
+    end
+    
     cellCenters = [ cellCenters; S(i, :).Centroid ];
     maxInt = max( imageStack( S(i, :).PixelIdxList ) );
     maxIntensities = [ maxIntensities ; maxInt ];

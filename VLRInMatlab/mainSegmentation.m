@@ -7,13 +7,11 @@ chosenData = 3;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' };
 inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chosenData ), '\changed_t' );
-startT = 1;
-endT = 1;
+startT = 150;
+endT = 150;
 radEllip = 10;
 lineWidth = 1;
-numPlots = 3;
-numColorsArea = 8500;
-cmapArea = jet(numColorsArea);
+numPlots = 4;
 numColorsCells = 40;
 cmapNumCells = colorcube(numColorsCells);
 ELLIP = [];
@@ -29,31 +27,31 @@ spatialNormalization = 0;
 % thres = 900 -> minV = 400, voxelC = 3200
 % thres = 750 -> minV = 200, voxelC = 3200
 minVoxelCount = 300;
-voxelCountPerCell = 2800;
+voxelCountPerCell = 3300;
 
-storeTIFF = 0;
-storePNGs = 0;
+storeTIFF = 1;
+storePNGs = 1;
 cellRadius = 17;
 
 % output format of values
 format longG
 
 % path to image output
-imageDir = strcat( 'I:/SegmentationResults/Matlab/Preprocessing/' );
+imageDir = strcat( 'I:/SegmentationResults/Matlab/Segmentation/' );
 mkdir( char(imageDir) );
 
 % read raw data (manual segmentation and tracking)
 [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] =...
   readRawData( dataStr( 1, chosenData ) );
 
-generateTreeStructureFromData( cellData, size(numCellsPerTimeStep,1), 1, 20 );
+%generateTreeStructureFromData( cellData, size(numCellsPerTimeStep,1), 1, 20 );
 
 if storePNGs == 1
-  f = figure( 'Name', 'Segmentation', 'Position', [ 50 50 800 800 ] );
+  f = figure( 'Name', 'Segmentation', 'Position', [ 50 50 1600 800 ] );
 end
 
 % start measuring elapsed time
-%tic
+tic
 
 for t=startT:endT
   msg = strcat( 'Timestep', {' '}, num2str(t) );
@@ -62,11 +60,11 @@ for t=startT:endT
     % subplot settings
     clf(f)
     for p=1:numPlots
-      subplot( numPlots, 1, p );
+      subplot( numPlots/2, numPlots/2, p );
       hold on
       if spatialNormalization == 0
         xMinMax = [ -50 750 ];
-        if p == 3
+        if p == numPlots
           yMinMax = [ 0 400 ];
         else
           yMinMax = [ -450 -50 ];
@@ -123,9 +121,17 @@ for t=startT:endT
     X = zeros(numCellsAuto, 2);
     
     %%% automatic segmentation result before clustering %%%
-    ax1 = subplot( numPlots, 1, 1 );
+    ax1 = subplot( numPlots/2, numPlots/2, 1 );
     hold on
     
+    numColorsArea = 0;
+    for i=1:size(S,1)
+      areaSize = S(i, :).Area;
+      if areaSize > numColorsArea
+        numColorsArea = areaSize;
+      end
+    end
+    cmapArea = cool(numColorsArea);
     for i=1:size(S,1)
       areaSize = S(i, :).Area;
       cen = S(i, :).Centroid;
@@ -133,7 +139,7 @@ for t=startT:endT
         cen = cen - centerPosAuto;
       end
       
-      color = cmapArea( mod( areaSize, numColorsArea )+1, : );
+      color = cmapArea( mod( areaSize-1, numColorsArea )+1, : );
       [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
         drawEllipse3d( cen(1), -cen(2), cen(3), radEllip, radEllip, 0, 0 );
       set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
@@ -149,8 +155,43 @@ for t=startT:endT
     colorbar
     caxis([0, numColorsArea])
     
+    %%% automatic segmentation result before clustering without small ccs %%%
+    ax2 = subplot( numPlots/2, numPlots/2, 2 );
+    hold on
+    
+    remainingCells = 0;
+    for i=1:size(S,1)
+      areaSize = S(i, :).Area;
+      
+      if areaSize < minVoxelCount
+        continue;
+      else
+        remainingCells = remainingCells + 1;
+      end
+      
+      cen = S(i, :).Centroid;
+      if spatialNormalization == 1
+        cen = cen - centerPosAuto;
+      end
+      
+      color = cmapArea( mod( areaSize-1, numColorsArea )+1, : );
+      [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
+        drawEllipse3d( cen(1), -cen(2), cen(3), radEllip, radEllip, 0, 0 );
+      set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
+      set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
+      nucleiCounter = nucleiCounter+1;
+    end
+    
+    tit = strcat( 'AutoSegBeforeCropped\_', 'T', {' '}, num2str(t), ',',...
+      {' '}, '#Cells', {' '}, num2str(remainingCells) );
+    title( char(tit) );
+    
+    colormap(ax2, cmapArea)
+    colorbar
+    caxis([0, numColorsArea])
+    
     %%% automatic segmentation result after clustering %%%
-    ax2 = subplot( numPlots, 1, 2 );
+    ax3 = subplot( numPlots/2, numPlots/2, 3 );
     hold on
     
     for i=1:size(cc,1)
@@ -159,7 +200,6 @@ for t=startT:endT
         cen = cen - centerPosAuto;
       end
       X(cellCounter, :) = [ cen(1) cen(2) ];
-      cellCounter = cellCounter + 1;
       
       color = cmapNumCells( mod( cellCounter, numColorsCells )+1, : );
       [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
@@ -167,18 +207,20 @@ for t=startT:endT
       set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
       set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
       nucleiCounter = nucleiCounter+1;
+      
+      cellCounter = cellCounter + 1;
     end
     
     tit = strcat( 'AutoSegAfter\_', 'T', {' '}, num2str(t), ',',...
       {' '}, '#Cells', {' '}, num2str(numCellsAuto) );
     title( char(tit) );
     
-    colormap(ax2, cmapNumCells)
-    colorbar
-    caxis([0, numColorsCells])
+    %colormap(ax3, cmapNumCells)
+    %colorbar
+    %caxis([0, numColorsCells])
     
     %%% manual segmentation result %%%
-    ax3 = subplot( numPlots, 1, 3 );
+    ax4 = subplot( numPlots/2, numPlots/2, 4 );
     hold on
     
     % store all manual positions
@@ -194,7 +236,6 @@ for t=startT:endT
           p = p - centerPosPerTimeStep( t, : );
         end
         Y(cellCounter, :) = [ p(1) p(2) ];
-        cellCounter = cellCounter + 1;
         
         color = cmapNumCells( mod( cellCounter, numColorsCells )+1, : );
         [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
@@ -202,6 +243,8 @@ for t=startT:endT
         set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
         set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
         nucleiCounter = nucleiCounter+1;
+        
+        cellCounter = cellCounter + 1;
       end
     end
     
@@ -209,9 +252,9 @@ for t=startT:endT
       {' '}, '#Cells', {' '}, num2str(numCellsManual) );
     title( char(tit) );
     
-    colormap(ax3, cmapNumCells)
-    colorbar
-    caxis([0, numColorsCells])
+    %colormap(ax4, cmapNumCells)
+    %colorbar
+    %caxis([0, numColorsCells])
     
     filePath = strcat( imageDir, digit, num2str(t), '.png' );
     export_fig( gcf, char(filePath), '-m2', '-png' );
@@ -219,4 +262,4 @@ for t=startT:endT
 end
 
 % print elapsed time
-%toc
+toc

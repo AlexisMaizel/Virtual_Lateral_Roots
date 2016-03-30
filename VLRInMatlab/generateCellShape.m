@@ -5,16 +5,23 @@ width = size( imageStack, 2);
 slices = size( imageStack, 3);
 imageStack = zeros( height, width, slices, 'uint16' );
 
+% 0 for sphere or 1 for ellipsoid
+shape = 0;
+
 % generate a new cell at the cell center
 cellC = floor(cc);
 % ellipsoid parameter
 a = cellRadius;
-b = floor(cellRadius/2);
-d = floor(cellRadius/2);
-%s = 995;
-%t = 1000;
-%rng(0, 'twister')
+if shape == 1
+  b = floor(cellRadius/2);
+  d = floor(cellRadius/2);
+else
+  b = a;
+  d = a;
+end
 for c=1:size(cc,1)
+  maxIntensity = maxInt(c,1);
+  minIntensity = maxInt(c,1)/2.;
   xStart = cellC(c,1)-a;
   xEnd = cellC(c,1)+a;
   yStart = cellC(c,2)-b;
@@ -28,11 +35,14 @@ for c=1:size(cc,1)
         yy = (y - cellC(c,2))*(y - cellC(c,2));
         zz = (z - cellC(c,3))*(z - cellC(c,3));
         %if sqrt(xx + yy + zz) <= cellRadius
+        length = xx/(a*a) + yy/(b*b) + zz/(d*d);
+        % length is in [0,1]
+        % 0 -> max intensity
+        % 1 -> min intensity
+        intensity = length * minIntensity + (1-length) * maxIntensity;
         if xx/(a*a) + yy/(b*b) + zz/(d*d) <= 1.
           if x > 0 && x < width && y > 0 && y < height && z > 0 && z < slices
-            %r = (t - s).*rand(1,1) + s;
-            %r = floor(r);
-            imageStack( y, x, z ) = maxInt(c,1);
+            imageStack( y, x, z ) = intensity;
           end
         end
       end
