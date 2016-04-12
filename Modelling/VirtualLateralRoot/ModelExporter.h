@@ -49,6 +49,16 @@ namespace ModelExporter
   void exportDivisionSequences( const std::string &filename,
                                 const std::map< std::string, std::vector<std::size_t> > &divisionSequences );
   
+  void exportAdjacencyMatrix( const std::string &filename,
+                              const int simulationStep,
+                              const int timestep,
+                              const std::vector< std::vector<int> > &adjMat );
+  
+  void exportAdjacencyMatrixCellProp( const std::string &filename,
+                                      const int simulationStep,
+                                      const int timestep,
+                                      const MyTissue& T );
+  
   void exportPropabilityDistribution( const std::string &filename,
                                     const std::vector<std::vector<double> > &probValues,
                                     const std::vector<std::vector<double> > &lengths,

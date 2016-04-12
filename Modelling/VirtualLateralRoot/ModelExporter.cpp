@@ -392,6 +392,52 @@ void exportDivisionSequences( const std::string &filename,
 
 // ---------------------------------------------------------------------
 
+void exportAdjacencyMatrix( const std::string &filename,
+                            const int simulationStep,
+                            const int timestep,
+                            const std::vector< std::vector<int> > &adjMat )
+{
+  std::ofstream out;
+  out.open( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  
+  out << simulationStep << " " << timestep << " " << adjMat.size() << "\n";
+  for( std::size_t i=0; i<adjMat.size();i++ )
+  {
+    for( std::size_t j=0; j<adjMat.at(i).size();j++ )
+      out << adjMat.at(i).at(j) << " ";
+    
+    out << "\n";
+  }
+  
+  out.close();  
+}
+
+// ---------------------------------------------------------------------
+
+void exportAdjacencyMatrixCellProp( const std::string &filename,
+                                    const int simulationStep,
+                                    const int timestep,
+                                    const MyTissue& T )
+{
+  std::ofstream out;
+  out.open( filename.c_str(), std::ofstream::out | std::ofstream::app );
+  
+  out << simulationStep << " " << timestep << " " << T.C.size() << "\n";
+  forall( const cell& c, T.C )
+  {
+    out << c->uniqueIDPerTimestep << " "
+        << c->id << " "
+        << c->parentId << " "
+        << c->center.i() << " "
+        << c->center.j() << " "
+        << c->center.k() << "\n";
+  }
+  
+  out.close();  
+}
+
+// ---------------------------------------------------------------------
+
 void exportPropabilityDistribution( const std::string &filename,
                                     const std::vector<std::vector<double> > &probValues,
                                     const std::vector<std::vector<double> > &lengths,

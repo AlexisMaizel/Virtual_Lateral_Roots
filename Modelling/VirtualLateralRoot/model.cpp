@@ -44,6 +44,7 @@ void MyModel::readParms()
   _parms("View", "RenderControlPoints", _drawControlPoints );
   _parms("View", "RenderBezierSurface", _drawBezierSurface );
   _parms("View", "RenderCellCenter", _drawCenter );
+  _parms("View", "RenderCellMesh", _drawCellMesh );
   _parms("View", "RenderPCLine", _drawPCLine );
 
   _parms( "Division", "DivisionArea", _divisionArea);
@@ -974,6 +975,25 @@ void MyModel::step()
   }
   else
     numMovies = 11;
+
+  if( curTime > maxTime )
+    return;
+  
+  std::vector< std::vector<int> > adjMat = ModelUtils::generateAdjacencyMatrix( T );
+  ModelExporter::exportAdjacencyMatrix( "/tmp/AdjacencyMatrices.csv",
+                                        _loopCounter, curTime, adjMat );
+  ModelExporter::exportAdjacencyMatrixCellProp( "/tmp/AdjacencyMatricesCellProperties.csv",
+  _loopCounter, curTime, T );
+
+  /*
+  for( std::size_t i=0; i<adjMat.size();i++ )
+  {
+    for( std::size_t j=0; j<adjMat.at(i).size();j++ )
+      std::cout << adjMat.at(i).at(j) << " ";
+    
+    std::cout << std::endl;
+  }
+  */
   
 //   if( curTime == maxTime && _avoidTrianglesThreshold <= 0.00001 )
 //   {
@@ -1651,8 +1671,8 @@ void MyModel::preDraw()
 void MyModel::draw( Viewer* viewer )
 {
   // center sphere
-  GraphicsClass::drawSphere( Point3d( 0., 0., 0. ), 8., 20., 20.,
-                              Colorf( 0.5, 0.5, 0.5, 1. ), quadratic );
+  //GraphicsClass::drawSphere( Point3d( 0., 0., 0. ), 8., 20., 20.,
+                              //Colorf( 0.5, 0.5, 0.5, 1. ), quadratic );
   
   forall(const cell& c, T.C)
   {
@@ -1692,6 +1712,21 @@ void MyModel::draw( Viewer* viewer )
       
       for( std::size_t l = 0; l < _pcLines.size(); l++ )
         GraphicsClass::drawLine( _pcLines.at(l).first, _pcLines.at(l).second, _palette.getColor(3) );
+    }
+  }
+  
+  if( _drawCellMesh )
+  {
+    forall( const cell& c, T.C )
+    {
+      forall( const junction& j, T.S.neighbors(c) )
+      {
+        cell nC = T.adjacentCell( c, j );
+        if( nC )
+        {
+          GraphicsClass::drawLine( c->center, nC->center, _palette.getColor(0) );
+        }
+      }
     }
   }
   

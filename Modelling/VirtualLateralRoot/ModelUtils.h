@@ -143,6 +143,8 @@ namespace ModelUtils
   Point3d transformRGBToHSV( Point3d RGB, const bool use255 = true );
   
   Point3d transformHSVToRGB( Point3d HSV );
+  
+  std::vector< std::vector<int> > generateAdjacencyMatrix( const MyTissue& T );
 }
 
 #endif // ModelUtils_HH

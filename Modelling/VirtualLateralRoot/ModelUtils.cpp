@@ -1301,4 +1301,39 @@ Point3d transformHSVToRGB( Point3d HSV )
 
 //----------------------------------------------------------------
 
+std::vector< std::vector<int> > generateAdjacencyMatrix( const MyTissue& T )
+{
+  std::vector< std::vector<int> > adjMat;
+  int dim = T.C.size();
+  adjMat.resize( dim );
+  
+  // init unique ids for each cell such that we can identify them in the matrix
+  std::size_t counter = 0;
+  forall( const cell& c, T.C )
+  {
+    c->uniqueIDPerTimestep = counter;
+    adjMat.at(counter).resize( dim, 0 );
+    counter++;
+  }
+  
+  std::size_t i, k;
+  forall( const cell& c, T.C )
+  {
+    i = c->uniqueIDPerTimestep;
+    forall( const junction& j, T.S.neighbors(c) )
+    {
+      cell nC = T.adjacentCell( c, j );
+      if( nC )
+      {
+        k = nC->uniqueIDPerTimestep;
+        adjMat.at(i).at(k) = 1;
+      }
+    }
+  }
+  
+  return adjMat;
+}
+
+//----------------------------------------------------------------
+
 }
