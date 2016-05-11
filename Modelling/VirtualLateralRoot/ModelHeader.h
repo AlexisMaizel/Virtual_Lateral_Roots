@@ -127,6 +127,8 @@ struct CellContent
   // born (e.g. right after a division)
   Point3d principalGrowthDir;
   
+  std::size_t uniqueIDPerTimestep;
+  
   std::size_t cellNumber;
   
   Point3d getPos() const

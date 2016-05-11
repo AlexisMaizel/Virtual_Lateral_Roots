@@ -154,6 +154,7 @@ public:
   bool _drawSpheres;
   bool _drawLayerCurves;
   bool _drawCenter;
+  bool _drawCellMesh;
   bool _drawPCLine;
   bool _drawCells;
   bool _drawJunctions;
