@@ -5,17 +5,20 @@ fileName = strcat( 'AutoTGMMConfig\TGMM_configFile', dataStr, '.txt' );
 fileID = fopen( char(fileName), 'w' );
 dataPathStr = 'imgFilePattern=I:\FrankfurtLSFMDatasets\';
 if strcmp(dataStr, '120830')
-  dataPathStr = strcat(dataPathStr, '20120830-pGATA_H2B_Wave\AllTimePoints\Registered\CH01\cropped_120830TM30162244SPC001TL????ANG000FRQ000PH00CM0CHN01.Resampled_reg');
+  %dataPathStr = strcat(dataPathStr, '20120830-pGATA_H2B_Wave\AllTimePoints\Not_Registered\cropped_pGata23_120830_TL0???_CHN00');
+  dataPathStr = 'imgFilePattern=I:\SegmentationResults\Preprocessing\120830\changed_t???_M';
 elseif strcmp(dataStr, '121204')
   %dataPathStr = strcat(dataPathStr, '20121204_pGATA_H2B_Wave\driftcorrected_stacks_cropped\ch01\crop_t???_c1');
-  dataPathStr = 'imgFilePattern=I:\SegmentationResults\Preprocessing\121204\changed_t???_c1M';
+  dataPathStr = 'imgFilePattern=I:\SegmentationResults\Preprocessing\121204\changed_t???_M';
 elseif strcmp(dataStr, '121211')
-  dataPathStr = 'imgFilePattern=I:\SegmentationResults\Preprocessing\121211\changed_t???_c1M';
+  dataPathStr = 'imgFilePattern=I:\SegmentationResults\Preprocessing\121211\changed_t???_M';
   %dataPathStr = strcat(dataPathStr, '20121211_pGATA_H2B_Wave\3Ddrift_Stacks_cropped\cropped_t???_c1');
 elseif strcmp(dataStr, '130508')
-  dataPathStr = strcat(dataPathStr, '130508\crop_t???_c1');
+  %dataPathStr = strcat(dataPathStr, '130508\crop_t???_c1');
+  dataPathStr = 'imgFilePattern=I:\SegmentationResults\Preprocessing\130508\changed_t???_M';
 elseif strcmp(dataStr, '130607')
-  dataPathStr = strcat(dataPathStr, '130607\c1\crop_t???_c1');
+  %dataPathStr = strcat(dataPathStr, '130607\c1\crop_t???_c1');
+  dataPathStr = 'imgFilePattern=I:\SegmentationResults\Preprocessing\130607\changed_t???_M';
 end
 fprintf( fileID, '%s\n', char(dataPathStr) );
 output = strcat( 'debugPathPrefix=I:\SegmentationResults\TGMM\', dataStr );

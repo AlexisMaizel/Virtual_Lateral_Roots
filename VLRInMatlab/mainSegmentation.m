@@ -1,14 +1,16 @@
 cd('C:\Jens\VLRRepository\VLRInMatlab')
-addpath( genpath( '/geom3d/' ) );
-addpath( genpath( '/export_fig/' ) );
-addpath( genpath( '/@tree/' ) );
+addpath( genpath( 'geom3d/' ) );
+addpath( genpath( 'export_fig/' ) );
+addpath( genpath( '@tree/' ) );
+addpath( genpath( 'BGLGraph/' ) );
+addpath( genpath( 'ellipsoid_fit/' ) )
 
 chosenData = 3;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' };
 inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chosenData ), '\changed_t' );
-startT = 150;
-endT = 150;
+startT = 50;
+endT = 50;
 radEllip = 10;
 lineWidth = 1;
 numPlots = 4;
@@ -17,7 +19,7 @@ cmapNumCells = colorcube(numColorsCells);
 ELLIP = [];
 ELLIPPATCH = [];
 nucleiCounter = 1;
-spatialNormalization = 0;
+spatialNormalization = 1;
 
 % parameters for finding connected components (cc)
 % both parameters have to be chosen carefully depending on
@@ -27,17 +29,18 @@ spatialNormalization = 0;
 % thres = 900 -> minV = 400, voxelC = 3200
 % thres = 750 -> minV = 200, voxelC = 3200
 minVoxelCount = 300;
-voxelCountPerCell = 3300;
+voxelCountPerCellStart = 4600;
+voxelCountPerCellEnd = 4600;
 
 storeTIFF = 1;
 storePNGs = 1;
-cellRadius = 17;
+cellRadius = 15;
 
 % output format of values
-format longG
+format shortG %longG %shortG
 
 % path to image output
-imageDir = strcat( 'I:/SegmentationResults/Matlab/Segmentation/' );
+imageDir = strcat( 'I:/SegmentationResults/Matlab/Segmentation/', rawDataStr( 1, chosenData ), '/' );
 mkdir( char(imageDir) );
 
 % read raw data (manual segmentation and tracking)
@@ -55,7 +58,6 @@ tic
 
 for t=startT:endT
   msg = strcat( 'Timestep', {' '}, num2str(t) );
-  disp( msg );
   if storePNGs == 1
     % subplot settings
     clf(f)
@@ -86,20 +88,29 @@ for t=startT:endT
         
   % image output options
   if t < 10
-    fileName = strcat( inputPath, '00', num2str(t), '_c1.tif' );
+    fileName = strcat( inputPath, '00', num2str(t), '.tif' );
     digit = strcat( rawDataStr( 1, chosenData ), 'TimeStepSeg', '_00' );
-    newFileName = strcat( inputPath, '00', num2str(t), '_c1M.tif' );
+    newFileName = strcat( inputPath, '00', num2str(t), '_M.tif' );
   elseif t < 100
-    fileName = strcat( inputPath, '0', num2str(t), '_c1.tif' );
+    fileName = strcat( inputPath, '0', num2str(t), '.tif' );
     digit = strcat( rawDataStr( 1, chosenData ), 'TimeStepSeg', '_0' );
-    newFileName = strcat( inputPath, '0', num2str(t), '_c1M.tif' );
+    newFileName = strcat( inputPath, '0', num2str(t), '_M.tif' );
   else
-    fileName = strcat( inputPath, num2str(t), '_c1.tif' );
+    fileName = strcat( inputPath, num2str(t), '.tif' );
     digit = strcat( rawDataStr( 1, chosenData ), 'TimeStepSeg', '_' );
-    newFileName = strcat( inputPath, num2str(t), '_c1M.tif' );
+    newFileName = strcat( inputPath, num2str(t), '_M.tif' );
   end
   
   % get connected components
+  if endT ~= startT
+		curTRatio = double(t-1)/double(abs( endT - startT ));
+  else
+		curTRatio = 0;
+  end
+  
+	voxelCountPerCell = voxelCountPerCellStart + curTRatio*double(abs( voxelCountPerCellEnd - voxelCountPerCellStart ));
+  msg = strcat( msg, {' '}, 'VoxelSize', {' '}, num2str(voxelCountPerCell) );
+  disp( msg );
   [S, cc, maxInt, imageStack] = findConnectedComponents( fileName, minVoxelCount, voxelCountPerCell );
   if storeTIFF == 1
     generateCellShape( imageStack, cc, maxInt, cellRadius, newFileName );
@@ -199,7 +210,7 @@ for t=startT:endT
       if spatialNormalization == 1
         cen = cen - centerPosAuto;
       end
-      X(cellCounter, :) = [ cen(1) cen(2) ];
+      X(cellCounter, :) = [ cen(2) cen(1) ];
       
       color = cmapNumCells( mod( cellCounter, numColorsCells )+1, : );
       [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...

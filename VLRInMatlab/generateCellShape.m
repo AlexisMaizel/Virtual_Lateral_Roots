@@ -6,7 +6,7 @@ slices = size( imageStack, 3);
 imageStack = zeros( height, width, slices, 'uint16' );
 
 % 0 for sphere or 1 for ellipsoid
-shape = 0;
+shape = 1;
 
 % generate a new cell at the cell center
 cellC = floor(cc);
