@@ -1,28 +1,25 @@
 % execute compileMex.m before to generate mex files
-
-cd('C:\Jens\VLRRepository\VLRInMatlab')
-addpath( genpath( 'geom3d/' ) );
-addpath( genpath( 'export_fig/' ) );
-addpath( genpath( 'readTGMM_XMLoutput/' ) );
+setWorkingPathProperties()
 
 % output format of values
 format longG
 
 %%%%%%%%%%%%%%%%%%%%% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%
-requireNewSegmentation = 0;
-requireNewTracking = 0;
+requireNewSegmentation = 1;
+requireNewTracking = 1;
 
-renderAutoLineages = 1;
-renderManLineages = 1;
-renderNuclei = 0;
+renderAutoLineages = 0;
+renderManLineages = 0;
+renderNuclei = 1;
 
-paramThreshold = 400;
+paramThreshold = 800;
 paramTau = 20;
-startT = 1;
-endT = 10;
+anisotropyZ = 1.0;
+startT = 9;
+endT = 34;
+chosenData = 7;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
-rawDataStr = { '120830' '121204' '121211' '130508' '130607' };
-chosenData = 3;
+rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' };
 % normalize data points based on their center
 spatialNormalization = 1;
 resultPath = strcat( 'I:\SegmentationResults\TGMM\', rawDataStr( 1, chosenData ), '\' );
@@ -30,7 +27,11 @@ radEllip = 10;
 lineWidth = 1;
 numColors = 40;
 % amount of plots
-numPlots = 2;
+if chosenData < 6
+  numPlots = 2;
+else
+  numPlots = 1;
+end
 % colormap for ellipses
 cmap = colorcube(numColors);
 ELLIP = [];
@@ -49,15 +50,17 @@ mkdir( char(imageDir) );
 tic
 
 % read raw data (manual segmentation and tracking)
-[ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] =...
-  readRawData( dataStr( 1, chosenData ) );
+if chosenData < 6
+  [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] =...
+    readRawData( dataStr( 1, chosenData ) );
+end
 
 % execute TGMM segmentation and tracking
-cd('C:\Jens\TGMM_Supplementary_Software_1_0\build')
 tRange = strcat( num2str(startT), {' '}, num2str(endT) );
 dataSelect = strcat( 'TGMM_configFile', rawDataStr( 1, chosenData ), '.txt' );
 % first create TGMMconfigfile
-exportTGMMConfigFile( rawDataStr( 1, chosenData ), 2.0, paramThreshold, paramTau );
+exportTGMMConfigFile( rawDataStr( 1, chosenData ), anisotropyZ, paramThreshold, paramTau );
+cd('C:\Jens\TGMM_Supplementary_Software_1_0\build')
 if requireNewSegmentation == 1
   cmdSegmentation = strcat( 'nucleiChSvWshedPBC\Release\ProcessStackBatchMulticore.exe AutoTGMMConfig\', dataSelect, {' '}, tRange );
   system( char(cmdSegmentation), '-echo');
@@ -104,38 +107,64 @@ autoNodes = cell( maxAutoLineages, 1 );
 cellAutoNumLin = ones( maxAutoLineages, 1 );
 autoNodeIdToNumCellMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
 
-maxManLineages = max( [ cellData{:, 6} ] );
-manNodes = cell( maxManLineages, 1 );
-cellManNumLin = ones( maxManLineages, 1 );
-manNodeIdToNumCellMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
+if chosenData < 6
+  maxManLineages = max( [ cellData{:, 6} ] );
+  manNodes = cell( maxManLineages, 1 );
+  cellManNumLin = ones( maxManLineages, 1 );
+  manNodeIdToNumCellMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
+end
 
 for t=startT:endT
   % subplot settings
   if renderNuclei == 1
-  clf(f)
-  for p=1:2
-    subplot( numPlots, 1, p );
-    hold on
-    if spatialNormalization == 0
-      xMinMax = [ -50 750 ];
-      if p == 1
-        yMinMax = [ -450 -50 ];
-      else
-        yMinMax = [ 0 400 ];
+    clf(f)
+    if chosenData < 6
+      for p=1:2
+        subplot( numPlots, 1, p );
+        hold on
+        if spatialNormalization == 0
+          xMinMax = [ -50 750 ];
+          if p == 1
+            yMinMax = [ -450 -50 ];
+          else
+            yMinMax = [ 0 400 ];
+          end
+        else
+          xMinMax = [ -400 400 ];
+          yMinMax = [ -200 200 ];
+        end
+        % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
+        axis( [ xMinMax(1) xMinMax(2) yMinMax(1) yMinMax(2) -10000 10000 0 1 ] );
+        axis on
+        daspect( [ 1 1 1 ] );
+        xlabel('X');
+        ylabel('Y');
+        zlabel('Z');
+        camproj( 'orthographic' );
       end
+    elseif chosenData == 6
+      xMinMax = [ -150 150 ];
+      yMinMax = [ -350 350 ];
+      % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
+      axis( [ xMinMax(1) xMinMax(2) yMinMax(1) yMinMax(2) -10000 10000 0 1 ] );
+      axis on
+      daspect( [ 1 1 1 ] );
+      xlabel('X');
+      ylabel('Y');
+      zlabel('Z');
+      camproj( 'orthographic' );
     else
-      xMinMax = [ -400 400 ];
-      yMinMax = [ -200 200 ];
+      xMinMax = [ -350 350 ];
+      yMinMax = [ -1000 1000 ];
+      % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
+      axis( [ xMinMax(1) xMinMax(2) yMinMax(1) yMinMax(2) -10000 10000 0 1 ] );
+      axis on
+      daspect( [ 1 1 1 ] );
+      xlabel('X');
+      ylabel('Y');
+      zlabel('Z');
+      camproj( 'orthographic' );
     end
-    % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
-    axis( [ xMinMax(1) xMinMax(2) yMinMax(1) yMinMax(2) -10000 10000 0 1 ] );
-    axis on
-    daspect( [ 1 1 1 ] );
-    xlabel('X');
-    ylabel('Y');
-    zlabel('Z');
-    camproj( 'orthographic' );
-  end
   end
   
   numCellsAuto = 0;
@@ -150,7 +179,9 @@ for t=startT:endT
       numCellsAuto = numCellsAuto+1;
     end
   end
-  centerPosAuto = centerPosAuto./numCellsAuto;
+  if numCellsAuto ~= 0
+    centerPosAuto = centerPosAuto./numCellsAuto;
+  end
   
   % store all auto positions
   cellCounter = 1;
@@ -207,72 +238,77 @@ for t=startT:endT
       {' '}, '#Cells', {' '}, num2str(numCellsAuto), ',',...
       {' '}, '#Lineages', {' '}, num2str(lineageAutoMap.Count) );
     title( char(tit) );
-    
-    % manual segmentation result
-    subplot( numPlots, 1, 2 );
-    hold on
+  
+    if chosenData < 6
+      % manual segmentation result
+      subplot( numPlots, 1, 2 );
+      hold on
+    end
   end
   
-  % store all manual positions
-  numCellsManual = numCellsPerTimeStep(t, 1);
-  cellCounter = 1;
-  Y = zeros(numCellsManual, 2);
-  manLinCounter = 1;
-  
-  for j=1:dimData
-    if cellData{j, 5} == t
-      lin = cellData{j, 6};
-      if isKey( lineageManualMap, lin ) == 1
-        lineageManualMap( lin ) = lineageManualMap( lin ) + 1;
-      else
-        lineageManualMap( lin ) = 1;
-        lineageManualColorMap( lin ) = manLinCounter;
-        manLinCounter = manLinCounter + 1;
+  if chosenData < 6
+    % store all manual positions
+    numCellsManual = numCellsPerTimeStep(t, 1);
+    cellCounter = 1;
+    Y = zeros(numCellsManual, 2);
+    manLinCounter = 1;
+    
+    for j=1:dimData
+      if cellData{j, 5} == t
+        lin = cellData{j, 6};
+        if isKey( lineageManualMap, lin ) == 1
+          lineageManualMap( lin ) = lineageManualMap( lin ) + 1;
+        else
+          lineageManualMap( lin ) = 1;
+          lineageManualColorMap( lin ) = manLinCounter;
+          manLinCounter = manLinCounter + 1;
+        end
+        % get position of current cell
+        p = [ cellData{j, 2} cellData{j, 3} cellData{j, 4} ];
+        if spatialNormalization == 1
+          p = p - centerPosPerTimeStep( t, : );
+        end
+        
+        % store the lineage information
+        if cellData{j, 9} == -1
+          prevNodeID = -1;
+        else
+          prevNodeID = pairingFunction( cellData{j, 9}, t-1 );
+        end
+        nodeID = pairingFunction( cellData{j, 1}, t );
+        
+        if prevNodeID == -1
+          manNodes{lin}(cellManNumLin( lin, 1 ) ) = 0;
+        else
+          prevLinID = manNodeIdToNumCellMap(prevNodeID);
+          manNodes{lin}(cellManNumLin( lin, 1 ) ) = prevLinID;
+        end
+        
+        manNodeIdToNumCellMap(nodeID) = cellManNumLin( lin, 1 );
+        cellManNumLin( lin, 1 ) = cellManNumLin( lin, 1 ) + 1;
+        
+        Y(cellCounter, :) = [ p(1) p(2) ];
+        cellCounter = cellCounter + 1;
+        
+        if renderNuclei == 1
+          color = cmap( mod( lineageManualColorMap( lin ), numColors )+1, : );
+          [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
+            drawEllipse3d( p(1), p(2), p(3), radEllip, radEllip, 0, 0 );
+          set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
+          set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
+          nucleiCounter = nucleiCounter+1;
+        end
       end
-      % get position of current cell
-      p = [ cellData{j, 2} cellData{j, 3} cellData{j, 4} ];
-      if spatialNormalization == 1
-        p = p - centerPosPerTimeStep( t, : );
-      end
-      
-      % store the lineage information
-      if cellData{j, 9} == -1
-        prevNodeID = -1;
-      else
-        prevNodeID = pairingFunction( cellData{j, 9}, t-1 );
-      end
-      nodeID = pairingFunction( cellData{j, 1}, t );
-      
-      if prevNodeID == -1
-        manNodes{lin}(cellManNumLin( lin, 1 ) ) = 0;
-      else
-        prevLinID = manNodeIdToNumCellMap(prevNodeID);
-        manNodes{lin}(cellManNumLin( lin, 1 ) ) = prevLinID;
-      end
-      
-      manNodeIdToNumCellMap(nodeID) = cellManNumLin( lin, 1 );
-      cellManNumLin( lin, 1 ) = cellManNumLin( lin, 1 ) + 1;
-      
-      Y(cellCounter, :) = [ p(1) p(2) ];
-      cellCounter = cellCounter + 1;
-      
-      if renderNuclei == 1
-        color = cmap( mod( lineageManualColorMap( lin ), numColors )+1, : );
-        [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
-          drawEllipse3d( p(1), p(2), p(3), radEllip, radEllip, 0, 0 );
-        set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
-        set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
-        nucleiCounter = nucleiCounter+1;
-      end
+    end
+    if renderNuclei == 1
+      tit = strcat( 'ManualSeg\_', 'T', {' '}, num2str(t), ',',...
+        {' '}, '#Cells', {' '}, num2str(numCellsManual), ',',...
+        {' '}, '#Lineages', {' '}, num2str(lineageManualMap.Count) );
+      title( char(tit) );
     end
   end
   
   if renderNuclei == 1
-    tit = strcat( 'ManualSeg\_', 'T', {' '}, num2str(t), ',',...
-      {' '}, '#Cells', {' '}, num2str(numCellsManual), ',',...
-      {' '}, '#Lineages', {' '}, num2str(lineageManualMap.Count) );
-    title( char(tit) );
-    
     % image output options
     if t < 10
       digit = strcat( rawDataStr( 1, chosenData ), 'TimeStep', '_00' );

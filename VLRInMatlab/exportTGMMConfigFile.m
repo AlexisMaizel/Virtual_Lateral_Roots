@@ -19,6 +19,11 @@ elseif strcmp(dataStr, '130508')
 elseif strcmp(dataStr, '130607')
   %dataPathStr = strcat(dataPathStr, '130607\c1\crop_t???_c1');
   dataPathStr = 'imgFilePattern=I:\SegmentationResults\Preprocessing\130607\changed_t???_M';
+elseif strcmp(dataStr, '20160427')
+  dataPathStr = 'imgFilePattern=I:\NewDatasets\Zeiss\20160427\red\spim_TL???_Angle1';
+elseif strcmp(dataStr, '20160428')
+  %dataPathStr = 'imgFilePattern=I:\NewDatasets\2016-04-28_17.35.59_JENS\Tiffs\nuclei\left\_Ch1_CamL_T?????';
+  dataPathStr = 'imgFilePattern=I:\SegmentationResults\Preprocessing\20160428\changed_t???_M';
 end
 fprintf( fileID, '%s\n', char(dataPathStr) );
 output = strcat( 'debugPathPrefix=I:\SegmentationResults\TGMM\', dataStr );

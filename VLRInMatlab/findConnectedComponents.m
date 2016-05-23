@@ -12,11 +12,9 @@ slices = size( imageStack, 3);
 
 thicknessThreshold = 10;
 
-considerCellSize = 0;
+considerCellSize = 1;
 
 randomIntensities = 1;
-
-kmax = 5;
 
 % determine connected components in image
 % can be 6, 18 or 26
@@ -28,7 +26,9 @@ S = regionprops( CC, 'Centroid', 'Area', 'BoundingBox', 'PixelList', 'PixelIdxLi
 
 % generate adjacency matrix for each cc
 %ccAdjacencyMap = generateAdjacencyMatrixOfCC( CC, S, connectivity );
-ccLocalMaximaMap = determineNumberOfLocalMaximaOfCC( CC, S, minVoxelCount, connectivity );
+if considerCellSize == 0
+  ccLocalMaximaMap = determineNumberOfLocalMaximaOfCC( CC, S, minVoxelCount, connectivity );
+end
 
 %diary('matlabOutput.txt')
 cellCenters = [];
@@ -72,6 +72,8 @@ for i=1:size(S, 1)
     maxInt = max( imageStack( S(i, :).PixelIdxList ) );
   end
   if considerCellSize == 1
+    %areaVal
+    %centroid = S(i, :).Centroid
     % if the area size of the cc is bigger than an average cell size
     % apply k means clustering to distinguish between the cells and to
     % find the cell's center

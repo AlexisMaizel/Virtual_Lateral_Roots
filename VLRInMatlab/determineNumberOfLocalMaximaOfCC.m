@@ -1,7 +1,7 @@
 function ccLocalMaximaMap = determineNumberOfLocalMaximaOfCC( CC, S, minVoxelCount, connectivity )
 ccLocalMaximaMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
 
-r = 21;
+r = 18;
 
 % init adjacency matrix for each cc with zeros
 for c=1:CC.NumObjects
@@ -55,7 +55,7 @@ for c=1:CC.NumObjects
   for d1=1:size(D,1)
     for d2=1:size(D,2)
       for d3=1:size(D,3)
-        if D( d1, d2, d3 ) > 3 && D( d1, d2, d3 ) >= D_dil( d1, d2, d3 )
+        if D( d1, d2, d3 ) > 2 && D( d1, d2, d3 ) >= D_dil( d1, d2, d3 )
           DCC( d1, d2, d3 ) = 1;
         end
       end
@@ -80,10 +80,9 @@ for c=1:CC.NumObjects
       end
     end
   end
-  distances
+  %distances
   
   [center, radii, evecs, pars ] = ellipsoid_fit( S(c,:).PixelList );
-  radii
   
 %   
 %   for i=1:size(NS, 1)
