@@ -1,0 +1,64 @@
+import sys
+import ij.IJ as IJ
+from ij.io import FileSaver
+import ij.plugin.ZProjector as ZProjector
+import ij.ImagePlus as ImagePlus
+sys.path.append( 'C:\\Jens\\VLRRepository\\FijiScripts' )
+
+# data can be in [1,7]
+chosenData = 7
+
+ROI_xStart = 500
+ROI_yStart = 0
+ROI_xSize = 1000
+ROI_ySize = 2048
+
+if chosenData == 7:
+	nucleiFolder = 'I:\\NewDatasets\\2016-04-28_17.35.59_JENS\\Tiffs\\nuclei\\left\\_Ch1_CamL_T00'
+	membraneFolder = 'I:\\NewDatasets\\2016-04-28_17.35.59_JENS\\Tiffs\\membrane\\left\\_Ch0_CamL_T00'
+	cropNucleiOutput = 'I:\\NewDatasets\\2016-04-28_17.35.59_JENS\\Tiffs\\nuclei\\left\\cropped_Ch1_CamL_T00'
+	cropMembraneOutput = 'I:\\NewDatasets\\2016-04-28_17.35.59_JENS\\Tiffs\\membrane\\left\\cropped_Ch0_CamL_T00'
+	startT = 0
+	endT = 34
+
+appendix = '.tif'
+
+for t in range(startT, endT+1):
+	if t < 10:
+		digit = '00' + str(t)
+	elif t < 100:
+		digit = '0' + str(t)
+	elif t < 1000:
+		digit = str(t)
+	
+	imageNPath = nucleiFolder + digit + appendix
+	imageMPath = membraneFolder + digit + appendix
+	imageNCroppedPath = cropNucleiOutput + digit + appendix
+	imageMCroppedPath = cropMembraneOutput + digit + appendix
+
+	print 'Opening image', imageNPath
+	impN = IJ.openImage( imageNPath )
+	impN.setRoi( ROI_xStart, ROI_yStart, ROI_xSize, ROI_ySize )
+	slices = impN.getNSlices()
+	stack = impN.getStack()
+	# crop(int x, int y, int z, int width, int height, int depth)
+	impN.setStack( stack.crop( ROI_xStart, ROI_yStart, 0, ROI_xSize, ROI_ySize, slices ) )
+	fs = FileSaver( impN )
+	fs.saveAsTiff( imageNCroppedPath )
+
+	print 'Opening image', imageMPath
+	impM = IJ.openImage( imageMPath )
+	impM.setRoi( ROI_xStart, ROI_yStart, ROI_xSize, ROI_ySize )
+	slices = impM.getNSlices()
+	stack = impM.getStack()
+	# crop(int x, int y, int z, int width, int height, int depth)
+	impM.setStack( stack.crop( ROI_xStart, ROI_yStart, 0, ROI_xSize, ROI_ySize, slices ) )
+	fs = FileSaver( impM )
+	fs.saveAsTiff( imageMCroppedPath )
+
+	zp = ZProjector(impM)
+	zp.setMethod( ZProjector.MAX_METHOD )
+	zp.doProjection()
+	MIPimpM = zp.getProjection()
+	#MIPimpM.show()
+	
