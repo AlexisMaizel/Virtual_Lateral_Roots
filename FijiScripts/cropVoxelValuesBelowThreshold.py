@@ -22,8 +22,8 @@ def cropVoxelValuesBelowThreshold( imp, threshold ):
 			if pixels[i]&0xffff <= threshold:
 				pixels[i] = 0
 				
-		ip.setPixels( pixels )
-		stack.setProcessor( ip, s+1 )
+		#ip.setPixels( pixels )
+		#stack.setProcessor( ip, s+1 )
 	
 	return ij.ImagePlus( 'ThresholdImage', stack )
 

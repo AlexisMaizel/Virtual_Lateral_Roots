@@ -1,11 +1,12 @@
 setWorkingPathProperties()
 
-chosenData = 7;
+chosenData = 3;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
-rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' };
+rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' };
 inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chosenData ), '\changed_t' );
-startT = 0;
-endT = 34;
+startT = 1;
+endT = 50;
+maxT = 50;
 radEllip = 10;
 lineWidth = 1;
 if chosenData < 6
@@ -20,6 +21,16 @@ ELLIPPATCH = [];
 nucleiCounter = 1;
 spatialNormalization = 0;
 
+if chosenData < 6
+  anisotropyZ = 2.;
+elseif chosenData == 6
+  anisotropyZ = 1.;
+elseif chosenData == 7
+  anisotropyZ = 4.;
+elseif chosenData == 8
+  anisotropyZ = 7.5;
+end
+
 % parameters for finding connected components (cc)
 % both parameters have to be chosen carefully depending on
 % the choice of threshold used in the Fiji script for thresholding the
@@ -27,13 +38,19 @@ spatialNormalization = 0;
 % thres = 1000 -> minV = 200, voxelC = 2700
 % thres = 900 -> minV = 400, voxelC = 3200
 % thres = 750 -> minV = 200, voxelC = 3200
-minVoxelCount = 800;
-voxelCountPerCellStart = 8000;%4600;
-voxelCountPerCellEnd = 8000;%4600;
+% 500 for 121211
+% 1500 for 20160426
+minVoxelCount = 500;
+% 3600 for 121211
+% 15000 for 20160426
+voxelCountPerCell = 3600;%4600;
+%voxelCountPerCellEnd = 13000;%4600;
+
+tSteps = 0;
 
 storeTIFF = 1;
 storePNGs = 1;
-cellRadius = 15;
+storeCSVResult = 1;
 
 % output format of values
 format shortG %longG %shortG
@@ -51,49 +68,37 @@ end
 %generateTreeStructureFromData( cellData, size(numCellsPerTimeStep,1), 1, 20 );
 
 if storePNGs == 1
-  f = figure( 'Name', 'Segmentation', 'Position', [ 50 50 1400 600 ] );
+  if chosenData < 6
+    w = 1800;
+    h = 900;
+  else
+    w = 1500;
+    h = 750;
+  end
+  f = figure( 'Name', 'Segmentation', 'Position', [ 50 50 w h ] );
 end
 
 % start measuring elapsed time
 tic
 
+% get width and height of data set
+[ width, height, slices] = determineDataResolution( startT, inputPath );
+
+timeS = cell( 2, tSteps+1 );
 for t=startT:endT
-  msg = strcat( 'Timestep', {' '}, num2str(t) );
-        
-  % image output options
   if t < 10
-    fileName = strcat( inputPath, '00', num2str(t), '.tif' );
-    digit = strcat( rawDataStr( 1, chosenData ), 'TimeStepSeg', '_00' );
-    newFileName = strcat( inputPath, '00', num2str(t), '_M.tif' );
+    digit = '00';
   elseif t < 100
-    fileName = strcat( inputPath, '0', num2str(t), '.tif' );
-    digit = strcat( rawDataStr( 1, chosenData ), 'TimeStepSeg', '_0' );
-    newFileName = strcat( inputPath, '0', num2str(t), '_M.tif' );
+    digit = '0';
   else
-    fileName = strcat( inputPath, num2str(t), '.tif' );
-    digit = strcat( rawDataStr( 1, chosenData ), 'TimeStepSeg', '_' );
-    newFileName = strcat( inputPath, num2str(t), '_M.tif' );
+    digit = '';
   end
-  
-  % get connected components
-  if endT ~= startT
-		curTRatio = double(t-1)/double(abs( endT - startT ));
-  else
-		curTRatio = 0;
-  end
-  
-	voxelCountPerCell = voxelCountPerCellStart + curTRatio*double(abs( voxelCountPerCellEnd - voxelCountPerCellStart ));
-  msg = strcat( msg, {' '}, 'VoxelSize', {' '}, num2str(voxelCountPerCell) );
-  %disp( msg );
-  [S, cc, maxInt, imageStack] = findConnectedComponents( fileName, minVoxelCount, voxelCountPerCell );
-  if storeTIFF == 1
-    generateCellShape( imageStack, cc, maxInt, cellRadius, newFileName );
-  end
+  % apply cell segmentation
+  [S, cc, maxInt, timeS] = applyCellSegmentation( t, startT, maxT, tSteps,...
+    timeS, minVoxelCount, voxelCountPerCell, anisotropyZ, inputPath, storeTIFF );
   
   if storePNGs == 1
-    height = size( imageStack, 1);
-    width = size( imageStack, 2);
-    setSubPlots( f, numPlots, chosenData, spatialNormalization, width, height );
+    setSubPlots( f, numPlots, chosenData, spatialNormalization, width, height, 0 );
     
     % determine center of data points
     centerPosAuto = zeros(1, 3);
@@ -103,7 +108,9 @@ for t=startT:endT
       centerPosAuto = centerPosAuto + cen;
       numCellsAuto = numCellsAuto+1;
     end
-    centerPosAuto = centerPosAuto./numCellsAuto;
+    if numCellsAuto ~= 0
+      centerPosAuto = centerPosAuto./numCellsAuto;
+    end
     
     % store all auto positions
     cellCounter = 1;
@@ -113,9 +120,9 @@ for t=startT:endT
     %%% automatic segmentation result before clustering %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if chosenData < 6
-      ax1 = subplot( numPlots/2, numPlots/2, 1 );
+      ax1 = subplot( 2, numPlots/2, 1 );
     else
-      ax1 = subplot( 1, numPlots, 1 );
+      ax1 = subplot( 2, (numPlots+1)/2, 1 );
     end
     hold on
     
@@ -145,7 +152,7 @@ for t=startT:endT
     end
     
     tit = strcat( 'AutoSegBefore\_', 'T', {' '}, num2str(t), ',',...
-      {' '}, '#Cells', {' '}, num2str(size(S,1)) );
+      {' '}, '#CCs', {' '}, num2str(size(S,1)) );
     title( char(tit) );
     
 %     colormap(ax1, cmapArea)
@@ -156,9 +163,9 @@ for t=startT:endT
     %%% automatic segmentation result before clustering without small ccs %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if chosenData < 6
-      ax2 = subplot( numPlots/2, numPlots/2, 2 );
+      ax2 = subplot( 2, numPlots/2, 2 );
     else
-      ax2 = subplot( 1, numPlots, 2 );
+      ax2 = subplot( 2, (numPlots+1)/2, 2 );
     end
     hold on
     
@@ -188,7 +195,7 @@ for t=startT:endT
     end
     
     tit = strcat( 'AutoSegBeforeCropped\_', 'T', {' '}, num2str(t), ',',...
-      {' '}, '#Cells', {' '}, num2str(remainingCells) );
+      {' '}, '#CCs', {' '}, num2str(remainingCells) );
     title( char(tit) );
     
 %     colormap(ax2, cmapArea)
@@ -199,9 +206,9 @@ for t=startT:endT
     %%% automatic segmentation result after clustering %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if chosenData < 6
-      ax3 = subplot( numPlots/2, numPlots/2, 3 );
+      ax3 = subplot( 2, numPlots/2, 3 );
     else
-      ax3 = subplot( 1, numPlots, 3 );
+      ax3 = subplot( 2, (numPlots+1)/2, 3 );
     end
     hold on
     
@@ -212,7 +219,7 @@ for t=startT:endT
       else
         cen = [ cen(1) -cen(2)+height cen(3) ];
       end
-      X(cellCounter, :) = [ cen(2) cen(1) ];
+      X(cellCounter, :) = [ cen(1) cen(2) ];
       
       color = cmapNumCells( mod( cellCounter, numColorsCells )+1, : );
       [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
@@ -224,7 +231,12 @@ for t=startT:endT
       cellCounter = cellCounter + 1;
     end
     
-    tit = strcat( 'AutoSegAfter\_', 'T', {' '}, num2str(t), ',',...
+    if storeCSVResult == 1
+      csvPath = strcat( imageDir, rawDataStr( 1, chosenData ), '_T', digit, num2str(t), '.dat' );
+      csvwrite( char(csvPath), X );
+    end
+    
+    tit = strcat( 'AutoSeg\_', 'T', {' '}, num2str(t), ',',...
       {' '}, '#Cells', {' '}, num2str(numCellsAuto) );
     title( char(tit) );
     
@@ -236,9 +248,9 @@ for t=startT:endT
     %%% MIP image of raw data %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if chosenData < 6
-      ax4 = subplot( numPlots/2, numPlots/2, 4 );
+      ax4 = subplot( 2, numPlots/2, 4 );
     else
-      ax4 = subplot( 1, numPlots, 4 );
+      ax4 = subplot( 2, (numPlots+1)/2, 4 );
     end
     
     h1 = showMIP( rawDataStr( 1, chosenData ), 0, t );
@@ -249,9 +261,9 @@ for t=startT:endT
     %%% MIP image of thresholding %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if chosenData < 6
-      ax5 = subplot( numPlots/2, numPlots/2, 5 );
+      ax5 = subplot( 2, numPlots/2, 5 );
     else
-      ax5 = subplot( 1, numPlots, 5 );
+      ax5 = subplot( 2, (numPlots+1)/2, 5 );
     end
     h2 = showMIP( rawDataStr( 1, chosenData ), 1, t );
     tit = strcat( 'thresholdMIP\_', 'T', {' '}, num2str(t) );
@@ -259,13 +271,12 @@ for t=startT:endT
     
     if chosenData < 6
       %%% manual segmentation result %%%
-      ax6 = subplot( numPlots/2, numPlots/2, 6 );
+      ax6 = subplot( 2, numPlots/2, 6 );
       hold on
       
       % store all manual positions
       numCellsManual = numCellsPerTimeStep(t, 1);
       cellCounter = 1;
-      Y = zeros(numCellsManual, 2);
       
       for j=1:dimData
         if cellData{j, 5} == t
@@ -274,7 +285,6 @@ for t=startT:endT
           if spatialNormalization == 1
             p = p - centerPosPerTimeStep( t, : );
           end
-          Y(cellCounter, :) = [ p(1) p(2) ];
           
           color = cmapNumCells( mod( cellCounter, numColorsCells )+1, : );
           [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
@@ -295,8 +305,7 @@ for t=startT:endT
       %colorbar
       %caxis([0, numColorsCells])
     end
-    
-    filePath = strcat( imageDir, digit, num2str(t), '.png' );
+    filePath = strcat( imageDir, rawDataStr( 1, chosenData ), '_T', digit, num2str(t), '.png' );
     export_fig( gcf, char(filePath), '-m2', '-png' );
   end
 end

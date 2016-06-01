@@ -8,30 +8,41 @@ format longG
 requireNewSegmentation = 1;
 requireNewTracking = 1;
 
+% render specific properties
 renderAutoLineages = 0;
 renderManLineages = 0;
 renderNuclei = 1;
+showAdditionalImages = 1;
 
-paramThreshold = 800;
+% parameters for TGMM
+paramThreshold = 1000; % 600 for all preprocessed data sets
 paramTau = 20;
-anisotropyZ = 1.0;
-startT = 9;
-endT = 34;
-chosenData = 7;
+minNucleiSize = 10;
+maxNucleiSize = 3000;
+
+% which kind of data should be chosen: raw (=0) or preproccessed (=1)
+dataType = 0;
+startT = 1;
+endT = 10;
+chosenData = 3;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
-rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' };
+rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' };
 % normalize data points based on their center
-spatialNormalization = 1;
+spatialNormalization = 0;
 resultPath = strcat( 'I:\SegmentationResults\TGMM\', rawDataStr( 1, chosenData ), '\' );
-radEllip = 10;
+radEllip = 10;% 5, 10
 lineWidth = 1;
 numColors = 40;
 % amount of plots
 if chosenData < 6
-  numPlots = 2;
+  numPlots = 4;
 else
-  numPlots = 1;
+  numPlots = 3;
 end
+if showAdditionalImages == 0
+  numPlots = numPlots - 2;
+end
+
 % colormap for ellipses
 cmap = colorcube(numColors);
 ELLIP = [];
@@ -59,7 +70,7 @@ end
 tRange = strcat( num2str(startT), {' '}, num2str(endT) );
 dataSelect = strcat( 'TGMM_configFile', rawDataStr( 1, chosenData ), '.txt' );
 % first create TGMMconfigfile
-exportTGMMConfigFile( rawDataStr( 1, chosenData ), anisotropyZ, paramThreshold, paramTau );
+rawDataPath = exportTGMMConfigFile( rawDataStr( 1, chosenData ), paramThreshold, paramTau, minNucleiSize, maxNucleiSize, dataType );
 cd('C:\Jens\TGMM_Supplementary_Software_1_0\build')
 if requireNewSegmentation == 1
   cmdSegmentation = strcat( 'nucleiChSvWshedPBC\Release\ProcessStackBatchMulticore.exe AutoTGMMConfig\', dataSelect, {' '}, tRange );
@@ -99,7 +110,7 @@ end
 
 % figure settings
 if renderNuclei == 1
-  f = figure( 'Name', 'Segmentation', 'Position', [ 50 50 800 800 ] );
+  f = figure( 'Name', 'Tracking', 'Position', [ 50 50 1600 600 ] );
 end
 
 maxAutoLineages = max( trackingMatrix( :, 10 ) );
@@ -114,57 +125,14 @@ if chosenData < 6
   manNodeIdToNumCellMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
 end
 
+imageStack = readTIFstack( char(rawDataPath) );
+height = size( imageStack, 1);
+width = size( imageStack, 2);
+
 for t=startT:endT
   % subplot settings
   if renderNuclei == 1
-    clf(f)
-    if chosenData < 6
-      for p=1:2
-        subplot( numPlots, 1, p );
-        hold on
-        if spatialNormalization == 0
-          xMinMax = [ -50 750 ];
-          if p == 1
-            yMinMax = [ -450 -50 ];
-          else
-            yMinMax = [ 0 400 ];
-          end
-        else
-          xMinMax = [ -400 400 ];
-          yMinMax = [ -200 200 ];
-        end
-        % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
-        axis( [ xMinMax(1) xMinMax(2) yMinMax(1) yMinMax(2) -10000 10000 0 1 ] );
-        axis on
-        daspect( [ 1 1 1 ] );
-        xlabel('X');
-        ylabel('Y');
-        zlabel('Z');
-        camproj( 'orthographic' );
-      end
-    elseif chosenData == 6
-      xMinMax = [ -150 150 ];
-      yMinMax = [ -350 350 ];
-      % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
-      axis( [ xMinMax(1) xMinMax(2) yMinMax(1) yMinMax(2) -10000 10000 0 1 ] );
-      axis on
-      daspect( [ 1 1 1 ] );
-      xlabel('X');
-      ylabel('Y');
-      zlabel('Z');
-      camproj( 'orthographic' );
-    else
-      xMinMax = [ -350 350 ];
-      yMinMax = [ -1000 1000 ];
-      % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
-      axis( [ xMinMax(1) xMinMax(2) yMinMax(1) yMinMax(2) -10000 10000 0 1 ] );
-      axis on
-      daspect( [ 1 1 1 ] );
-      xlabel('X');
-      ylabel('Y');
-      zlabel('Z');
-      camproj( 'orthographic' );
-    end
+    setSubPlots( f, numPlots, chosenData, spatialNormalization, width, height, 1 );
   end
   
   numCellsAuto = 0;
@@ -189,7 +157,11 @@ for t=startT:endT
 
   % automatic segmentation result
   if renderNuclei == 1
-    subplot( numPlots, 1, 1 );
+    if chosenData < 6
+      ax1 = subplot( numPlots/2, numPlots/2, 1 );
+    else
+      ax1 = subplot( 1, numPlots, 1 );
+    end
     hold on
   end
   for i=1:size(trackingMatrix,1)
@@ -204,6 +176,8 @@ for t=startT:endT
       cen = trackingMatrix( i, 3:5 );
       if spatialNormalization == 1
         cen = cen - centerPosAuto;
+      else
+        cen = [ cen(1) -cen(2)+height cen(3) ];
       end
       
       % store the lineage information
@@ -225,7 +199,7 @@ for t=startT:endT
       if renderNuclei == 1
         color = cmap( mod( lineage, numColors )+1, : );
         [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
-          drawEllipse3d( cen(1), -cen(2), cen(3), radEllip, radEllip, 0, 0 );
+          drawEllipse3d( cen(1), cen(2), cen(3), radEllip, radEllip, 0, 0 );
         set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
         set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
         nucleiCounter = nucleiCounter+1;
@@ -233,19 +207,65 @@ for t=startT:endT
     end
   end
   
-  if renderNuclei == 1
-    tit = strcat( 'AutoSeg\_', 'T', {' '}, num2str(t), ',',...
+  if renderNuclei == 1 && showAdditionalImages == 1
+    tit = strcat( 'AutoTracking\_', 'T', {' '}, num2str(t), ',',...
       {' '}, '#Cells', {' '}, num2str(numCellsAuto), ',',...
       {' '}, '#Lineages', {' '}, num2str(lineageAutoMap.Count) );
     title( char(tit) );
   
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%% Segmentation result of raw data %%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if chosenData < 6
+      ax2 = subplot( numPlots/2, numPlots/2, 2 );
+    else
+      ax2 = subplot( 1, numPlots, 2 );
+    end
+    hold on
+    if t < 10
+      digit = '00';
+    elseif t < 100
+      digit = '0';
+    else
+      digit = '';
+    end
+    csvPath = strcat( 'I:/SegmentationResults/Matlab/Segmentation/',...
+      rawDataStr( 1, chosenData ), '/', rawDataStr( 1, chosenData ),...
+      '_T', digit, num2str(t), '.dat' );
+    clusRes = csvread( char(csvPath) );
+    
+    for c=1:size(clusRes, 1)
+      color = cmap( 10, : );
+      [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
+        drawEllipse3d( clusRes(c, 1), clusRes(c, 2), 0, radEllip, radEllip, 0, 0 );
+      set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
+      set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
+      nucleiCounter = nucleiCounter+1;
+    end
+    
+    tit = strcat( 'segResult\_', 'T', {' '}, num2str(t), ', #Cells', num2str(size(clusRes, 1)) );
+    title( char(tit) );
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%% MIP image of raw data %%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if chosenData < 6
+      ax3 = subplot( numPlots/2, numPlots/2, 3 );
+    else
+      ax3 = subplot( 1, numPlots, 3 );
+    end
+    hold on
+    h1 = showMIP( rawDataStr( 1, chosenData ), 0, t );
+    tit = strcat( 'rawMIP\_', 'T', {' '}, num2str(t) );
+    title( char(tit) );
+    
     if chosenData < 6
       % manual segmentation result
-      subplot( numPlots, 1, 2 );
+      ax4 = subplot( numPlots/2, numPlots/2, 4 );
       hold on
     end
   end
-  
+
   if chosenData < 6
     % store all manual positions
     numCellsManual = numCellsPerTimeStep(t, 1);
@@ -322,7 +342,7 @@ for t=startT:endT
     export_fig( gcf, char(filePath), '-m2', '-png' );
   end
 end
-disp( strcat( 'Parameters:', num2str(paramThreshold), {' '}, num2str(paramTau) ) );
+%disp( strcat( 'Parameters:', num2str(paramThreshold), {' '}, num2str(paramTau) ) );
 
 if renderAutoLineages == 1
   % tree plot figure settings

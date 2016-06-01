@@ -1,10 +1,11 @@
-function [S, cellCenters, maxIntensities, imageStack] = findConnectedComponents( fileName, minVoxelCount, voxelCountPerCell )
+function [S, cellCenters, maxIntensities, width, height, slices] =...
+  findConnectedComponents( fileName, minVoxelCount, voxelCountPerCell, anisotropyZ )
 imageStack = readTIFstack( char(fileName) );
 
 % create 3D array of binary image data
-height = size( imageStack, 1);
-width = size( imageStack, 2);
-slices = size( imageStack, 3);
+height = size( imageStack, 1 );
+width = size( imageStack, 2 );
+slices = size( imageStack, 3 );
 
 % generate convex hull/alpha shape of cc and determine new cc size to apply the
 % clustering based on that size but to the original cc structure
@@ -15,6 +16,8 @@ thicknessThreshold = 10;
 considerCellSize = 1;
 
 randomIntensities = 1;
+
+r = 30;
 
 % determine connected components in image
 % can be 6, 18 or 26
@@ -27,7 +30,7 @@ S = regionprops( CC, 'Centroid', 'Area', 'BoundingBox', 'PixelList', 'PixelIdxLi
 % generate adjacency matrix for each cc
 %ccAdjacencyMap = generateAdjacencyMatrixOfCC( CC, S, connectivity );
 if considerCellSize == 0
-  ccLocalMaximaMap = determineNumberOfLocalMaximaOfCC( CC, S, minVoxelCount, connectivity );
+  ccLocalMaximaMap = determineNumberOfLocalMaximaOfCC( CC, S, minVoxelCount, connectivity, anisotropyZ );
 end
 
 %diary('matlabOutput.txt')
@@ -47,11 +50,11 @@ for i=1:size(S, 1)
   end
   
   % determine max thickness values of single cc
-  [ xmax, ymax, zmax ] = determineCCThickness( S(i,:).PixelList, S(i,:).BoundingBox );
-  % ignore ccs with small thickness values (e.g. cell wall)
-  if xmax < thicknessThreshold || ymax < thicknessThreshold || zmax < thicknessThreshold
-    continue;
-  end
+%   [ xmax, ymax, zmax ] = determineCCThickness( S(i,:).PixelList, S(i,:).BoundingBox );
+%   % ignore ccs with small thickness values (e.g. cell wall)
+%   if xmax < thicknessThreshold || ymax < thicknessThreshold || zmax < thicknessThreshold
+%     continue;
+%   end
   
   %   if useSurfaceGeneration == 1 && areaVal > 10
   %     coords = S(i,:).PixelList;
@@ -63,6 +66,10 @@ for i=1:size(S, 1)
   %     plot(shp)
   %   end
   
+  %[center, radii, evecs, pars ] = ellipsoid_fit( S(i,:).PixelList );
+  %center
+  %radii
+  
   if randomIntensities == 1
     a = 800;
     b = 1300;
@@ -71,9 +78,10 @@ for i=1:size(S, 1)
   else
     maxInt = max( imageStack( S(i, :).PixelIdxList ) );
   end
+  
   if considerCellSize == 1
     %areaVal
-    %centroid = S(i, :).Centroid
+    centroid = S(i, :).Centroid;
     % if the area size of the cc is bigger than an average cell size
     % apply k means clustering to distinguish between the cells and to
     % find the cell's center
@@ -82,10 +90,10 @@ for i=1:size(S, 1)
       % clusters shoud be generated
       %disp('previous center');
       %cen = S(i,:).Centroid
-      startM = [ S(i, :).Centroid ; S(i, :).Centroid ];
+      startM = [ centroid ; centroid ];
       while areaVal > (k+1)*voxelCountPerCell
         k = k + 1;
-        startM = [ startM; S(i, :).Centroid ];
+        startM = [ startM; centroid ];
       end
       %k
       [ ~, C ] = kmeans( S(i,:).PixelList, k, 'Start', startM );
@@ -97,11 +105,13 @@ for i=1:size(S, 1)
         %C( c, : )
       end
       % should be a single cell
+      %k
     else
       %disp('current center');
       %cen = S(i,:).Centroid
       cellCenters = [ cellCenters; S(i, :).Centroid ];
       maxIntensities = [ maxIntensities ; maxInt ];
+      %k=1
     end
   else
     centroid = S(i, :).Centroid;
@@ -124,7 +134,6 @@ for i=1:size(S, 1)
     end
     
     [ ~, C ] = kmeans( S(i,:).PixelList, k, 'Start', startM );
-    
     for c=1:k
       cellCenters = [ cellCenters; C(c, 1) C(c, 2) C(c, 3) ];
       maxIntensities = [ maxIntensities ; maxInt ];

@@ -1,7 +1,5 @@
-function ccLocalMaximaMap = determineNumberOfLocalMaximaOfCC( CC, S, minVoxelCount, connectivity )
+function ccLocalMaximaMap = determineNumberOfLocalMaximaOfCC( CC, S, minVoxelCount, connectivity, anisotropyZ )
 ccLocalMaximaMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
-
-r = 18;
 
 % init adjacency matrix for each cc with zeros
 for c=1:CC.NumObjects
@@ -11,6 +9,14 @@ for c=1:CC.NumObjects
     continue;
   end
   
+  diary('matlabOutput.txt')
+  [center, radii, evecs, pars ] = ellipsoid_fit( S(c,:).PixelList );
+  radii
+  %radii( 3, 1 ) = radii( 3, 1 )*anisotropyZ;
+  r = int16( mean( radii( 1:2, 1 ) ) )
+  
+  %r = int16(max( radii ))
+  
   list = S(c,:).PixelList;
   numPixels = size( list, 1 );
   bb = S(c,:).BoundingBox;
@@ -19,7 +25,7 @@ for c=1:CC.NumObjects
   ymin = min( list(:, 2) );
   zmin = min( list(:, 3) );
   
-  % for each pixel object set an 0
+  % for each pixel object set an 0 else background is 1
   mat = ones( bb(1, 4), bb(1, 5), bb(1, 6) );
   for p=1:numPixels
     pos = list( p, : );
@@ -30,6 +36,15 @@ for c=1:CC.NumObjects
   % compute the Euclidean distance between each zero and its nearest
   % non-zero element
   D = bwdist( mat );
+%   Dmax = minmaxfilt( D, r, 'max', 'same' );
+%   ip = find( Dmax == D );
+%   [ x, y, z ] = ind2sub( size(D), ip );
+%   idxkeep = find( x>1 & x<size(D,1) & y>1 & y<size(D,2) & z>1 & z<size(D,3));
+%   x=x(idxkeep);
+%   y=y(idxkeep);
+%   z=z(idxkeep);
+%   ip=ip(idxkeep);
+  
   % find to local maxima in the distance matrix
   msk = true(r, r, r);
   mid = int32((r+1)/2);
@@ -46,9 +61,10 @@ for c=1:CC.NumObjects
 %     end
 %   end
 
-  diary('matlabOutput.txt')
+  %diary('matlabOutput.txt')
   areaVal = S(c, :).Area
   centroid = S(c, :).Centroid
+  
   %area = S(c, :).Area
   D_dil = imdilate(D, msk);
   DCC = zeros( size(D,1), size(D,2), size(D,3) );
@@ -62,27 +78,30 @@ for c=1:CC.NumObjects
     end
   end
   
+%   DCC = zeros( size(D,1), size(D,2), size(D,3) );
+%   for l=1:size(x,1)
+%     DCC( x(l,1), y(l,1), z(l,1) ) = 1;
+%   end
+
   NCC = bwconncomp( DCC, connectivity );
   NS = regionprops( NCC, 'Centroid', 'Area' );
+  numCCs = size(NS, 1)
   
   % old version
-  locMax = [];
+%   locMax = [];
 %   % compute distances between each centroid of cc
-  distances = zeros( size(NS, 1), size(NS, 1) );
-  mergedCC = cell(1, size(NS, 1));
-  for i=1:size(NS, 1)
-    p1 = NS(i,:).Centroid + [ xmin-1 ymin-1 zmin-1 ];
-    mergedCC{1, i} = [ i ];
-    for j=1:size(NS, 1)
-      if j > i
-        p2 = NS(j,:).Centroid + [ xmin-1 ymin-1 zmin-1 ];
-        distances( i, j ) = sqrt( (p1(1,1)-p2(1,1))*(p1(1,1)-p2(1,1)) + (p1(1,2)-p2(1,2))*(p1(1,2)-p2(1,2)) + (p1(1,3)-p2(1,3))*(p1(1,3)-p2(1,3)) );
-      end
-    end
-  end
-  %distances
-  
-  [center, radii, evecs, pars ] = ellipsoid_fit( S(c,:).PixelList );
+%   distances = zeros( size(NS, 1), size(NS, 1) );
+%   mergedCC = cell(1, size(NS, 1));
+%   for i=1:size(NS, 1)
+%     p1 = NS(i,:).Centroid + [ xmin-1 ymin-1 zmin-1 ];
+%     mergedCC{1, i} = [ i ];
+%     for j=1:size(NS, 1)
+%       if j > i
+%         p2 = NS(j,:).Centroid + [ xmin-1 ymin-1 zmin-1 ];
+%         distances( i, j ) = sqrt( (p1(1,1)-p2(1,1))*(p1(1,1)-p2(1,1)) + (p1(1,2)-p2(1,2))*(p1(1,2)-p2(1,2)) + (p1(1,3)-p2(1,3))*(p1(1,3)-p2(1,3)) );
+%       end
+%     end
+%   end
   
 %   
 %   for i=1:size(NS, 1)
@@ -102,7 +121,7 @@ for c=1:CC.NumObjects
   Y = pdist(X);
   if size(NS, 1) > 1
     Z = linkage( Y, 'centroid' );
-    T = cluster( Z, 'cutoff', r, 'criterion', 'distance' )
+    T = cluster( Z, 'cutoff', r, 'criterion', 'distance' );
     k = max(T)
   elseif size(NS, 1) == 1
     k = 1
@@ -110,7 +129,6 @@ for c=1:CC.NumObjects
     k = 0
   end
   
-  %diary('matlabOutput.txt')
   %numCCs = size(NS, 1)
 %   for i=1:length( mergedCC )
 %     %mergedCC{ 1, i }
