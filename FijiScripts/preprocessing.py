@@ -11,6 +11,7 @@ import ij.plugin.ZProjector as ZProjector
 import ij.process as process
 import ij.process.StackConverter as SCON
 import ij.plugin.Converter as CON
+import ij.process.StackStatistics as STAT
 import imagescience.image.Image as Image
 import imagescience.transform.Scale as Scale
 import ij.plugin as plugin
@@ -21,8 +22,8 @@ import ij.plugin.Thresholder as THRES
 sys.path.append( 'C:\\Jens\\VLRRepository\\FijiScripts' )
 from cropVoxelValuesBelowThreshold import *
 
-startT = 10
-endT = 168
+startT = 3
+endT = 3
 
 applyThresholding = 1
 # auto, manual or training thresholding: 0, 1, or 2
@@ -33,11 +34,16 @@ saveRawImageMIP = 1
 saveThresholdImageMIP = 1
 
 # save time-dependent stack of MIPs
-saveRawMultiImageMIP = 1
-saveThresholdMultiImageMIP = 1
+saveRawMultiImageMIP = 0
+saveThresholdMultiImageMIP = 0
 
-autoLocalThresholding = 0
+# properties if auto local thresholding is selected
+useAutoLocalThresholding = 0
 thresholdingRadius = 50
+
+# properties if manual thresholding based on percentage of total intensity range
+useManualPercentageThresholding = 0
+percentage = 0.4
 
 resampleData = 0
 
@@ -47,13 +53,13 @@ ROI_yStart = 600
 ROI_xSize = 1100
 ROI_ySize = 800
 
-showRawMIP = 0
-showThresholdMIP = 0
+showRawMIP = 1
+showThresholdMIP = 1
 
 MIPoutput = 'I:\\SegmentationResults\\Preprocessing\\'
 
 # data can be in [1,8]
-chosenData = 6
+chosenData = 8
 # 120830
 if chosenData == 1:
 	sourceFolder = 'I:\\FrankfurtLSFMDatasets\\20120830-pGATA_H2B_Wave\\AllTimePoints\\Not_Registered\\cropped_pGata23_120830_TL0'
@@ -120,8 +126,8 @@ elif chosenData == 6:
 	classifierPath = 'I:\\SegmentationResults\\Preprocessing\\20160427\\nucleiClassifierT10-168.model'
 	MIPoutput = MIPoutput + '20160427\\MIP'
 	zRatio = 1
-	I1 = 950
-	I2 = 900
+	I1 = 1500
+	I2 = 1500
 	fixStartT = 10
 	fixEndT = 168
 elif chosenData == 7:
@@ -129,6 +135,8 @@ elif chosenData == 7:
 	#sourceFolder = 'I:\\NewDatasets\\2016-04-28_17.35.59_JENS\\Tiffs\\nuclei\\right\\_Ch1_CamR_T00'
 	outputFolder = 'I:\\SegmentationResults\\Preprocessing\\20160428\\changed_t'
 	appendix = '.tif'
+	classifierPath1 = 'I:\\SegmentationResults\\Preprocessing\\20160428\\nucleiClassifierT10-21.model'
+	classifierPath2 = 'I:\\SegmentationResults\\Preprocessing\\20160428\\nucleiClassifierT22-34.model'
 	MIPoutput = MIPoutput + '20160428\\MIP'
 	zRatio = 4
 	I1 = 800
@@ -141,10 +149,11 @@ else:
 	appendix = '_Angle1.tif'
 	classifierPath1 = 'I:\\SegmentationResults\\Preprocessing\\20160426\\nucleiClassifierT3-23.model'
 	classifierPath2 = 'I:\\SegmentationResults\\Preprocessing\\20160426\\nucleiClassifierT3-23_2.model'
+	classifierPath = 'I:\\SegmentationResults\\Preprocessing\\20160426\\singleNucleiClassifier.model'
 	MIPoutput = MIPoutput + '20160426\\MIP'
 	zRatio = 7.5
-	I1 = 900
-	I2 = 1100
+	I1 = 1000
+	I2 = 1000
 	fixStartT = 3
 	fixEndT = 23
 
@@ -214,7 +223,7 @@ for i in range(startT, endT+1):
 
 	if applyThresholding == 1:
 		if thresholdingType == 0:
-			if autoLocalThresholding == 0:
+			if useAutoLocalThresholding == 0:
 				# arguments are: ImagePlus imp, String myMethod, boolean noWhite, boolean noBlack, boolean doIwhite,
 				# boolean doIset, boolean doIlog , boolean doIstackHistogram
 				methods = [ "Default", "Huang", "Intermodes", "IsoData",  "Li", "MaxEntropy","Mean", "MinError(I)", "Minimum", "Moments", "Otsu", "Percentile", "RenyiEntropy", "Shanbhag" , "Triangle", "Yen" ]
@@ -237,17 +246,38 @@ for i in range(startT, endT+1):
 				#newImp = aImp[0]
 				#SCON( newImp ).convertToGray16()
 		elif thresholdingType == 1:
-			if chosenData < 6:
-				iFactor = i%50
-				if iFactor == 0:
-					curTRatio = 0
+			if useManualPercentageThresholding == 0:
+				if chosenData < 6:
+					iFactor = i%50
+					if iFactor == 0:
+						curTRatio = 0
+					else:
+						curTRatio = float(iFactor-1)/float(50)
+					intens = curTRatio * endI + (1-curTRatio) * startI
 				else:
-					curTRatio = float(iFactor-1)/float(50)
-				intens = curTRatio * endI + (1-curTRatio) * startI
+					curTRatio = float(abs( fixEndT - i ))/float(abs( fixEndT - fixStartT ))
+					intens = curTRatio * startI + (1-curTRatio) * endI
 			else:
-				curTRatio = float(abs( fixEndT - i ))/float(abs( fixEndT - fixStartT ))
-				intens = curTRatio * startI + (1-curTRatio) * endI
-				
+				stats = STAT( imp )
+				minIntens = stats.histMin
+				maxIntens = stats.histMax
+				#slices = imp.getNSlices()
+				#stack = imp.getStack()
+				#minIntens = 65535
+				#maxIntens = 0
+				#for s in range( 0, slices ):
+					#ip = stack.getProcessor(s+1)
+					#miI = ip.getMin()
+					#maI = ip.getMax()
+					#print miI, maI
+					#if miI < minIntens:
+						#minIntens = miI
+
+					#if maI > maxIntens:
+						#maxIntens = maI
+
+				print minIntens, maxIntens
+				intens = minIntens + (maxIntens - minIntens) * percentage
 			#if endT != startT:
 			#	curTRatio = float(i-1)/float(abs( endT - startT ))
 			#else:
@@ -256,7 +286,7 @@ for i in range(startT, endT+1):
 				
 			print 'Threshold:', intens
 			newImp = convertToBinaryMask( imp, int(intens) )
-			#newImp = cropVoxelValuesBelowThreshold( imp, intens )
+			#newImp = cropVoxelValuesBelowThreshold( imp, int(intens) )
 		# trained segmentation
 		else:
 			#zp = ZProjector(imp)
@@ -264,11 +294,12 @@ for i in range(startT, endT+1):
 			#zp.doProjection()
 			#imp = zp.getProjection()
 			segmentator = WS( imp )
-			#if i < 19:
-				#segmentator.loadClassifier( classifierPath1 )
+			#if i < 22:
+			#	segmentator.loadClassifier( classifierPath1 )
 			#else:
 				#segmentator.loadClassifier( classifierPath2 )
-			segmentator.loadClassifier( classifierPath )
+			
+			segmentator.loadClassifier( classifierPath1 )
 				
 			newImp = segmentator.applyClassifier( imp )
 			#SCON( newImp ).convertToGray8()

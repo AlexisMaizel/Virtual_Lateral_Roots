@@ -13,11 +13,20 @@ slices = size( imageStack, 3 );
 
 thicknessThreshold = 10;
 
-considerCellSize = 1;
+% type of method how to map a connected component (cc) onto a cell
+% type == 0 -> nearest cc are merged and these represent a cell
+% type == 1 -> consider a user-chosen cell size to check if a cc consists
+% of one or more cells and also ignore cc smaller than some threshold
+% type == 2 -> consider a distance mask and its number of local maxima to
+% check if a cc consists of one or more cells and also ignore cc smaller
+% than some threshold
+% type == 3 -> same as 1 but also consider membrane channel to check if for
+% a specific cc a cell wall exists in between
+type = 3;
 
 randomIntensities = 1;
 
-r = 30;
+r = 15;
 
 % determine connected components in image
 % can be 6, 18 or 26
@@ -29,15 +38,47 @@ S = regionprops( CC, 'Centroid', 'Area', 'BoundingBox', 'PixelList', 'PixelIdxLi
 
 % generate adjacency matrix for each cc
 %ccAdjacencyMap = generateAdjacencyMatrixOfCC( CC, S, connectivity );
-if considerCellSize == 0
+if type == 0
+  % merge nearest cc
+  if size(S, 1) > 1
+    X = zeros( size(S, 1), 3 );
+    for i=1:size(S, 1)
+      X( i, : ) = S(i,:).Centroid;
+    end
+    %Y = pdist(X);
+    Z = linkage( X, 'centroid' );
+    T = cluster( Z, 'cutoff', r, 'criterion', 'distance' );
+    numC = max( T );
+    cellCenters = zeros( numC, 3 );
+    maxIntensities = zeros( numC, 1 );
+    for i=1:size(T, 1)
+      if randomIntensities == 1
+        a = 800;
+        b = 1300;
+        r = (b-a).*rand(1,1) + a;
+        maxInt = int64(r);
+      else
+        maxInt = max( imageStack( S(i, :).PixelIdxList ) );
+      end
+      cellCenters( T(i,1), : ) = cellCenters( T(i,1), : ) + S(i, :).Centroid;
+      maxIntensities( T(i,1), 1 ) = maxIntensities( T(i,1), 1 ) + maxInt;
+    end
+    for c=1:numC
+      cellCenters( c, : ) = cellCenters( c, : ) / nnz(T==c);
+      maxIntensities( c, 1 ) = maxIntensities( c, 1 ) / nnz(T==c);
+    end
+  end
+  return;
+elseif type == 1
   ccLocalMaximaMap = determineNumberOfLocalMaximaOfCC( CC, S, minVoxelCount, connectivity, anisotropyZ );
+elseif type == 3
+  % read membrane channel
+  memImageStack = readTIFstack( 'I:/SegmentationResults/WEKA/20160426/Mask.tif' );
 end
 
 %diary('matlabOutput.txt')
 cellCenters = [];
 maxIntensities = [];
-%subplot( 2, 2, 2 );
-%hold on;
 for i=1:size(S, 1)
   k = 2;
   areaVal = S(i, :).Area;
@@ -78,8 +119,8 @@ for i=1:size(S, 1)
   else
     maxInt = max( imageStack( S(i, :).PixelIdxList ) );
   end
-  
-  if considerCellSize == 1
+
+  if type == 1
     %areaVal
     centroid = S(i, :).Centroid;
     % if the area size of the cc is bigger than an average cell size
@@ -113,7 +154,7 @@ for i=1:size(S, 1)
       maxIntensities = [ maxIntensities ; maxInt ];
       %k=1
     end
-  else
+  elseif type == 2
     centroid = S(i, :).Centroid;
     %center = ccLocalMaximaMap(i);
 %     for c=1:size( center, 1 )
@@ -156,6 +197,87 @@ for i=1:size(S, 1)
 %       cellCenters = [ cellCenters; S(i, :).Centroid ];
 %       maxIntensities = [ maxIntensities ; maxInt ];
 %     end
+  elseif type == 3
+    %diary('matlabOutput.txt')
+    %areaVal
+    centroid = S(i, :).Centroid;
+    % get the maximum number of assumed cells based on the considered cell
+    % size
+    if areaVal > k*voxelCountPerCell
+      %disp('previous center');
+      %cen = S(i,:).Centroid
+      while areaVal > (k+1)*voxelCountPerCell
+        k = k + 1;
+      end
+      maxK = k;
+      % create boolean matrix for storing if for each pair of max number
+      % of cells (=maxK) a cell wall exists between them
+      %cellWall = zeros( maxK, maxK );
+      
+      % now apply for each k > 1 (beginning with the largest) a clustering
+      % and identification of cluster centroids; if between the connection
+      % of these centroids a cell wall was found in the membrane channel
+      % then there ARE at least two cells
+      %for m=maxK:-1:2
+      startM = [];
+      for mm=1:maxK
+        startM = [ startM; centroid ];
+      end
+      [ ~, C ] = kmeans( S(i,:).PixelList, maxK, 'Start', startM );
+      %end
+      %maxK
+      reduceCluster = 1;
+      while reduceCluster == 1
+        cellWall = 1;
+        for ii=1:maxK
+          for jj=1:maxK
+            if jj>ii
+              pos1 = [ C(ii, 1) C(ii, 2) C(ii, 3) ];
+              pos2 = [ C(jj, 1) C(jj, 2) C(jj, 3) ];
+              cellWall = bitand( cellWall, determineCellWallIntersection( pos1, pos2, memImageStack, 0.05, 30 ) );
+            end
+          end
+        end
+        if cellWall == 1
+          reduceCluster = 0;
+        else
+          if maxK > 2
+            maxK = maxK - 1;
+            startM = [];
+            for mm=1:maxK
+              startM = [ startM; centroid ];
+            end
+            [ ~, C ] = kmeans( S(i,:).PixelList, maxK, 'Start', startM );
+          elseif maxK > 1
+            maxK = maxK - 1;
+            break;
+          else
+            break;
+          end
+        end
+      end
+      
+      if maxK == 1
+        cellCenters = [ cellCenters; S(i, :).Centroid ];
+        maxIntensities = [ maxIntensities ; maxInt ];
+      else
+        for c=1:maxK
+          cellCenters = [ cellCenters; C(c, 1) C(c, 2) C(c, 3) ];
+          maxIntensities = [ maxIntensities ; maxInt ];
+          %disp('new centers');
+          %C( c, : )
+        end
+      end
+      % should be a single cell
+      %k
+    else
+      %disp('current center');
+      %cen = S(i,:).Centroid
+      cellCenters = [ cellCenters; S(i, :).Centroid ];
+      maxIntensities = [ maxIntensities ; maxInt ];
+      %k=1
+    end
+    %diary off
   end
 end
 %diary off

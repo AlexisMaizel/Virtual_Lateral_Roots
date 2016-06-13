@@ -1,11 +1,11 @@
 setWorkingPathProperties()
 
-chosenData = 3;
+chosenData = 8;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' };
 inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chosenData ), '\changed_t' );
-startT = 1;
-endT = 50;
+startT = 3;
+endT = 3;
 maxT = 50;
 radEllip = 10;
 lineWidth = 1;
@@ -40,12 +40,15 @@ end
 % thres = 750 -> minV = 200, voxelC = 3200
 % 500 for 121211
 % 1500 for 20160426
-minVoxelCount = 500;
+minVoxelCount = 1500;
 % 3600 for 121211
 % 15000 for 20160426
-voxelCountPerCell = 3600;%4600;
+% 20000 for 20160428
+voxelCountPerCell = 10000;%4600;
 %voxelCountPerCellEnd = 13000;%4600;
 
+% how many steps chould be considerd in the future for the current time
+% step
 tSteps = 0;
 
 storeTIFF = 1;
@@ -71,6 +74,9 @@ if storePNGs == 1
   if chosenData < 6
     w = 1800;
     h = 900;
+  elseif chosenData == 7
+    w = 1000;
+    h = 750;
   else
     w = 1500;
     h = 750;

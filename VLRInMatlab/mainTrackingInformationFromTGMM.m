@@ -16,14 +16,17 @@ showAdditionalImages = 1;
 
 % parameters for TGMM
 paramThreshold = 1000; % 600 for all preprocessed data sets
-paramTau = 20;
+% the higher paramTau the fewer cells are merged to one cell
+% 200 for 121211
+% 20 for chosenData > 5
+paramTau = 200;
 minNucleiSize = 10;
 maxNucleiSize = 3000;
 
 % which kind of data should be chosen: raw (=0) or preproccessed (=1)
 dataType = 0;
 startT = 1;
-endT = 10;
+endT = 50;
 chosenData = 3;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' };
