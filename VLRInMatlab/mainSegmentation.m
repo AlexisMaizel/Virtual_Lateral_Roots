@@ -1,13 +1,12 @@
 setWorkingPathProperties()
 
-chosenData = 8;
+chosenData = 6;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' };
-inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chosenData ), '\changed_t' );
-startT = 3;
-endT = 3;
+startT = 10;
+endT = 168;
 maxT = 50;
-radEllip = 10;
+radEllip = 5;%10
 lineWidth = 1;
 if chosenData < 6
   numPlots = 6;
@@ -40,11 +39,13 @@ end
 % thres = 750 -> minV = 200, voxelC = 3200
 % 500 for 121211
 % 1500 for 20160426
-minVoxelCount = 1500;
+%minVoxelCount = 1500;
+minVoxelCount = 150;
 % 3600 for 121211
 % 15000 for 20160426
 % 20000 for 20160428
-voxelCountPerCell = 10000;%4600;
+% 6000 for agressiveThresholding and 10000 for trained one
+voxelCountPerCell = 10000;%10000;%4600;
 %voxelCountPerCellEnd = 13000;%4600;
 
 % how many steps chould be considerd in the future for the current time
@@ -58,8 +59,10 @@ storeCSVResult = 1;
 % output format of values
 format shortG %longG %shortG
 
+% input path
+inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chosenData ) );
 % path to image output
-imageDir = strcat( 'I:/SegmentationResults/Matlab/Segmentation/', rawDataStr( 1, chosenData ), '/' );
+imageDir = strcat( 'I:\SegmentationResults\Matlab\Segmentation\', rawDataStr( 1, chosenData ), '\' );
 mkdir( char(imageDir) );
 
 % read raw data (manual segmentation and tracking)

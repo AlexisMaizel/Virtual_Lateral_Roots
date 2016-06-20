@@ -11,6 +11,7 @@ import ij.plugin.ZProjector as ZProjector
 import ij.process as process
 import ij.process.StackConverter as SCON
 import ij.plugin.Converter as CON
+import ij.plugin.GaussianBlur3D as Gauss
 import ij.process.StackStatistics as STAT
 import imagescience.image.Image as Image
 import imagescience.transform.Scale as Scale
@@ -22,15 +23,15 @@ import ij.plugin.Thresholder as THRES
 sys.path.append( 'C:\\Jens\\VLRRepository\\FijiScripts' )
 from cropVoxelValuesBelowThreshold import *
 
-startT = 3
-endT = 3
+startT = 10
+endT = 10
 
 applyThresholding = 1
 # auto, manual or training thresholding: 0, 1, or 2
 thresholdingType = 2
 
 saveThresholding = 1
-saveRawImageMIP = 1
+saveRawImageMIP = 0
 saveThresholdImageMIP = 1
 
 # save time-dependent stack of MIPs
@@ -42,10 +43,13 @@ useAutoLocalThresholding = 0
 thresholdingRadius = 50
 
 # properties if manual thresholding based on percentage of total intensity range
-useManualPercentageThresholding = 0
+useManualPercentageThresholding = 1
 percentage = 0.4
 
 resampleData = 0
+
+# nuclei (=1) or membrane (=0) channel?
+nucleiChannel = 1
 
 cropImage = 0
 ROI_xStart = 400
@@ -59,7 +63,7 @@ showThresholdMIP = 1
 MIPoutput = 'I:\\SegmentationResults\\Preprocessing\\'
 
 # data can be in [1,8]
-chosenData = 8
+chosenData = 6
 # 120830
 if chosenData == 1:
 	sourceFolder = 'I:\\FrankfurtLSFMDatasets\\20120830-pGATA_H2B_Wave\\AllTimePoints\\Not_Registered\\cropped_pGata23_120830_TL0'
@@ -118,18 +122,26 @@ elif chosenData == 5:
 	I2 = 900
 	I3 = 900
 	I4 = 900
+# 20160427
 elif chosenData == 6:
-	#sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160427\\green\\spim_TL'
-	sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160427\\red\\cropped_spim_TL'
-	outputFolder = 'I:\\SegmentationResults\\Preprocessing\\20160427\\changed_t'
+	if nucleiChannel == 1:
+		sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160427\\red\\cropped_spim_TL'
+		outputFolder = 'I:\\SegmentationResults\\Preprocessing\\20160427\\changed_t'
+		MIPoutput = MIPoutput + '20160427\\MIP'
+		classifierPath = 'I:\\SegmentationResults\\Preprocessing\\20160427\\nucleiClassifierT10-168.model'
+	else:
+		sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160427\\green\\cropped_spim_TL'
+		outputFolder = 'I:\\SegmentationResults\\Preprocessing\\20160427\\changed_membrane_t'
+		MIPoutput = MIPoutput + '20160427\\MIP_membrane'
+		classifierPath = 'I:\\SegmentationResults\\Preprocessing\\20160427\\membraneClassifierT10-168.model'
+		
 	appendix = '_Angle1.tif'
-	classifierPath = 'I:\\SegmentationResults\\Preprocessing\\20160427\\nucleiClassifierT10-168.model'
-	MIPoutput = MIPoutput + '20160427\\MIP'
 	zRatio = 1
 	I1 = 1500
 	I2 = 1500
 	fixStartT = 10
 	fixEndT = 168
+# 20160428
 elif chosenData == 7:
 	sourceFolder = 'I:\\NewDatasets\\2016-04-28_17.35.59_JENS\\Tiffs\\nuclei\\left\\cropped_Ch1_CamL_T00'
 	#sourceFolder = 'I:\\NewDatasets\\2016-04-28_17.35.59_JENS\\Tiffs\\nuclei\\right\\_Ch1_CamR_T00'
@@ -137,20 +149,38 @@ elif chosenData == 7:
 	appendix = '.tif'
 	classifierPath1 = 'I:\\SegmentationResults\\Preprocessing\\20160428\\nucleiClassifierT10-21.model'
 	classifierPath2 = 'I:\\SegmentationResults\\Preprocessing\\20160428\\nucleiClassifierT22-34.model'
+	split = 21
 	MIPoutput = MIPoutput + '20160428\\MIP'
 	zRatio = 4
 	I1 = 800
 	I2 = 800
 	fixStartT = 10
 	fixEndT = 34
+# 20160426
 else:
-	sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160426\\red\\cropped_spim_TL'
-	outputFolder = 'I:\\SegmentationResults\\Preprocessing\\20160426\\changed_t'
+	if nucleiChannel == 1:
+		sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160426\\red\\cropped_spim_TL'
+		if useManualPercentageThresholding == 1 and thresholdingType == 1:
+			outputFolder = 'I:\\SegmentationResults\\Preprocessing\\20160426\\manThres_t'
+			MIPoutput = MIPoutput + '20160426\\MIP_manThres'
+		else:
+			outputFolder = 'I:\\SegmentationResults\\Preprocessing\\20160426\\changed_t'
+			MIPoutput = MIPoutput + '20160426\\MIP_trainedThres_t'
+		
+		#classifierPath = 'I:\\SegmentationResults\\Preprocessing\\20160426\\singleNucleiClassifier.model'
+		classifierPath = 'I:\\SegmentationResults\\Preprocessing\\20160426\\nucleiClassifierT3-23.model'
+		#classifierPath2 = 'I:\\SegmentationResults\\Preprocessing\\20160426\\nucleiClassifierT14-23.model'
+		split = 13
+	else:
+		sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160426\\green\\cropped_spim_TL'
+		outputFolder = 'I:\\SegmentationResults\\Preprocessing\\20160426\\changed_membrane_t'
+		MIPoutput = MIPoutput + '20160426\\MIP_membrane'
+		classifierPath = 'I:\\SegmentationResults\\WEKA\\20160426\\membraneClassifier.model'
+
+	# for not normalized data
 	appendix = '_Angle1.tif'
-	classifierPath1 = 'I:\\SegmentationResults\\Preprocessing\\20160426\\nucleiClassifierT3-23.model'
-	classifierPath2 = 'I:\\SegmentationResults\\Preprocessing\\20160426\\nucleiClassifierT3-23_2.model'
-	classifierPath = 'I:\\SegmentationResults\\Preprocessing\\20160426\\singleNucleiClassifier.model'
-	MIPoutput = MIPoutput + '20160426\\MIP'
+	#appendix = '.tif'
+	
 	zRatio = 7.5
 	I1 = 1000
 	I2 = 1000
@@ -258,9 +288,11 @@ for i in range(startT, endT+1):
 					curTRatio = float(abs( fixEndT - i ))/float(abs( fixEndT - fixStartT ))
 					intens = curTRatio * startI + (1-curTRatio) * endI
 			else:
-				stats = STAT( imp )
-				minIntens = stats.histMin
-				maxIntens = stats.histMax
+				#stats = STAT( imp )
+				#minIntens = stats.histMin
+				#maxIntens = stats.histMax
+
+				
 				#slices = imp.getNSlices()
 				#stack = imp.getStack()
 				#minIntens = 65535
@@ -276,8 +308,27 @@ for i in range(startT, endT+1):
 					#if maI > maxIntens:
 						#maxIntens = maI
 
-				print minIntens, maxIntens
-				intens = minIntens + (maxIntens - minIntens) * percentage
+				
+				#print minIntens, maxIntens
+				#intens = minIntens + (maxIntens - minIntens) * percentage
+
+				stack = imp.getStack()
+				slices = imp.getNSlices()
+				meanI = 0
+				dim = 0
+				for s in range( 0, slices ):
+					ip = stack.getProcessor(s+1)
+					for x in range( 0, imp.getWidth() ):
+						for y in range( 0, imp.getHeight() ):
+							val = ip.get( x, y )
+							if val > 1000:
+								meanI = meanI + val
+								dim = dim + 1
+					IJ.showProgress(s+1, slices)
+
+				#dim = imp.getWidth()*imp.getHeight()*slices
+				intens = float(meanI)/float(dim)
+				
 			#if endT != startT:
 			#	curTRatio = float(i-1)/float(abs( endT - startT ))
 			#else:
@@ -287,6 +338,11 @@ for i in range(startT, endT+1):
 			print 'Threshold:', intens
 			newImp = convertToBinaryMask( imp, int(intens) )
 			#newImp = cropVoxelValuesBelowThreshold( imp, int(intens) )
+
+			# apply blurring
+			#if useManualPercentageThresholding == 1:
+			#	Gauss().blur( newImp, 2., 2., 2. )
+
 		# trained segmentation
 		else:
 			#zp = ZProjector(imp)
@@ -294,12 +350,13 @@ for i in range(startT, endT+1):
 			#zp.doProjection()
 			#imp = zp.getProjection()
 			segmentator = WS( imp )
-			#if i < 22:
-			#	segmentator.loadClassifier( classifierPath1 )
+
+			#if i <= split:
+				#segmentator.loadClassifier( classifierPath1 )
 			#else:
 				#segmentator.loadClassifier( classifierPath2 )
 			
-			segmentator.loadClassifier( classifierPath1 )
+			segmentator.loadClassifier( classifierPath )
 				
 			newImp = segmentator.applyClassifier( imp )
 			#SCON( newImp ).convertToGray8()

@@ -6,11 +6,12 @@ mkdir( 'C:\Jens\TGMM_Supplementary_Software_1_0\build\AutoTGMMConfig\' );
 fileName = strcat( 'C:\Jens\TGMM_Supplementary_Software_1_0\build\AutoTGMMConfig\TGMM_configFile', dataStr, '.txt' );
 fileID = fopen( char(fileName), 'w' );
 dataPathStr = 'imgFilePattern=I:\';
+inputPreprocessedPath = strcat( 'SegmentationResults\Preprocessing\', dataStr, '\preprocessed_t???' );
 if strcmp(dataStr, '120830')
   if dataType == 0
     dataPathStr = strcat(dataPathStr, 'FrankfurtLSFMDatasets\20120830-pGATA_H2B_Wave\AllTimePoints\Not_Registered\cropped_pGata23_120830_TL0???_CHN00');
   else
-    dataPathStr = strcat(dataPathStr, 'SegmentationResults\Preprocessing\120830\changed_t???_M');
+    dataPathStr = strcat(dataPathStr, inputPreprocessedPath);
   end
   rawDataPath = 'I:\SegmentationResults\Preprocessing\120830\changed_t001_M.tif';
   anisotropyZ = 2.;
@@ -18,7 +19,7 @@ elseif strcmp(dataStr, '121204')
   if dataType == 0
     dataPathStr = strcat(dataPathStr, 'FrankfurtLSFMDatasets\20121204_pGATA_H2B_Wave\driftcorrected_stacks_cropped\ch01\crop_t???_c1');
   else
-    dataPathStr = strcat(dataPathStr, 'SegmentationResults\Preprocessing\121204\changed_t???_M');
+    dataPathStr = strcat(dataPathStr, inputPreprocessedPath);
   end
   rawDataPath = 'I:\SegmentationResults\Preprocessing\121204\changed_t001_M.tif';
   anisotropyZ = 2.;
@@ -26,7 +27,7 @@ elseif strcmp(dataStr, '121211')
   if dataType == 0
     dataPathStr = strcat(dataPathStr, 'FrankfurtLSFMDatasets\20121211_pGATA_H2B_Wave\3Ddrift_Stacks_cropped\cropped_t???_c1');
   else
-    dataPathStr = strcat(dataPathStr, 'SegmentationResults\Preprocessing\121211\changed_t???_M');
+    dataPathStr = strcat(dataPathStr, inputPreprocessedPath);
   end
   rawDataPath = 'I:\SegmentationResults\Preprocessing\121211\changed_t001_M.tif';
   anisotropyZ = 2.;
@@ -34,7 +35,7 @@ elseif strcmp(dataStr, '130508')
   if dataType == 0
     dataPathStr = strcat(dataPathStr, 'FrankfurtLSFMDatasets\130508\crop_t???_c1');
   else
-    dataPathStr = strcat(dataPathStr, 'SegmentationResults\Preprocessing\130508\changed_t???_M');
+    dataPathStr = strcat(dataPathStr, inputPreprocessedPath);
   end
   rawDataPath = 'I:\SegmentationResults\Preprocessing\130508\changed_t001_M.tif';
   anisotropyZ = 2.;
@@ -42,7 +43,7 @@ elseif strcmp(dataStr, '130607')
   if dataType == 0
     dataPathStr = strcat(dataPathStr, 'FrankfurtLSFMDatasets\130607\c1\crop_t???_c1');
   else
-    dataPathStr = strcat(dataPathStr, 'SegmentationResults\Preprocessing\130607\changed_t???_M');
+    dataPathStr = strcat(dataPathStr, inputPreprocessedPath);
   end
   rawDataPath = 'I:\SegmentationResults\Preprocessing\130607\changed_t001_M.tif';
   anisotropyZ = 2.;
@@ -50,7 +51,7 @@ elseif strcmp(dataStr, '20160426')
   if dataType == 0
     dataPathStr = strcat(dataPathStr, 'NewDatasets\Zeiss\20160426\red\cropped_spim_TL???_Angle1');
   else
-    dataPathStr = strcat(dataPathStr, 'SegmentationResults\Preprocessing\20160426\changed_t???_M');
+    dataPathStr = strcat(dataPathStr, inputPreprocessedPath);
   end
   rawDataPath = 'I:\NewDatasets\Zeiss\20160426\red\cropped_spim_TL003_Angle1.tif';
   anisotropyZ = 7.5;
@@ -58,7 +59,7 @@ elseif strcmp(dataStr, '20160427')
   if dataType == 0
     dataPathStr = strcat(dataPathStr, 'NewDatasets\Zeiss\20160427\red\cropped_spim_TL???_Angle1');
   else
-    dataPathStr = strcat(dataPathStr, 'SegmentationResults\Preprocessing\20160427\changed_t???_M');
+    dataPathStr = strcat(dataPathStr, inputPreprocessedPath);
   end
   rawDataPath = 'I:\NewDatasets\Zeiss\20160427\red\cropped_spim_TL010_Angle1.tif';
   anisotropyZ = 1.;
@@ -66,7 +67,7 @@ elseif strcmp(dataStr, '20160428')
   if dataType == 0
     dataPathStr = strcat(dataPathStr, 'NewDatasets\2016-04-28_17.35.59_JENS\Tiffs\nuclei\left\cropped_Ch1_CamL_T?????');
   else
-    dataPathStr = strcat(dataPathStr, 'SegmentationResults\Preprocessing\20160428\changed_t???_M');
+    dataPathStr = strcat(dataPathStr, inputPreprocessedPath);
   end
   rawDataPath = 'I:\NewDatasets\2016-04-28_17.35.59_JENS\Tiffs\nuclei\left\cropped_Ch1_CamL_T00010.tif';
   anisotropyZ = 4.;

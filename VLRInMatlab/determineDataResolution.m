@@ -6,7 +6,7 @@ elseif t < 100
 else
   digit = '';
 end
-fileName = strcat( inputPath, digit, num2str(t), '.tif' );
+fileName = strcat( inputPath, '\changed_t', digit, num2str(t), '.tif' );
 imageStack = readTIFstack( char(fileName) );
 height = size( imageStack, 1 );
 width = size( imageStack, 2 );

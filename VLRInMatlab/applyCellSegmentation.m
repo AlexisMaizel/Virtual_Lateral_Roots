@@ -21,9 +21,12 @@ if tSteps == 0
   else
     digit = '';
   end
-  fileName = strcat( inputPath, digit, num2str(t), '.tif' );
-  newFileName = strcat( inputPath, digit, num2str(t), '_M.tif' );
-  [curS, curCellCenters, curMaxIntensities, width, height, slices] = findConnectedComponents( fileName, minVoxelCount, voxelCountPerCell, anisotropyZ );
+  fileName = strcat( inputPath, '\changed_t', digit, num2str(t), '.tif' );
+  %fileName = strcat( inputPath, '\manThres_t', digit, num2str(t), '.tif' );
+  membraneFileName = strcat( inputPath, '\changed_membrane_t', digit, num2str(t), '.tif' );
+  newFileName = strcat( inputPath, '\preprocessed_t', digit, num2str(t), '.tif' );
+  [curS, curCellCenters, curMaxIntensities, width, height, slices] =...
+    findConnectedComponents( fileName, membraneFileName, minVoxelCount, voxelCountPerCell, anisotropyZ );
   if storeTIFF == 1
     generateCellShape( width, height, slices, curCellCenters, curMaxIntensities, cellRadius, newFileName );
   end
@@ -47,8 +50,11 @@ else
       else
         digit = '';
       end
-      fileName = strcat( inputPath, digit, num2str(tt), '.tif' );
-      [S, cellCenters, maxIntensities, width, height, slices] = findConnectedComponents( fileName, minVoxelCount, voxelCountPerCell, anisotropyZ );
+      fileName = strcat( inputPath, '\changed_t', digit, num2str(tt), '.tif' );
+      membraneFileName = strcat( inputPath, '\changed_membrane_t', digit, num2str(tt), '.tif' );
+      [S, cellCenters, maxIntensities, width, height, slices] =...
+        findConnectedComponents( fileName, membraneFileName,...
+        minVoxelCount, voxelCountPerCell, anisotropyZ );
       timeS{ 1, numSteps } = S;
       timeS{ 2, numSteps } = cellCenters;
       numSteps = numSteps + 1;
@@ -63,8 +69,11 @@ else
     else
       digit = '';
     end
-    fileName = strcat( inputPath, digit, num2str(tt), '.tif' );
-    [S, cellCenters, maxIntensities, width, height, slices] = findConnectedComponents( fileName, minVoxelCount, voxelCountPerCell, anisotropyZ );
+    fileName = strcat( inputPath, '\changed_t', digit, num2str(tt), '.tif' );
+    membraneFileName = strcat( inputPath, '\changed_membrane_t', digit, num2str(tt), '.tif' );
+    [S, cellCenters, maxIntensities, width, height, slices] =...
+      findConnectedComponents( fileName, membraneFileName,...
+      minVoxelCount, voxelCountPerCell, anisotropyZ );
     timeS( 1:2, 1:tSteps ) = timeS( 1:2, 2:tSteps+1 );
     timeS{ 1, tSteps+1 } = S;
     timeS{ 2, tSteps+1 } = cellCenters;

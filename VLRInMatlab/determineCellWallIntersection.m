@@ -1,9 +1,8 @@
-function result = determineCellWallIntersection( pos1, pos2, memImageStack, sampleStep, minVoxels )
+function result = determineCellWallIntersection( pos1, pos2, memImageStack, searchRadius, sampleStep, minVoxels )
 numCellWallVoxels = 0;
 startS = 0.1;
 endS = 0.9;
-nRadius = 5;
-
+nRadius = searchRadius;
 % TODO: check boundaries!!!
 
 [ x1, y1, z1 ] = ndgrid( int16(pos1(1,1)-nRadius):int16(pos1(1,1)+nRadius),...
@@ -28,7 +27,6 @@ for n=1:si
   p1 = [ int16(i11( n, 1 )) int16(i21( n, 1 )) int16(i31( n, 1 )) ] + start1;
   p2 = [ int16(i12( n, 1 )) int16(i22( n, 1 )) int16(i32( n, 1 )) ] + start2;
   for lambda = startS:sampleStep:endS
-    %line = p(n,:) + lambda * ( q(n,:) - p(n,:) );
     line = p1 + lambda * ( p2 - p1 );
     curPos = [ int16(line(1,1)) int16(line(1,2)) int16(line(1,3)) ];
     % NOTE that reading the TIFF, x and y are switched
@@ -39,7 +37,7 @@ for n=1:si
   end
 end
 
-%numCellWallVoxels
+numCellWallVoxels
 if numCellWallVoxels > minVoxels
   result = 1;
 else
