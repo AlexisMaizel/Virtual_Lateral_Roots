@@ -3,7 +3,18 @@ numCellWallVoxels = 0;
 startS = 0.1;
 endS = 0.9;
 nRadius = searchRadius;
-% TODO: check boundaries!!!
+mVoxels = minVoxels;
+height = size( memImageStack, 1 );
+width = size( memImageStack, 2 );
+slices = size( memImageStack, 3 );
+% TODO: check boundaries
+if pos1(1,1)-nRadius < 0 || pos1(1,2)-nRadius < 0 || pos1(1,3)-nRadius < 0 ||...
+   pos1(1,1)+nRadius > height || pos1(1,2)+nRadius > width || pos1(1,3)+nRadius > slices ||...
+   pos2(1,1)-nRadius < 0 || pos2(1,2)-nRadius < 0 || pos2(1,3)-nRadius < 0 ||...
+   pos2(1,1)+nRadius > height || pos2(1,2)+nRadius > width || pos2(1,3)+nRadius > slices
+ nRadius = 0;
+ mVoxels = 5;
+end 
 
 [ x1, y1, z1 ] = ndgrid( int16(pos1(1,1)-nRadius):int16(pos1(1,1)+nRadius),...
   int16(pos1(1,2)-nRadius):int16(pos1(1,2)+nRadius),...
@@ -37,8 +48,8 @@ for n=1:si
   end
 end
 
-numCellWallVoxels
-if numCellWallVoxels > minVoxels
+%numCellWallVoxels
+if numCellWallVoxels > mVoxels
   result = 1;
 else
   result = 0;

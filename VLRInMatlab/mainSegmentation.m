@@ -4,7 +4,7 @@ chosenData = 6;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' };
 startT = 10;
-endT = 168;
+endT = 10;
 maxT = 50;
 radEllip = 5;%10
 lineWidth = 1;
@@ -48,10 +48,6 @@ minVoxelCount = 150;
 voxelCountPerCell = 10000;%10000;%4600;
 %voxelCountPerCellEnd = 13000;%4600;
 
-% how many steps chould be considerd in the future for the current time
-% step
-tSteps = 0;
-
 storeTIFF = 1;
 storePNGs = 1;
 storeCSVResult = 1;
@@ -92,8 +88,6 @@ tic
 
 % get width and height of data set
 [ width, height, slices] = determineDataResolution( startT, inputPath );
-
-timeS = cell( 2, tSteps+1 );
 for t=startT:endT
   if t < 10
     digit = '00';
@@ -103,8 +97,8 @@ for t=startT:endT
     digit = '';
   end
   % apply cell segmentation
-  [S, cc, maxInt, timeS] = applyCellSegmentation( t, startT, maxT, tSteps,...
-    timeS, minVoxelCount, voxelCountPerCell, anisotropyZ, inputPath, storeTIFF );
+  [S, cc] = applyCellSegmentation( t, minVoxelCount,...
+    voxelCountPerCell, inputPath, storeTIFF );
   
   if storePNGs == 1
     setSubPlots( f, numPlots, chosenData, spatialNormalization, width, height, 0 );

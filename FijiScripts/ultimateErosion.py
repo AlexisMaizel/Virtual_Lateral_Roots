@@ -11,11 +11,11 @@ import sys
 sys.path.append( 'C:\\Jens\\VLRRepository\\FijiScripts' )
 from cropVoxelValuesBelowThreshold import *
 
-startT = 10
-endT = 10
+startT = 3
+endT = 3
 
 # data can be in [1,8]
-chosenData = 6
+chosenData = 8
 # 120830
 if chosenData == 1:
 	sourceFolder = 'I:\\FrankfurtLSFMDatasets\\20120830-pGATA_H2B_Wave\\AllTimePoints\\Not_Registered\\cropped_pGata23_120830_TL0'
@@ -110,17 +110,16 @@ for i in range(startT, endT+1):
 	#newImp.show()
 
 	# TODO
-	zp = ZProjector(newImp)
-	zp.setMethod( ZProjector.MAX_METHOD )
-	zp.doProjection()
-	newMIPImp = zp.getProjection()
-	newMIPImp.show()
-	ipMIP = newMIPImp.getProcessor()
-	EDM().toEDM( ipMIP.convertToByte(True) )
-	imgMIP = IP( "MIP", ipMIP )
-	imgMIP.show()
-
-	break
+	#zp = ZProjector(newImp)
+	#zp.setMethod( ZProjector.MAX_METHOD )
+	#zp.doProjection()
+	#newMIPImp = zp.getProjection()
+	#newMIPImp.show()
+	#ipMIP = newMIPImp.getProcessor()
+	#EDM().toEDM( ipMIP.convertToByte(True) )
+	#imgMIP = IP( "MIP", ipMIP )
+	#imgMIP.show()
+	#break
 
 	print 'Converting to 8 bit...'
 	stack = newImp.getStack()

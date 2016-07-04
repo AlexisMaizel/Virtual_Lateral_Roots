@@ -12,13 +12,17 @@ if chosenData == 6:
 	nucleiFolder = 'I:\\NewDatasets\\Zeiss\\20160427\\red\spim_TL'
 	membraneFolder = 'I:\\NewDatasets\\Zeiss\\20160427\\green\\spim_TL'
 	cropNucleiOutput = 'I:\\NewDatasets\\Zeiss\\20160427\\red\\cropped_spim_TL'
-	cropMembraneOutput = 'I:\\NewDatasets\\Zeiss\\20160427\\green\\cropped_spim_TL'
+	cropMembraneOutput = 'I:\\NewDatasets\\Zeiss\\20160427\\green\\cropped_spim_TL_slice'
 	startT = 10
-	endT = 168
-	ROI_xStart = 150
-	ROI_yStart = 200
-	ROI_xSize = 300
-	ROI_ySize = 300
+	endT = 10 #168
+	ROI_xStart = 1
+	ROI_yStart = 1
+	ROI_xSize = 640
+	ROI_ySize = 640
+	#ROI_xStart = 180
+	#ROI_yStart = 300
+	#ROI_xSize = 120
+	#ROI_ySize = 150
 	appendix = '_Angle1.tif'
 elif chosenData == 7:
 	nucleiFolder = 'I:\\NewDatasets\\2016-04-28_17.35.59_JENS\\Tiffs\\nuclei\\left\\_Ch1_CamL_T00'
@@ -65,8 +69,8 @@ for t in range(startT, endT+1):
 	stack = impN.getStack()
 	# crop(int x, int y, int z, int width, int height, int depth)
 	impN.setStack( stack.crop( ROI_xStart, ROI_yStart, 0, ROI_xSize, ROI_ySize, slices ) )
-	fs = FileSaver( impN )
-	fs.saveAsTiff( imageNCroppedPath )
+	#fs = FileSaver( impN )
+	#fs.saveAsTiff( imageNCroppedPath )
 
 	print 'Opening image', imageMPath
 	impM = IJ.openImage( imageMPath )
@@ -74,13 +78,13 @@ for t in range(startT, endT+1):
 	slices = impM.getNSlices()
 	stack = impM.getStack()
 	# crop(int x, int y, int z, int width, int height, int depth)
-	impM.setStack( stack.crop( ROI_xStart, ROI_yStart, 0, ROI_xSize, ROI_ySize, slices ) )
+	impM.setStack( stack.crop( ROI_xStart, ROI_yStart, 275, ROI_xSize, ROI_ySize, 1 ) )
 	fs = FileSaver( impM )
 	fs.saveAsTiff( imageMCroppedPath )
 
-	zp = ZProjector(impN)
+	zp = ZProjector(impM)
 	zp.setMethod( ZProjector.MAX_METHOD )
 	zp.doProjection()
 	MIPimpM = zp.getProjection()
-	#MIPimpM.show()
+	MIPimpM.show()
 	
