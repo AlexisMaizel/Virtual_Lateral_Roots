@@ -1,4 +1,4 @@
-function ccLocalMaximaMap = determineNumberOfLocalMaximaOfCC( CC, S, minVoxelCount, connectivity, anisotropyZ )
+function ccLocalMaximaMap = determineNumberOfLocalMaximaOfCC( CC, S, minVoxelCount, connectivity )
 ccLocalMaximaMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
 
 % init adjacency matrix for each cc with zeros
@@ -9,13 +9,12 @@ for c=1:CC.NumObjects
     continue;
   end
   
-  diary('matlabOutput.txt')
-  [center, radii, evecs, pars ] = ellipsoid_fit( S(c,:).PixelList );
-  radii
+  %diary('matlabOutput.txt')
+  %[center, radii, evecs, pars ] = ellipsoid_fit( S(c,:).PixelList );
   %radii( 3, 1 ) = radii( 3, 1 )*anisotropyZ;
-  r = int16( mean( radii( 1:2, 1 ) ) )
-  
+  %r = int16( mean( radii( 1:2, 1 ) ) )
   %r = int16(max( radii ))
+  r = 5;
   
   list = S(c,:).PixelList;
   numPixels = size( list, 1 );
@@ -62,8 +61,8 @@ for c=1:CC.NumObjects
 %   end
 
   %diary('matlabOutput.txt')
-  areaVal = S(c, :).Area
-  centroid = S(c, :).Centroid
+  areaVal = S(c, :).Area;
+  centroid = S(c, :).Centroid;
   
   %area = S(c, :).Area
   D_dil = imdilate(D, msk);
@@ -122,11 +121,11 @@ for c=1:CC.NumObjects
   if size(NS, 1) > 1
     Z = linkage( Y, 'centroid' );
     T = cluster( Z, 'cutoff', r, 'criterion', 'distance' );
-    k = max(T)
+    k = max(T);
   elseif size(NS, 1) == 1
-    k = 1
+    k = 1;
   else
-    k = 0
+    k = 0;
   end
   
   %numCCs = size(NS, 1)
@@ -145,7 +144,7 @@ for c=1:CC.NumObjects
 %     end
 %   end
   %cells = size( locMax, 1 )
-  diary off
+  %diary off
   
   ccLocalMaximaMap(c) = k;
   %break;

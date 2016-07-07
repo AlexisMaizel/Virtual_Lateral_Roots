@@ -5,7 +5,6 @@ dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' };
 startT = 10;
 endT = 10;
-maxT = 50;
 radEllip = 5;%10
 lineWidth = 1;
 if chosenData < 6
@@ -50,7 +49,7 @@ voxelCountPerCell = 10000;%10000;%4600;
 
 storeTIFF = 1;
 storePNGs = 1;
-storeCSVResult = 1;
+storeCSVResult = 0;
 
 % output format of values
 format shortG %longG %shortG
@@ -58,8 +57,8 @@ format shortG %longG %shortG
 % input path
 inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chosenData ) );
 % path to image output
-imageDir = strcat( 'I:\SegmentationResults\Matlab\Segmentation\', rawDataStr( 1, chosenData ), '\' );
-mkdir( char(imageDir) );
+imageOutputPath = strcat( 'I:\SegmentationResults\Matlab\Segmentation\', rawDataStr( 1, chosenData ), '\' );
+mkdir( char(imageOutputPath) );
 
 % read raw data (manual segmentation and tracking)
 if chosenData < 6
@@ -86,8 +85,6 @@ end
 % start measuring elapsed time
 tic
 
-% get width and height of data set
-[ width, height, slices] = determineDataResolution( startT, inputPath );
 for t=startT:endT
   if t < 10
     digit = '00';
@@ -96,9 +93,45 @@ for t=startT:endT
   else
     digit = '';
   end
-  % apply cell segmentation
-  [S, cc] = applyCellSegmentation( t, minVoxelCount,...
-    voxelCountPerCell, inputPath, storeTIFF );
+  
+  %nucleiFileName = strcat( inputPath, '\changed_t', digit, num2str(t), '.tif' );
+  %nucleiFileName = strcat( inputPath, '\manThres_t', digit, num2str(t), '.tif' );
+  nucleiFileName = strcat( 'I:\NewDatasets\Zeiss\20160427\red\cropped_spim_TL_slice', digit, num2str(t), '_Angle1.jpg' );
+  %restoredefaultpath
+  %imshow(char(nucleiFileName))
+  %setWorkingPathProperties()
+  
+  stack = imread(char(nucleiFileName) );
+  max = 5;
+  for e=1:max
+    se = strel( 'disk', 1 );
+    stack = imerode( stack, se );
+  end
+  stack = imregionalmax( stack, connectivity );
+  
+  %ultEro = bwulterode( stack, 'euclidean' );
+  restoredefaultpath
+  imshow(stack)
+  setWorkingPathProperties()
+  
+  return
+  
+  %membraneFileName = strcat( inputPath, '\changed_membrane_t', digit, num2str(t), '.tif' );
+  %membraneFileName = strcat( 'I:\SegmentationResults\Matlab\Segmentation\20160427\Membrane\20160427_Membrane_T', digit, num2str(t), '.tif' );
+  membraneFileName = strcat( 'I:\NewDatasets\Zeiss\20160427\green\cropped_spim_TL_slice', digit, num2str(t), '_Angle1.tif' );
+  %restoredefaultpath
+  %imshow(char(membraneFileName))
+  %setWorkingPathProperties()
+  
+  outputFileName = strcat( inputPath, '\preprocessed_t', digit, num2str(t), '.tif' );
+  [S, cc, intensities, width, height, slices] =...
+    identifyCellObjects( nucleiFileName, membraneFileName, minVoxelCount, voxelCountPerCell );
+  
+  return
+  
+  if storeTIFF == 1
+    generateCellShape( width, height, slices, cc, intensities, outputFileName );
+  end
   
   if storePNGs == 1
     setSubPlots( f, numPlots, chosenData, spatialNormalization, width, height, 0 );
@@ -235,7 +268,7 @@ for t=startT:endT
     end
     
     if storeCSVResult == 1
-      csvPath = strcat( imageDir, rawDataStr( 1, chosenData ), '_T', digit, num2str(t), '.dat' );
+      csvPath = strcat( imageOutputPath, rawDataStr( 1, chosenData ), '_T', digit, num2str(t), '.dat' );
       csvwrite( char(csvPath), X );
     end
     
@@ -308,7 +341,7 @@ for t=startT:endT
       %colorbar
       %caxis([0, numColorsCells])
     end
-    filePath = strcat( imageDir, rawDataStr( 1, chosenData ), '_T', digit, num2str(t), '.png' );
+    filePath = strcat( imageOutputPath, rawDataStr( 1, chosenData ), '_T', digit, num2str(t), '.png' );
     export_fig( gcf, char(filePath), '-m2', '-png' );
   end
 end

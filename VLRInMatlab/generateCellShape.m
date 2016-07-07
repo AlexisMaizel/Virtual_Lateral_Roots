@@ -1,8 +1,9 @@
-function generateCellShape( width, height, slices, cc, maxInt, cellRadius, newFileName )
+function generateCellShape( width, height, slices, cc, maxInt, newFileName )
 % set all values to zero
 imageStack = zeros( height, width, slices, 'uint16' );
 
 % 0 for sphere or 1 for ellipsoid
+cellRadius = 15;
 shape = 1;
 
 % generate a new cell at the cell center

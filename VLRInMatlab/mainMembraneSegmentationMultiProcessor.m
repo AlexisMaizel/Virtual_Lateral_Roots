@@ -1,13 +1,14 @@
 setWorkingPathProperties()
 
-chosenData = 6;
+chosenData = 9;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
-rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' };
-startT = 10;
-endT = 10;
+rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' '20160706' };
+startT = 0;
+endT = 0;
 
 showDSLT = 0;
 storePNG = 0;
+showImage = 0;
 
 thetaStart = -pi/2;
 thetaStep = pi/4;
@@ -18,14 +19,19 @@ psiStep = pi/4;
 psiEnd = -psiStep;
 
 
-lineHalfLength = 15;
+lineHalfLength = 9;
 lineSampling = 1;
 lineSteps = lineHalfLength*2 + 1;
+
+alpha = 1;
+cconst = 0.004;
 
 %profile on
 % start measuring elapsed time
 tic
 for t=startT:endT
+  X = sprintf( 'Time step %d', t );
+  disp(X)
   if t < 10
     digit = '00';
   elseif t < 100
@@ -41,6 +47,8 @@ for t=startT:endT
     inputPath = strcat( 'I:\NewDatasets\2016-04-28_17.35.59_JENS\Tiffs\membrane\left\cropped_Ch0_CamL_T00', digit, num2str(t), '.tif' );
   elseif chosenData == 8
     inputPath = strcat( 'I:\NewDatasets\Zeiss\20160426\green\cropped_spim_TL', digit, num2str(t), '_Angle1.tif' );
+  elseif chosenData == 9
+    inputPath = strcat( 'I:\NewDatasets\20160706\cropped_beamExp_Ch2_CamL_T00', digit, num2str(t), '.tif' );
   end
   % path to image output
   imageDir = strcat( 'I:\SegmentationResults\Matlab\Segmentation\', rawDataStr( 1, chosenData ), '\Membrane\' );
@@ -52,7 +60,7 @@ for t=startT:endT
   slices = size( imageStack, 3 );
   
   % apply gauss filtering
-  imageStack = imgaussfilt3(imageStack, 1.0);
+  imageStack = imgaussfilt3(imageStack, 1.);
   
   numRots = (((psiEnd-psiStart)/psiStep)+1) * (((thetaEnd-thetaStart)/thetaStep)+1);
   rots = zeros( height, width, slices, numRots, 'uint16' );
@@ -81,7 +89,7 @@ for t=startT:endT
       rotKernel( lineHalfLength+x, lineHalfLength+y, lineHalfLength+z ) = 1;
     end
     % define center of kernel
-    rotKernel( lineHalfLength+1, lineHalfLength+1, lineHalfLength+1 ) = 3;
+    rotKernel( lineHalfLength+1, lineHalfLength+1, lineHalfLength+1 ) = 2;
     rotKernel = rotKernel./nnz(rotKernel);
     
     % apply kernel on original image
@@ -89,22 +97,53 @@ for t=startT:endT
   end
   
   % determine minimum of weighted sums among all line rotations
-  % initialize binary image stack
-  minValues = min( rots(:, :, :, :), [], 4 );
+  [ minValues, minIndices ] = min( rots(:, :, :, :), [], 4 );
+  % determine the theta pitch angle for which the weighted sum is minimal
+  [ xx, yy, zz, ww ] = ind2sub( size( rots(:, :, :, :) ), minIndices );
+  thetamins = zeros( height, width, slices );
+  for i=1:height
+    for j=1:width
+      for k=1:slices
+        thetamins( i, j, k ) = angles( 2, ww( i, j, k ) );
+      end
+    end
+  end
+  % correction term
+  %cor = cconst * ( 1 - alpha * abs(2*thetamin/pi) );
+  thetamins = abs(thetamins .* 2 ./pi);
+  thetamins = thetamins .* alpha;
+  cor = cconst .* ( -thetamins + 1 );
   
-  binImageStack = uint16(imageStack > minValues);
+  binImageStack = uint16(imageStack > (double(minValues) + cor) );
   binImageStack = binImageStack.*65535;
+  
+  % perform morphological operation at the end
+  %se = strel( 'disk', 1 );
+  %binImageStack = imclose( binImageStack, se );
+  % erosion is not really usable
+  %binImageStack = imerode( binImageStack, se );
+  %binImageStack = imopen( binImageStack, se );
+  % fill holes
+  %binImageStack = imfill( binImageStack, 'holes' );
+  % remove noise
+  %binImageStack = medfilt2( binImageStack );
+  
   
   outputPath = strcat( imageDir, rawDataStr( 1, chosenData ), '_Membrane_T', digit, num2str(t), '.tif' );
   writeTIFstack( binImageStack, char(outputPath), 2^31 );
   
-  %restoredefaultpath
-  %h = imshow( char( outputPath ) );
-  %setWorkingPathProperties()
+  if showImage == 1 || showDSLT == 1
+    f = figure( 'Name', 'MembraneSegmentation', 'Position', [ 50 50 height height ] );
+  end
+  
+  if showImage == 1
+    restoredefaultpath
+    h = imshow( char( outputPath ) );
+    setWorkingPathProperties()
+  end
   
   if showDSLT == 1
     radEllip = 0.05;
-    f = figure( 'Name', 'MembraneSegmentation', 'Position', [ 50 50 height height ] );
     totalMinSum = 65535;
     totalMaxSum = 0;
     for i=1:height
@@ -151,8 +190,8 @@ for t=startT:endT
   if storePNG == 1
     tit = strcat( 'DSLT\_', 'T', {' '}, num2str(t) );
     title( char(tit) );
-    filePath = strcat( imageDir, rawDataStr( 1, chosenData ), '_DSLT_blurred_T', digit, num2str(t), '.png' );
-    export_fig( gcf, char(filePath), '-m20', '-png' );
+    filePath = strcat( imageDir, rawDataStr( 1, chosenData ), '_DSLT_T', digit, num2str(t), '.png' );
+    export_fig( gcf, char(filePath), '-m2', '-png' );
   end
 end
 % print elapsed time
