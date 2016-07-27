@@ -1,10 +1,10 @@
 setWorkingPathProperties()
 
-chosenData = 9;
+chosenData = 6;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' '20160706' };
-startT = 0;
-endT = 0;
+startT = 10;
+endT = 30;
 
 showDSLT = 0;
 storePNG = 0;
@@ -42,7 +42,8 @@ for t=startT:endT
   
   % input path
   if chosenData == 6
-    inputPath = strcat( 'I:\NewDatasets\Zeiss\20160427\green\cropped_spim_TL', digit, num2str(t), '_Angle1.tif' );
+    %inputPath = strcat( 'I:\NewDatasets\Zeiss\20160427\green\cropped_spim_TL', digit, num2str(t), '_Angle1.tif' );
+    inputPath = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\membrane\small_cropped_membrane_T', digit, num2str(t), '_Angle1.tif' );
   elseif chosenData == 7
     inputPath = strcat( 'I:\NewDatasets\2016-04-28_17.35.59_JENS\Tiffs\membrane\left\cropped_Ch0_CamL_T00', digit, num2str(t), '.tif' );
   elseif chosenData == 8

@@ -6,23 +6,27 @@ import ij.ImagePlus as ImagePlus
 sys.path.append( 'C:\\Jens\\VLRRepository\\FijiScripts' )
 
 # data can be in [1,9]
-chosenData = 9
+chosenData = 6
+applyNucleiCropping = 0
+applyMembraneCropping = 1
 
 if chosenData == 6:
 	nucleiFolder = 'I:\\NewDatasets\\Zeiss\\20160427\\red\spim_TL'
 	membraneFolder = 'I:\\NewDatasets\\Zeiss\\20160427\\green\\spim_TL'
-	cropNucleiOutput = 'I:\\NewDatasets\\Zeiss\\20160427\\red\\cropped_spim_TL_slice'
-	cropMembraneOutput = 'I:\\NewDatasets\\Zeiss\\20160427\\green\\cropped_spim_TL_slice'
+	cropNucleiOutput = 'I:\\NewDatasets\\ilastikWorkshopData\\20160427\\nuclei\\small_cropped_nuclei_T'
+	cropMembraneOutput = 'I:\\NewDatasets\\ilastikWorkshopData\\20160427\\membrane\\small_cropped_membrane_T'
 	startT = 10
-	endT = 10 #168
+	endT = 30 #168
 	#ROI_xStart = 0
 	#ROI_yStart = 0
 	#ROI_xSize = 640
 	#ROI_ySize = 640
-	ROI_xStart = 180
-	ROI_yStart = 300
-	ROI_xSize = 120
-	ROI_ySize = 150
+	ROI_xStart = 200
+	ROI_yStart = 200
+	ROI_xSize = 200
+	ROI_ySize = 300
+	zStart = 0
+	zLength = 640
 	appendix = '_Angle1.tif'
 elif chosenData == 7:
 	nucleiFolder = 'I:\\NewDatasets\\2016-04-28_17.35.59_JENS\\Tiffs\\nuclei\\left\\_Ch1_CamL_T00'
@@ -67,7 +71,7 @@ for t in range(startT, endT+1):
 	elif t < 1000:
 		digit = str(t)
 
-	if chosenData < 9:
+	if chosenData < 9 and applyNucleiCropping == 1:
 		imageNPath = nucleiFolder + digit + appendix
 		imageNCroppedPath = cropNucleiOutput + digit + appendix
 	
@@ -77,8 +81,8 @@ for t in range(startT, endT+1):
 		slices = impN.getNSlices()
 		stack = impN.getStack()
 		# crop(int x, int y, int z, int width, int height, int depth)
-		#impN.setStack( stack.crop( ROI_xStart, ROI_yStart, 0, ROI_xSize, ROI_ySize, slices ) )
-		impN.setStack( stack.crop( ROI_xStart, ROI_yStart, 275, ROI_xSize, ROI_ySize, 1 ) )
+		impN.setStack( stack.crop( ROI_xStart, ROI_yStart, 130, ROI_xSize, ROI_ySize, 220 ) )
+		#impN.setStack( stack.crop( ROI_xStart, ROI_yStart, 275, ROI_xSize, ROI_ySize, 1 ) )
 		fs = FileSaver( impN )
 		fs.saveAsTiff( imageNCroppedPath )
 	
@@ -88,23 +92,24 @@ for t in range(startT, endT+1):
 		MIPimpN = zp.getProjection()
 		#MIPimpN.show()
 
-	imageMPath = membraneFolder + digit + appendix
-	imageMCroppedPath = cropMembraneOutput + digit + appendix
-
-	print 'Opening image', imageMPath
-	impM = IJ.openImage( imageMPath )
-	impM.setRoi( ROI_xStart, ROI_yStart, ROI_xSize, ROI_ySize )
-	slices = impM.getNSlices()
-	stack = impM.getStack()
-	# crop(int x, int y, int z, int width, int height, int depth)
-	impM.setStack( stack.crop( ROI_xStart, ROI_yStart, 0, ROI_xSize, ROI_ySize, slices ) )
-	#impM.setStack( stack.crop( ROI_xStart, ROI_yStart, 275, ROI_xSize, ROI_ySize, 1 ) )
-	fs = FileSaver( impM )
-	fs.saveAsTiff( imageMCroppedPath )
-
-	zp = ZProjector(impM)
-	zp.setMethod( ZProjector.MAX_METHOD )
-	zp.doProjection()
-	MIPimpM = zp.getProjection()
-	MIPimpM.show()
+	if applyMembraneCropping == 1:
+		imageMPath = membraneFolder + digit + appendix
+		imageMCroppedPath = cropMembraneOutput + digit + appendix
+	
+		print 'Opening image', imageMPath
+		impM = IJ.openImage( imageMPath )
+		impM.setRoi( ROI_xStart, ROI_yStart, ROI_xSize, ROI_ySize )
+		slices = impM.getNSlices()
+		stack = impM.getStack()
+		# crop(int x, int y, int z, int width, int height, int depth)
+		impM.setStack( stack.crop( ROI_xStart, ROI_yStart, 0, ROI_xSize, ROI_ySize, slices ) )
+		#impM.setStack( stack.crop( ROI_xStart, ROI_yStart, 275, ROI_xSize, ROI_ySize, 1 ) )
+		fs = FileSaver( impM )
+		fs.saveAsTiff( imageMCroppedPath )
+	
+		zp = ZProjector(impM)
+		zp.setMethod( ZProjector.MAX_METHOD )
+		zp.doProjection()
+		MIPimpM = zp.getProjection()
+		#MIPimpM.show()
 	

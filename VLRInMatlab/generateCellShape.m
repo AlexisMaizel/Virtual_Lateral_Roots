@@ -1,4 +1,4 @@
-function generateCellShape( width, height, slices, cc, maxInt, newFileName )
+function [imageStack] = generateCellShape( width, height, slices, cc, maxInt, newFileName )
 % set all values to zero
 imageStack = zeros( height, width, slices, 'uint16' );
 

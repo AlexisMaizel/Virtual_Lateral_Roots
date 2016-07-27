@@ -8,9 +8,9 @@ endT = 10;
 radEllip = 5;%10
 lineWidth = 1;
 if chosenData < 6
-  numPlots = 6;
-else
   numPlots = 5;
+else
+  numPlots = 4;
 end
 numColorsCells = 40;
 cmapNumCells = colorcube(numColorsCells);
@@ -101,16 +101,18 @@ for t=startT:endT
   %nucleiFileName = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\nuclei\MAX_small_cropped_nuclei_T', digit, num2str(t), '_Angle1.tif' );
   
   %membraneFileName = strcat( inputPath, '\changed_membrane_t', digit, num2str(t), '.tif' );
-  %membraneFileName = strcat( 'I:\SegmentationResults\Matlab\Segmentation\20160427\Membrane\20160427_Membrane_T', digit, num2str(t), '.tif' );
+  membraneFileName = strcat( 'I:\SegmentationResults\Matlab\Segmentation\20160427\Membrane\20160427_Membrane_T', digit, num2str(t), '.tif' );
   %membraneFileName = strcat( 'I:\NewDatasets\Zeiss\20160427\green\cropped_spim_TL_slice', digit, num2str(t), '_Angle1.jpg' );
-  membraneFileName = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\membrane\small_cropped_membrane_T', digit, num2str(t), '_Angle1.tif' );
+  %membraneFileName = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\membrane\small_cropped_membrane_T', digit, num2str(t), '_Angle1.tif' );
+  
+  imageStack = readTIFstack( char(nucleiFileName) );
   
   outputFileName = strcat( inputPath, '\preprocessed_t', digit, num2str(t), '.tif' );
-  [S, cc, intensities, width, height, slices] =...
+  [S, cc, intensities, width, height, slices, thresholdStack] =...
     identifyCellObjects( nucleiFileName, membraneFileName, minVoxelCount, voxelCountPerCell );
   
   if storeTIFF == 1
-    generateCellShape( width, height, slices, cc, intensities, outputFileName );
+    segmentedStack = generateCellShape( width, height, slices, cc, intensities, outputFileName );
   end
   
   if storePNGs == 1
@@ -132,10 +134,10 @@ for t=startT:endT
     cellCounter = 1;
     X = zeros(numCellsAuto, 2);
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%% automatic segmentation result before clustering %%%
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if chosenData < 6
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%% original regional maxima %%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if chosenData > 5
       ax1 = subplot( 2, numPlots/2, 1 );
     else
       ax1 = subplot( 2, (numPlots+1)/2, 1 );
@@ -167,7 +169,7 @@ for t=startT:endT
       nucleiCounter = nucleiCounter+1;
     end
     
-    tit = strcat( 'AutoSegBefore\_', 'T', {' '}, num2str(t), ',',...
+    tit = strcat( 'LocalMaxima\_', 'T', {' '}, num2str(t), ',',...
       {' '}, '#CCs', {' '}, num2str(size(S,1)) );
     title( char(tit) );
     
@@ -175,56 +177,13 @@ for t=startT:endT
 %     colorbar
 %     caxis([0, numColorsArea])
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%% automatic segmentation result before clustering without small ccs %%%
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if chosenData < 6
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%% automatic segmentation result %%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if chosenData > 5
       ax2 = subplot( 2, numPlots/2, 2 );
     else
       ax2 = subplot( 2, (numPlots+1)/2, 2 );
-    end
-    hold on
-    
-    remainingCells = 0;
-    for i=1:size(S,1)
-      areaSize = S(i, :).Area;
-      
-      if areaSize < minVoxelCount
-        continue;
-      else
-        remainingCells = remainingCells + 1;
-      end
-      
-      cen = S(i, :).Centroid;
-      if spatialNormalization == 1
-        cen = cen - centerPosAuto;
-      else
-        cen = [ cen(1) -cen(2)+height cen(3) ];
-      end
-      
-      color = cmapArea( mod( areaSize-1, numColorsArea )+1, : );
-      [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
-        drawEllipse3d( cen(1), cen(2), cen(3), radEllip, radEllip, 0, 0 );
-      set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
-      set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
-      nucleiCounter = nucleiCounter+1;
-    end
-    
-    tit = strcat( 'AutoSegBeforeCropped\_', 'T', {' '}, num2str(t), ',',...
-      {' '}, '#CCs', {' '}, num2str(remainingCells) );
-    title( char(tit) );
-    
-%     colormap(ax2, cmapArea)
-%     colorbar
-%     caxis([0, numColorsArea])
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%% automatic segmentation result after clustering %%%
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if chosenData < 6
-      ax3 = subplot( 2, numPlots/2, 3 );
-    else
-      ax3 = subplot( 2, (numPlots+1)/2, 3 );
     end
     hold on
     
@@ -263,25 +222,26 @@ for t=startT:endT
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% MIP image of raw data %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if chosenData < 6
-      ax4 = subplot( 2, numPlots/2, 4 );
+    if chosenData > 5
+      ax3 = subplot( 2, numPlots/2, 3 );
     else
-      ax4 = subplot( 2, (numPlots+1)/2, 4 );
+      ax3 = subplot( 2, (numPlots+1)/2, 3 );
     end
     
-    h1 = showMIP( rawDataStr( 1, chosenData ), 0, t );
+    h1 = showMIP( imageStack );
     tit = strcat( 'rawMIP\_', 'T', {' '}, num2str(t) );
     title( char(tit) );
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% MIP image of thresholding %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if chosenData < 6
-      ax5 = subplot( 2, numPlots/2, 5 );
+    if chosenData > 5
+      ax4 = subplot( 2, numPlots/2, 4 );
     else
-      ax5 = subplot( 2, (numPlots+1)/2, 5 );
+      ax4 = subplot( 2, (numPlots+1)/2, 4 );
     end
-    h2 = showMIP( rawDataStr( 1, chosenData ), 1, t );
+    %h2 = showMIP( segmentedStack );
+    h2 = showMIP( thresholdStack );
     tit = strcat( 'thresholdMIP\_', 'T', {' '}, num2str(t) );
     title( char(tit) );
     

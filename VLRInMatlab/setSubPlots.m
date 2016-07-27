@@ -23,7 +23,7 @@ for p=1:numPlots
     if trackingAnalysis == 1
       subplot( 1, numPlots, p )
     else
-      subplot( 2, 3, p )
+      subplot( 2, 2, p )
     end
     if spatialNormalization == 0
       xMinMax = [ 0 width ];
