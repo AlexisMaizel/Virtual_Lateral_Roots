@@ -138,7 +138,7 @@ for t=startT:endT
     %%% original regional maxima %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if chosenData > 5
-      ax1 = subplot( 2, numPlots/2, 1 );
+      ax1 = subplot( 1, numPlots, 3 );
     else
       ax1 = subplot( 2, (numPlots+1)/2, 1 );
     end
@@ -181,7 +181,7 @@ for t=startT:endT
     %%% automatic segmentation result %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if chosenData > 5
-      ax2 = subplot( 2, numPlots/2, 2 );
+      ax2 = subplot( 1, numPlots, 4 );
     else
       ax2 = subplot( 2, (numPlots+1)/2, 2 );
     end
@@ -223,7 +223,7 @@ for t=startT:endT
     %%% MIP image of raw data %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if chosenData > 5
-      ax3 = subplot( 2, numPlots/2, 3 );
+      ax3 = subplot( 1, numPlots, 1 );
     else
       ax3 = subplot( 2, (numPlots+1)/2, 3 );
     end
@@ -236,7 +236,7 @@ for t=startT:endT
     %%% MIP image of thresholding %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if chosenData > 5
-      ax4 = subplot( 2, numPlots/2, 4 );
+      ax4 = subplot( 1, numPlots, 2 );
     else
       ax4 = subplot( 2, (numPlots+1)/2, 4 );
     end
