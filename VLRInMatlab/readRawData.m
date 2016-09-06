@@ -1,4 +1,5 @@
-function [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] = readRawData( dataStr )
+function [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep,...
+  minX, minY, minZ, maxX, maxY, maxZ ] = readRawData( dataStr )
 storeOnlyLastPrecursorInfo = 1;
 % reading raw data
 path = strcat( '../FinalVLRForMatlab/', dataStr, '.csv' );
@@ -67,6 +68,16 @@ while (l < numLines+1)
     l = l+1;
   end
 end
+
+% get bounding box are by determining
+% min and max of x/y/z values
+% loop over all time steps
+minX = min( XCol );
+minY = min( YCol );
+minZ = min( ZCol );
+maxX = max( XCol );
+maxY = max( YCol );
+maxZ = max( ZCol );
 
 cellData = cell( dimData, 9 );
 cellFileMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );

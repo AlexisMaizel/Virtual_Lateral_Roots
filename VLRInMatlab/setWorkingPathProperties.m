@@ -10,4 +10,9 @@ addpath( genpath( 'ellipsoid_fit/' ) );
 addpath( genpath( 'readTGMM_XMLoutput/' ) );
 addpath( genpath( 'MinMaxFilterFolder/' ) );
 addpath( genpath( 'MaximaMinima3D/' ) );
+addpath( genpath( 'RidlerCalvardThresholding/' ) );
+addpath( genpath( '3DSkeleton/' ) );
 warning('on','all')
+
+% draw delaunay tri?
+drawDelaunay = 0;

@@ -1,12 +1,5 @@
-function [S, cellCenters, maxIntensities, width, height, slices, thresholdStack] =...
-  identifyCellObjects( fileName, membraneFileName, minVoxelCount,...
-  voxelCountPerCell )
-imageStack = readTIFstack( char(fileName) );
-% create 3D array of binary image data
-height = size( imageStack, 1 );
-width = size( imageStack, 2 );
-slices = size( imageStack, 3 );
-
+function [S, cellCenters, maxIntensities] = identifyCellObjects( imageStack,...
+  membraneFileName, minVoxelCount, voxelCountPerCell )
 % type of method how to map a connected component (cc) onto a cell
 % type == 0 -> nearest cc are merged based on cellRadius and represent a cell.
 % type == 1 -> consider a user-chosen cell size to determine an initial
@@ -26,5 +19,5 @@ elseif type == 1
   [S, cellCenters, maxIntensities] = determineCellsBasedOnSizeAndMembrane(...
     imageStack, voxelCountPerCell, randomIntensities, minVoxelCount, membraneFileName );
 elseif type == 2
-  [S, cellCenters, maxIntensities, thresholdStack] = determineLocalMaxima( imageStack, cellRadius, randomIntensities, membraneFileName );
+  [S, cellCenters, maxIntensities] = determineLocalMaxima( imageStack, cellRadius, randomIntensities, membraneFileName );
 end

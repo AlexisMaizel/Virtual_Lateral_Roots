@@ -105,12 +105,26 @@ for t=startT:endT
   %membraneFileName = strcat( 'I:\NewDatasets\Zeiss\20160427\green\cropped_spim_TL_slice', digit, num2str(t), '_Angle1.jpg' );
   %membraneFileName = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\membrane\small_cropped_membrane_T', digit, num2str(t), '_Angle1.tif' );
   
+  % create 3D array of binary image data
   imageStack = readTIFstack( char(nucleiFileName) );
+  height = size( imageStack, 1 );
+  width = size( imageStack, 2 );
+  slices = size( imageStack, 3 );
   
   outputFileName = strcat( inputPath, '\preprocessed_t', digit, num2str(t), '.tif' );
-  [S, cc, intensities, width, height, slices, thresholdStack] =...
-    identifyCellObjects( nucleiFileName, membraneFileName, minVoxelCount, voxelCountPerCell );
   
+  % generate gradient magnitude image
+  [ gradientStack ] = generate3DGradientMagnitudeImage( imageStack );
+  %newFileName = strcat( inputPath, '\gradient_', digit, num2str(t), '.tif' );
+  %writeTIFstack( gradientStack, char(newFileName), 2^31 );
+  
+  % apply a thresholding
+  [ thresholdStack ] = applyThresholding( imageStack );
+  
+  % identify cell objects from the preprocessed threshold stack
+  [S, cc, intensities] = identifyCellObjects( thresholdStack, membraneFileName, minVoxelCount, voxelCountPerCell );
+  
+  % store the extracted cells as newly perfect generated cells in tiff
   if storeTIFF == 1
     segmentedStack = generateCellShape( width, height, slices, cc, intensities, outputFileName );
   end
@@ -241,7 +255,10 @@ for t=startT:endT
       ax4 = subplot( 2, (numPlots+1)/2, 4 );
     end
     %h2 = showMIP( segmentedStack );
-    h2 = showMIP( thresholdStack );
+    %thresholdStack = imhmax( imageStack, 100 );
+    h2 = showMIP( gradientStack );
+    %h2 = showMIP( thresholdStack );
+    %h2 = showMIP( bwdist( ~thresholdStack ) );
     tit = strcat( 'thresholdMIP\_', 'T', {' '}, num2str(t) );
     title( char(tit) );
     

@@ -3,12 +3,25 @@ import ij.IJ as IJ
 from ij.io import FileSaver
 import ij.plugin.ZProjector as ZProjector
 
-sourceFolder = 'I:\\SegmentationResults\\Preprocessing\\20160426\\changed_t'
-outputFolder = 'I:\\SegmentationResults\\Preprocessing\\20160426\\MIP_trainedThres_t'
-appendix = '.tif'
-
-startT = 3
-endT = 23
+chosenData = 8 #[6,8]
+if chosenData == 6:
+	sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160427\\red\\spim_TL'
+	outputFolder = 'I:\\SegmentationResults\\MIPsRawData\\20160427\\MIP_t'
+	startT = 10
+	endT = 168
+	appendix = '_Angle1.tif'
+elif chosenData == 7:
+	sourceFolder = 'I:\\NewDatasets\\2016-04-28_17.35.59_JENS\\Tiffs\\nuclei\\left\\_Ch1_CamL_T00'
+	outputFolder = 'I:\\SegmentationResults\\MIPsRawData\\20160428\\MIP_t'
+	startT = 10
+	endT = 34
+	appendix = '.tif'
+elif chosenData == 8:
+	sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160426\\red\\spim_TL'
+	outputFolder = 'I:\\SegmentationResults\\MIPsRawData\\20160426\\MIP_t'
+	startT = 3
+	endT = 23
+	appendix = '_Angle1.tif'
 
 for i in range(startT, endT+1):		
 	if i < 10:

@@ -3,12 +3,12 @@ setWorkingPathProperties()
 chosenData = 6;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' '20160706' };
-startT = 10;
-endT = 10;
+startT = 50;
+endT = 50;
 
 %showDSLT = 0;
 storePNG = 0;
-extractCellShapes = 1;
+show3DCellShapes = 1;
 showMIPs = 0;
 
 thetaStart = -pi/2;
@@ -29,17 +29,24 @@ alpha = 1;
 cconst = 0.004;
 
 % morphological parameters
-cubeMask = 0;
+% maskType: 0: cube, 1: sphere, 2: cross
+maskType = 2;
 length = 5;
 
-numPlots = 5;
-plotIndex = 1;
-
-if showMIPs ~= 1
-  numPlots = numPlots - 2;
+if chosenData < 6
+  anisotropyZ = 2.;
+elseif chosenData == 6
+  anisotropyZ = 1.;
+elseif chosenData == 7
+  anisotropyZ = 4.;
+elseif chosenData == 8
+  anisotropyZ = 2;%7.5;
 end
 
-if extractCellShapes == 1
+numPlots = 4;
+plotIndex = 1;
+
+if show3DCellShapes == 1
   numPlots = 1;
 end
 
@@ -50,8 +57,8 @@ for lineHalfLength = 11:2:11
   for length = 9:2:9
     lineSteps = lineHalfLength*2 + 1;
     plotIndex = 1;
-    L = lineHalfLength
-    R = length
+    %L = lineHalfLength
+    %R = length
     for t=startT:endT
       X = sprintf( 'Time step %d', t );
       disp(X)
@@ -67,30 +74,32 @@ for lineHalfLength = 11:2:11
       if chosenData == 6
         %inputPath = strcat( 'I:\NewDatasets\Zeiss\20160427\green\cropped_spim_TL', digit, num2str(t), '_Angle1.tif' );
         %inputPath = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\membrane\slice_small_cropped_membrane_T', digit, num2str(t), '_Angle1.tif' );
-        inputPath = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\membrane\small_cropped_membrane_T', digit, num2str(t), '_Angle1.tif' );
+        %inputPath = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\membrane\small_cropped_membrane_T', digit, num2str(t), '_Angle1.tif' );
+        inputPath = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\membrane\division_cropped_membrane_T', digit, num2str(t), '_Angle1.tif' );
       elseif chosenData == 7
         inputPath = strcat( 'I:\NewDatasets\2016-04-28_17.35.59_JENS\Tiffs\membrane\left\cropped_Ch0_CamL_T00', digit, num2str(t), '.tif' );
       elseif chosenData == 8
-        inputPath = strcat( 'I:\NewDatasets\Zeiss\20160426\green\cropped_spim_TL', digit, num2str(t), '_Angle1.tif' );
+        inputPath = strcat( 'I:\NewDatasets\Zeiss\20160426\green\test_cropped_spim_TL', digit, num2str(t), '_Angle1.tif' );
       elseif chosenData == 9
         inputPath = strcat( 'I:\NewDatasets\20160706\cropped_beamExp_Ch2_CamL_T00', digit, num2str(t), '.tif' );
       end
       % path to image output
       imageDir = strcat( 'I:\SegmentationResults\Matlab\Segmentation\', rawDataStr( 1, chosenData ), '\Membrane\' );
-      mkdir( char(imageDir) );
+      [status,message,messageid] = mkdir( char(imageDir) );
       
       imageStack = readTIFstack( char(inputPath) );
+      %imageStack = resampleZDimInImage( imageStack, anisotropyZ );
       height = size( imageStack, 1 );
       width = size( imageStack, 2 );
       slices = size( imageStack, 3 );
       
-      if slices ~= 1
-        numPlots = 1;
-      end
-      
-      if lineHalfLength == 5 && length == 5
-        winWidth = 1800;
-        f = figure( 'Name', 'MembraneSegmentation', 'Position', [ 100 50 winWidth winWidth/numPlots ] );
+      if showMIPs == 1 || show3DCellShapes == 1
+        winWidth = 500;
+        winHeight = 500;
+        if showMIPs == 1
+          winHeight = winHeight/4;
+        end
+        f = figure( 'Name', 'MembraneSegmentation', 'Position', [ 100 50 winWidth winHeight ] );
       end
       
       xMinMax = [ 0 width ];
@@ -104,14 +113,14 @@ for lineHalfLength = 11:2:11
         xlabel('X');
         ylabel('Y');
         zlabel('Z');
-        if extractCellShapes == 1
+        if show3DCellShapes == 1
           camproj( 'perspective' );
         else
           camproj( 'orthographic' );
         end
       end
       
-      if slices == 1 && showMIPs == 1
+      if showMIPs == 1
         subplot( 1, numPlots, plotIndex );
         restoredefaultpath
         h1 = showMIP( imageStack );
@@ -124,7 +133,7 @@ for lineHalfLength = 11:2:11
       % apply gauss filtering
       imageStack = imgaussfilt3(imageStack, 1.);
       
-      if slices == 1 && showMIPs == 1
+      if showMIPs == 1
         subplot( 1, numPlots, plotIndex );
         restoredefaultpath
         h2 = showMIP( imageStack );
@@ -134,61 +143,35 @@ for lineHalfLength = 11:2:11
         plotIndex = plotIndex + 1;
       end
       
-      numRots = (((psiEnd-psiStart)/psiStep)+1) * (((thetaEnd-thetaStart)/thetaStep)+1);
-      rots = zeros( height, width, slices, numRots, 'uint16' );
-      angles = zeros( 2, numRots );
-      counter = 1;
-      for theta=thetaStart:thetaStep:thetaEnd
-        for psi=psiStart:psiStep:psiEnd
-          angles( 1, counter ) = psi;
-          angles( 2, counter ) = theta;
-          counter = counter + 1;
-        end
+      % apply DSLT method to extract cell walls
+      [ binImageStack ] = applyDSLT( imageStack, psiStart, psiEnd,...
+        psiStep, thetaStart, thetaEnd, thetaStep, lineHalfLength,...
+        lineSampling, lineSteps, alpha, cconst);
+      
+      % perform morphological operation at the end
+      % for now only cube or sphere mask
+      if maskType == 0
+        msk = ones( length, length, length );
+      elseif maskType == 1
+        r = (length-1)/2;
+        [ xs, ys, zs ] = ndgrid( -r:r, -r:r, -r:r );
+        msk = (xs).^2 + (ys).^2 + (zs).^2 <= r.^2;
+      elseif maskType == 2
+        msk = zeros( length, length, length );
+        bW = 1;
+        mid = int16(length/2);
+        msk( :, mid-bW:mid+bW, mid-bW:mid+bW ) = 1;
+        msk( mid-bW:mid+bW, :, mid-bW:mid+bW ) = 1;
+        msk( mid-bW:mid+bW, mid-bW:mid+bW, : ) = 1;
       end
+      se = strel( 'arbitrary', msk );
       
-      parfor r=1:numRots
-        psi = angles( 1, r );
-        theta = angles( 2, r );
-        %X = sprintf( 'psi = %f, theta = %f', psi, theta );
-        %disp(X)
-        % initialize kernel with zeros
-        rotKernel = zeros( lineSteps, lineSteps, lineSteps );
-        % generate rotated line segment kernel
-        for l=-lineHalfLength:lineSampling:lineHalfLength
-          x = int16(1 + l * cos(theta) * cos(psi));
-          y = int16(1 + l * cos(theta) * sin(psi));
-          z = int16(1 + l * sin(theta));
-          rotKernel( lineHalfLength+x, lineHalfLength+y, lineHalfLength+z ) = 1;
-        end
-        % define center of kernel
-        rotKernel( lineHalfLength+1, lineHalfLength+1, lineHalfLength+1 ) = 2;
-        rotKernel = rotKernel./nnz(rotKernel);
-        
-        % apply kernel on original image
-        rots( :, :, :, r ) = imfilter( imageStack, rotKernel, 'symmetric' );
-      end
+      % generate inner 3D skeleton of cell walls to get thinner cell walls
+      % prior to image closing operation
+      binImageStack = imclose( binImageStack, se );
+      %binImageStack = Skeleton3D( binImageStack );
       
-      % determine minimum of weighted sums among all line rotations
-      [ minValues, minIndices ] = min( rots(:, :, :, :), [], 4 );
-      % determine the theta pitch angle for which the weighted sum is minimal
-      [ xx, yy, zz, ww ] = ind2sub( size( rots(:, :, :, :) ), minIndices );
-      thetamins = zeros( height, width, slices );
-      for i=1:height
-        for j=1:width
-          for k=1:slices
-            thetamins( i, j, k ) = angles( 2, ww( i, j, k ) );
-          end
-        end
-      end
-      % correction term
-      %cor = cconst * ( 1 - alpha * abs(2*thetamin/pi) );
-      thetamins = abs(thetamins .* 2 ./pi);
-      thetamins = thetamins .* alpha;
-      cor = cconst .* ( -thetamins + 1 );
-      
-      binImageStack = imageStack > (double(minValues) + cor);
-      
-      if slices == 1 && extractCellShapes ~= 1
+      if showMIPs == 1
         subplot( 1, numPlots, plotIndex );
         restoredefaultpath
         h3 = showMIP( binImageStack );
@@ -198,22 +181,7 @@ for lineHalfLength = 11:2:11
         plotIndex = plotIndex + 1;
       end
       
-      % perform morphological operation at the end
-      % for now only cube or sphere mask
-      if cubeMask == 1
-        msk = ones( length, length, length );
-      else
-        r = (length-1)/2;
-        [ xs, ys, zs ] = ndgrid( -r:r, -r:r, -r:r );
-        msk = (xs).^2 + (ys).^2 + (zs).^2 <= r.^2;
-      end
-      se = strel( 'arbitrary', msk );
-      invImageStack = imclose( binImageStack, se );
-      %invImageStack = imdilate( binImageStack, se );
-      invImageStack = imcomplement( invImageStack );
-      binImageStack = uint16(binImageStack).*65535;
-      
-      if slices == 1 && extractCellShapes ~= 1
+      if showMIPs == 1
         subplot( 1, numPlots, plotIndex );
         restoredefaultpath
         h4 = showMIP( invImageStack );
@@ -223,63 +191,36 @@ for lineHalfLength = 11:2:11
         plotIndex = plotIndex + 1;
       end
       
-      if extractCellShapes == 1
-        if slices == 1
-          subplot( 1, numPlots, plotIndex );
-        else
-          subplot( 1, numPlots, 1 );
-        end
+      % generate and show extracted 3D cell shapes
+      if show3DCellShapes == 1
+        subplot( 1, numPlots, plotIndex );
         plotIndex = plotIndex + 1;
-        connectivity = 26;
-        %invOutputPath = strcat( imageDir, rawDataStr( 1, chosenData ), '_InvMembrane_T', digit, num2str(t), '.tif' );
-        %invMImageStack = uint16(invImageStack).*65535;
-        %writeTIFstack( invMImageStack, char(invOutputPath), 2^31 );
-        CC = bwconncomp( invImageStack, connectivity );
-        S = regionprops( CC, 'Centroid', 'Area', 'BoundingBox', 'PixelList', 'PixelIdxList' );
-        numCCs = size(S, 1);
-        cm = colormap( jet(numCCs) );
-        remainingCCs = 0;
-        hold on
-        shading interp
-        light
-        lighting phong
-        for i=1:numCCs
-          disp( strcat( num2str(i), '/', num2str(numCCs) ) );
-          voxels = S(i, :).PixelList;
-          numVoxels = size( voxels, 1 );
-          if numVoxels > 50 && numVoxels < 500000
-            k = boundary( voxels );
-            %k = convhull( voxels );
-            if slices == 1
-              h5 = plot( voxels(k,1), -voxels(k,2)+height );
-            else
-              color = cm( i, : );
-              h5 = trisurf( k, voxels(:,1), -voxels(:,2)+height, voxels(:,3),...
-                'Facecolor', color, 'FaceLighting', 'gouraud', 'LineStyle', 'none', 'FaceAlpha', 1 );
-            end
-            remainingCCs = remainingCCs + 1;
-          end
+        
+        % if it is the first time step then initially generate a cell array
+        % containing the cells ids for each cell track
+        first = 0;
+        if t == startT
+          first = 1;
+          cellTracks = containers.Map( 'KeyType', 'int32', 'ValueType', 'any' );
         end
-        remainingCCs
-        tit = strcat( 'Shape\_', 'T', {' '}, num2str(t) );
-        title( char(tit) );
-        hold off
+        
+        %invImageStack = imopen( binImageStack, se );
+        %invImageStack = imdilate( binImageStack, se );
+        invImageStack = imcomplement( binImageStack );
+        %msk = ones( 1, 1, 1 );
+        %se2 = strel( 'arbitrary', msk );
+        %invImageStack = imdilate( invImageStack, se2 );
+        txtPath = strcat( imageDir, 'CellShapesLOD_', rawDataStr( 1, chosenData ), '_T', digit, num2str(t), '.txt' );
+        [ h5, cellTracks ] = generate3DCellShapes( invImageStack, txtPath, slices, first, t, cellTracks );
       end
       
-      % perform morphological operation at the end
-      %se = strel( 'cube', 1 );
-      %binImageStack = imclose( binImageStack, se );
-      % erosion is not really usable
-      %binImageStack = imerode( binImageStack, se );
-      %binImageStack = imopen( binImageStack, se );
-      % fill holes
-      %binImageStack = imfill( binImageStack, 'holes' );
-      % remove noise
-      %binImageStack = medfilt2( binImageStack );
-      
-      
       outputPath = strcat( imageDir, rawDataStr( 1, chosenData ), '_Membrane_T', digit, num2str(t), '.tif' );
-      writeTIFstack( binImageStack, char(outputPath), 2^31 );
+      binImageStack = uint16(binImageStack).*65535;
+      options.message = true;
+      writeTIFstack( binImageStack, char(outputPath), 2^31, options );
+      %outputinvPath = strcat( imageDir, rawDataStr( 1, chosenData ), '_inv_Membrane_T', digit, num2str(t), '.tif' );
+      %invImageStack = uint16(invImageStack).*65535;
+      %writeTIFstack( invImageStack, char(outputinvPath), 2^31 );
       
       %   if showDSLT == 1
       %     radEllip = 0.05;

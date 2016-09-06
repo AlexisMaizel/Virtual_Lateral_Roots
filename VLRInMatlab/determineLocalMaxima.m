@@ -1,36 +1,15 @@
-function [NS, cellCenters, maxIntensities, thresholdStack] = determineLocalMaxima(...
+function [NS, cellCenters, maxIntensities] = determineLocalMaxima(...
   imageStack, cellRadius, randomIntensities, membraneFileName )
-
-height = size( imageStack, 1 );
-width = size( imageStack, 2 );
-slices = size( imageStack, 3 );
 connectivity = 26;
 
 % read membrane channel
 memImageStack = readTIFstack( char(membraneFileName) );
+identificationType = 1;
 
-%thresholdType = 0 is really slow (dilation part).....
-thresholdType = 1;
-
-% perform simple global thresholding as a preprocessing step
-% for each pixel object set an 0 else background is 1
-% apply gauss filtering
-imageStack = imgaussfilt3(imageStack, 1.);
-maxIntens = max( imageStack(:) );
-
-if thresholdType == 0
-  threshold = 1000;%double(maxIntens)/2.;
-  disp( strcat( 'Using threshold = ', num2str(threshold) ) );
-  thresStack = zeros( height, width, slices );
-  [ indFind ] = find( imageStack(:) < threshold );
-  thresStack( ind2sub( size(imageStack), indFind ) ) = 1;
-  %restoredefaultpath
-  %imshow(thresStack)
-  %setWorkingPathProperties()
-  
-  % compute the Euclidean distance between each zero and its nearest
-  % non-zero element
-  D = bwdist( thresStack );
+if identificationType == 0
+  % distance transform: compute the Euclidean distance between each
+  % object and its nearest background element
+  D = bwdist( ~imageStack );
   
   % find to local maxima in the distance matrix
   length = 1+cellRadius*2;
@@ -46,12 +25,7 @@ if thresholdType == 0
   DCC( ind2sub( size(D), indDFind ) ) = 1;
 else
   disp( 'Determining regional maxima' );
-  threshold = 750;%double(maxIntens)/2.;
-  disp( strcat( 'Using threshold = ', num2str(threshold) ) );
-  [ indFind ] = find( imageStack(:) < threshold );
-  imageStack( ind2sub( size(imageStack), indFind ) ) = 0;
-  thresholdStack = imageStack;
-  DCC = imregionalmax( thresholdStack );
+  DCC = imregionalmax( imageStack );
 end
 
 disp( 'Determining connected components' );
