@@ -3,8 +3,8 @@ setWorkingPathProperties()
 chosenData = 1;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' };
-startT = 1;
-endT = 1;
+startT = 300;
+endT = 300;
 
 radEllip = 5;
 lineWidth = 1;
@@ -23,8 +23,19 @@ cView = 2;
 % 2 -> alpha shape
 triangulationType = 1;
 
-drawDelaunay = 1;
+% show specific cell file in [-3,3]; only valid for 3D graph vis
+cellFileType = 0;
+
+% drawing parameters
+draw3DGraph = 1;
+drawDistributions = 0;
+numBins = 40;
 drawVoronoi = 0;
+
+% number of generated graph properties each displayed in a different
+% subplot
+numGraphProperties = 4;
+graphPropString = { 'Degree' 'Closeness' 'Betweenness' 'PageRank' };
 
 % get the alpha shape radii for all time steps
 if triangulationType == 2
@@ -35,10 +46,11 @@ end
 format longG
 
 [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep,...
-  minX, minY, minZ, maxX, maxY, maxZ ] = readRawData( dataStr( 1, chosenData ) );
-  
+  minX, minY, minZ, maxX, maxY, maxZ, cellFileMap, minCF, maxCF ] =...
+  readRawData( dataStr( 1, chosenData ) );
+
 % figure properties
-f = figure( 'Name', 'Graph Topology Analysis', 'Position', [100 100 800 800] );
+f = figure( 'Name', 'Graph Topology Analysis', 'Position', [10 10 1400 800] );
 % activate orbit rotation by default
 cameratoolbar( 'SetMode', 'orbit' );
 % activate none coord system by default for not resetting the camera up
@@ -46,10 +58,6 @@ cameratoolbar( 'SetMode', 'orbit' );
 cameratoolbar( 'SetCoordSys', 'none' );
 % show camera toolbar by default
 cameratoolbar( 'Show' );
-
-% set colormap and colorbar depending on the number of cell files
-cm = hsv( 10 );
-colormap( cm );
 
 % gca is the current axes handle
 set( gca,'nextplot','replacechildren' );
@@ -69,83 +77,107 @@ ELLIPPATCH = [];
 
 % get stored eigenvectors for the last time step to set the same
 % direction view for each time step
-%coeff = getPrincipalComponents( dataStr( 1, chosenData ), 1 );
+coeff = getPrincipalComponents( dataStr( 1, chosenData ), 1 );
 
 % set PC depending on the viewing direction
-% if cView == 1
-%   dir = coeff(:,2);
-%   u = coeff(:,1);
-%   v = coeff(:,3);
-% elseif cView == 2
-%   dir = coeff(:,3);
-%   u = coeff(:,1);
-%   v = coeff(:,2);
-% elseif cView == 3
-%   dir = -coeff(:,1);
-%   u = -coeff(:,3);
-%   v = coeff(:,2);
-% end
-%   
-% % set plane position
-% planePos = dir * 1;
-% 
-% plane = [ planePos(1) planePos(2) planePos(3)...
-%   u(1) u(2) u(3)...
-%   v(1) v(2) v(3) ];
-% TF = createBasisTransform3d( 'g', plane );
+if cView == 1
+  dir = coeff(:,2);
+  u = coeff(:,1);
+  v = coeff(:,3);
+elseif cView == 2
+  dir = coeff(:,3);
+  u = coeff(:,1);
+  v = coeff(:,2);
+elseif cView == 3
+  dir = -coeff(:,1);
+  u = -coeff(:,3);
+  v = coeff(:,2);
+end
+
+% set plane position
+planePos = dir * 1;
+
+plane = [ planePos(1) planePos(2) planePos(3)...
+  u(1) u(2) u(3)...
+  v(1) v(2) v(3) ];
+TF = createBasisTransform3d( 'g', plane );
 
 % set axes properties
-% minAxes = projectOnPlane( [ minX minY minZ ], planePos, u, v );
-% minAxes = transformPoint3d( minAxes, TF );
-% maxAxes = projectOnPlane( [ maxX maxY maxZ ], planePos, u, v );
-% maxAxes = transformPoint3d( maxAxes, TF );
+minAxes = projectOnPlane( [ minX minY minZ ], planePos, u, v );
+minAxes = transformPoint3d( minAxes, TF );
+maxAxes = projectOnPlane( [ maxX maxY maxZ ], planePos, u, v );
+maxAxes = transformPoint3d( maxAxes, TF );
 
 % after transformation the individual coords of min and max
 % may be switched
-% for mm=1:3
-%   if minAxes(mm) > maxAxes(mm)
-%     tmp = minAxes(mm);
-%     minAxes(mm) = maxAxes(mm);
-%     maxAxes(mm) = tmp;
-%   end
-% end
+for mm=1:3
+  if minAxes(mm) > maxAxes(mm)
+    tmp = minAxes(mm);
+    minAxes(mm) = maxAxes(mm);
+    maxAxes(mm) = tmp;
+  end
+end
+
+% set the possible cell files such that the colors are fixed for each data
+% set
+minCF = -4;
+maxCF = 3;
+
+imageOutputPath = strcat( 'I:\GraphTopologyAnalysis\', rawDataStr( 1, chosenData ), '\' );
+mkdir( char(imageOutputPath) );
 
 nucleiCounter = 1;
 % loop over all time steps
 for curT=startT:endT
+  if curT < 10
+    digit = '00';
+  elseif curT < 100
+    digit = '0';
+  else
+    digit = '';
+  end
   % clean figure content by removing the
   % last ellipsoids and lines in the previous time step
   hideHandle( S );
   hideHandle( ELLIP );
   hideHandle( ELLIPPATCH );
   
-  hold on;
-%   viewOffset = viewOffsets( chosenData );
-%   axis( [ minAxes(1)-viewOffset maxAxes(1)+viewOffset...
-%     minAxes(2)-viewOffset maxAxes(2)+viewOffset...
-%     minAxes(3)-viewOffset maxAxes(3)+viewOffset...
-%     minAxes(3)-viewOffset maxAxes(3)+viewOffset ] );
-  axis on
-  daspect( [ 1 1 1 ] );
-  
-  grid off;
-  xlabel('X');
-  ylabel('Y');
-  zlabel('Z');
-  C = strsplit( char( dataStr( 1, chosenData ) ), '_' );
-  title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT) ) );
+  for pl=1:numGraphProperties
+    subplot( numGraphProperties/2, numGraphProperties/2, pl )
+    hold on;
+    viewOffset = viewOffsets( chosenData );
+    if drawDistributions == 0 && draw3DGraph == 1
+      axis( [ minAxes(1)-viewOffset maxAxes(1)+viewOffset...
+        minAxes(2)-viewOffset maxAxes(2)+viewOffset...
+        minAxes(3)-viewOffset maxAxes(3)+viewOffset...
+        minAxes(3)-viewOffset maxAxes(3)+viewOffset ] );
+    end
+    axis on
+    daspect( [ 1 1 1 ] );
+    
+    grid off;
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    C = strsplit( char( dataStr( 1, chosenData ) ), '_' );
+    title( strcat( C( 1, 1 ), ' Time Step ', num2str(curT), '\_', char( graphPropString( 1, pl ) ) ) );
+  end
   
   % number of cells in the current time step
-  numCells = numCellsPerTimeStep( curT, 1 );
+  numCells = numCellsPerTimeStep( curT, 1 )
   
   % matrix of positions for current time step
   matPos = zeros( numCells, 3 );
+  
+  % cell file mapper
+  idToCF = zeros( numCells, 1 );
   
   cellCounter = 1;
   for j=1:dimData
     if cellData{ j, 5 } == curT
       pos = [ cellData{ j, 2 } cellData{ j, 3 } cellData{ j, 4 } ];
       matPos( cellCounter, : ) = pos;
+      idToCF( cellCounter, 1 ) = cellData{ j, 1 };
       cellCounter = cellCounter + 1;
     end
   end
@@ -154,7 +186,7 @@ for curT=startT:endT
   connMat = zeros( numCells, numCells );
   
   % if at least three cells exists
-  if numCells > 3    
+  if numCells > 3
     if triangulationType == 1
       % delaunay triangulation
       tri = delaunayTriangulation( matPos(:,1), matPos(:,2), matPos(:,3) );
@@ -179,45 +211,140 @@ for curT=startT:endT
     
     % compute graph properties
     G = graph( connMat );
+    %p = plot( G, 'MarkerSize',5 );
     
-    if drawDelaunay == 1 && triangulationType == 1
-      tetramesh(tri, 'FaceColor', cm( 2, : ), 'FaceAlpha', 0.0 );
-    end
-    
-    % TODO
-%     if drawVoronoi == 1 && triangulationType == 1
-%       [ V, R ] = voronoiDiagram( tri );
-%       for i=1:size( R, 1 )
-%         indVert = R{i};
-%         vertices = V( indVert, : );
-%         vertices( 1, : ) = [];
-%         if size( vertices( :, 1 ), 1 ) > 3
-%           %K = convhulln( vertices );
-%           k = boundary( vertices );
-%           patch( vertices(k, 1), vertices(k, 2), vertices(k, 3) );
-%         end
-%       end
-%     end
-    
-    % draw an ellipsoid for each cell
-    for c=1:numCells
-      % get position of current cell
-      if triangulationType == 1
-        p = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
-      else
-        p = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
+    for pl=1:numGraphProperties
+      subplot( numGraphProperties/2, numGraphProperties/2, pl )
+      
+      if pl == 1
+        gp = centrality( G, 'degree' );
+      elseif pl == 2
+        gp = centrality( G, 'closeness' );
+      elseif pl == 3
+        gp = centrality( G, 'betweenness' );
+      elseif pl == 4
+        gp = centrality( G, 'pagerank' );
       end
       
-      color = cm( 1, : );
-      [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
-        drawEllipse3d( p(1), p(2), p(3), radEllip, radEllip, 0, 0 );
-      set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
-      set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
-      nucleiCounter = nucleiCounter+1;
+      cm = jet( numCells );
+      colormap( cm );
+      minNC = min(gp)
+      maxNC = max(gp)
+      %colorbar( 'Ytick', [0, numCells/2, numCells], 'Yticklabel', {minNC, maxNC} );
+      y = floor( ((gp-minNC)/range( gp )) * (numCells-1) ) + 1;
+      
+%       if draw3DGraph == 1 && triangulationType == 1
+%         tetramesh(tri, 'FaceColor', cm( 2, : ), 'FaceAlpha', 0.0, 'EdgeAlpha', 0.1 );
+%       end
+      
+      numCellFiles = maxCF-minCF+1;
+      cFToGP = cell( numCellFiles, 1 );
+      % draw an ellipsoid for each cell
+      for c=1:numCells
+        % get position of current cell
+        if triangulationType == 1
+          p = [ tri.Points( c, 1 ) tri.Points( c, 2 ) tri.Points( c, 3 ) ];
+        else
+          p = [ matPos( c, 1 ) matPos( c, 2 ) matPos( c, 3 ) ];
+        end
+        
+        if draw3DGraph == 1 && drawDistributions == 0
+          % transform points to fit into viewing types
+          p = projectOnPlane( p, planePos, u, v );
+          p = transformPoint3d( p, TF );
+        end
+        
+        % separate the gp values into each cell file
+        pureCellFile = cellFileMap( idToCF( c, 1 ) );
+        % shift to start
+        cf = pureCellFile - minCF + 1;
+        cFToGP{ cf, 1 } = [ cFToGP{ cf, 1 } gp( c, 1 ) ];
+        
+        if draw3DGraph == 1 %&& cellFileType == pureCellFile
+          color = cm( y(c, 1), : );
+          [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
+            drawEllipse3d( p(1), p(2), p(3), radEllip, radEllip, 0, 0 );
+          set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
+          set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
+          nucleiCounter = nucleiCounter+1;
+        end
+      end
+      
+      if drawDistributions == 0 && draw3DGraph == 1
+        colorbar
+        caxis( [minNC, maxNC] )
+      end
+      
+      hold off
+      % generate histogram for each cell file
+      hi = cell( numCellFiles, 1 );
+      for cf=1:numCellFiles
+        hi{ cf, 1 } = hist( cFToGP{ cf, 1 }, numBins );
+      end
+      hold on
+      
+      if drawDistributions == 1
+        x = linspace( minNC, maxNC, numBins );
+        y = zeros( numBins, numCellFiles );
+        for cf=1:numCellFiles
+          for b=1:numBins
+            y( b, cf ) = y( b, cf ) + hi{ cf, 1 }( 1, b );
+          end
+        end
+        xplot = 1:numel(x);
+        ba = bar( xplot, y, 1, 'stacked' );
+        %ax = gca;
+        %ax.XAxis.Tick = xplot;
+        %ax.XAxis.TickLabel = x;
+        %ax.XAxis.TickLabelFormat = '%,.1f';
+        set( gca, 'XTick', xplot);
+        NumTicks = 8;
+        L = get(gca,'XLim');
+        set(gca,'XTick',linspace(L(1),L(2),NumTicks))
+        if pl == 2 || pl == 4
+          set( gca, 'XTickLabel', cellstr(num2str(x(:), '%.4f')) )
+        else
+          set( gca, 'XTickLabel', cellstr(num2str(x(:), '%.2f')) )
+        end
+        ba(1).FaceColor = 'black'; % -4
+        ba(2).FaceColor = 'black'; % -3
+        ba(3).FaceColor = 'red'; % -2
+        ba(4).FaceColor = 'green'; % -1
+        ba(5).FaceColor = 'blue'; % 0
+        ba(6).FaceColor = 'yellow'; % 1
+        ba(7).FaceColor = 'cyan'; % 2
+        ba(8).FaceColor = 'magenta'; % 3
+        T = [ 0.5, 0, 0.5 ; 0, 0, 0 ; 1, 0, 0 ; 0, 1, 0 ; 0, 0, 1 ; 1, 1, 0 ; 0, 1, 1 ; 1, 0, 1 ];
+        xsp = [ 0 ; 1/7 ; 2/7 ; 3/7 ; 4/7 ; 5/7 ; 6/7 ; 7/7 ];
+        custMap = interp1( xsp, T, linspace(0,1,8));
+        colormap( custMap )
+        colorbar
+        caxis( [minCF, maxCF] )
+      end
+      
+      % TODO
+      %     if drawVoronoi == 1 && triangulationType == 1
+      %       [ V, R ] = voronoiDiagram( tri );
+      %       for i=1:size( R, 1 )
+      %         indVert = R{i};
+      %         vertices = V( indVert, : );
+      %         vertices( 1, : ) = [];
+      %         if size( vertices( :, 1 ), 1 ) > 3
+      %           %K = convhulln( vertices );
+      %           k = boundary( vertices );
+      %           patch( vertices(k, 1), vertices(k, 2), vertices(k, 3) );
+      %         end
+      %       end
+      %     end
+      
+      hold off;
+      set( f,'nextplot','replacechildren' );
     end
-    
-    hold off;
-    set( f,'nextplot','replacechildren' );
   end
+  if draw3DGraph == 1
+    filePath = strcat( imageOutputPath, rawDataStr( 1, chosenData ), '_T', digit, num2str(curT), '_Data', '.png' );
+  elseif drawDistributions == 1
+    filePath = strcat( imageOutputPath, rawDataStr( 1, chosenData ), '_T', digit, num2str(curT), '_Distribution', '.png' );
+  end
+  export_fig( gcf, char(filePath), '-m2', '-png' );
 end
-  

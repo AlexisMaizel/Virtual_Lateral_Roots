@@ -1,5 +1,5 @@
 function [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep,...
-  minX, minY, minZ, maxX, maxY, maxZ ] = readRawData( dataStr )
+  minX, minY, minZ, maxX, maxY, maxZ, cellFileMap, minCF, maxCF ] = readRawData( dataStr )
 storeOnlyLastPrecursorInfo = 1;
 % reading raw data
 path = strcat( '../FinalVLRForMatlab/', dataStr, '.csv' );
@@ -78,6 +78,8 @@ minZ = min( ZCol );
 maxX = max( XCol );
 maxY = max( YCol );
 maxZ = max( ZCol );
+minCF = min( CFCol );
+maxCF = max( CFCol );
 
 cellData = cell( dimData, 9 );
 cellFileMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
