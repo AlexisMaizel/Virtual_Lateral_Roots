@@ -1,9 +1,9 @@
 setWorkingPathProperties()
 
-chosenData = 1;
+chosenData = 5;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' };
-startT = 300;
+startT = 1;
 endT = 300;
 
 radEllip = 5;
@@ -17,6 +17,7 @@ viewOffsets = [ 100 100 100 250 250 250 ];
 % 2 -> side
 % 3 -> radial
 cView = 2;
+viewStr = { 'Top' 'Side' 'Radial' };
 
 % use triangulation based on delaunay or alpha shape
 % 1 -> convex hull
@@ -27,10 +28,12 @@ triangulationType = 1;
 cellFileType = 0;
 
 % drawing parameters
-draw3DGraph = 1;
-drawDistributions = 0;
-numBins = 40;
+draw3DGraph = 0;
+drawDistributions = 1;
+drawTriangulation = 0;
 drawVoronoi = 0;
+
+numBins = 20;
 
 % number of generated graph properties each displayed in a different
 % subplot
@@ -88,6 +91,10 @@ elseif cView == 2
   dir = coeff(:,3);
   u = coeff(:,1);
   v = coeff(:,2);
+  % invert pc to get the correct position of the dome
+  if chosenData == 2 || chosenData == 3
+    v = v .* -1;
+  end
 elseif cView == 3
   dir = -coeff(:,1);
   u = -coeff(:,3);
@@ -128,7 +135,7 @@ mkdir( char(imageOutputPath) );
 
 nucleiCounter = 1;
 % loop over all time steps
-for curT=startT:endT
+for curT=startT:49:endT
   if curT < 10
     digit = '00';
   elseif curT < 100
@@ -143,8 +150,7 @@ for curT=startT:endT
   hideHandle( ELLIPPATCH );
   
   for pl=1:numGraphProperties
-    subplot( numGraphProperties/2, numGraphProperties/2, pl )
-    hold on;
+    subplot( numGraphProperties/2, numGraphProperties/2, pl, 'replace' )
     viewOffset = viewOffsets( chosenData );
     if drawDistributions == 0 && draw3DGraph == 1
       axis( [ minAxes(1)-viewOffset maxAxes(1)+viewOffset...
@@ -153,7 +159,9 @@ for curT=startT:endT
         minAxes(3)-viewOffset maxAxes(3)+viewOffset ] );
     end
     axis on
-    daspect( [ 1 1 1 ] );
+    if draw3DGraph == 1 && drawDistributions == 0
+      daspect( [ 1 1 1 ] );
+    end
     
     grid off;
     xlabel('X');
@@ -228,18 +236,19 @@ for curT=startT:endT
       
       cm = jet( numCells );
       colormap( cm );
-      minNC = min(gp)
-      maxNC = max(gp)
+      minNC = min(gp);
+      maxNC = max(gp);
       %colorbar( 'Ytick', [0, numCells/2, numCells], 'Yticklabel', {minNC, maxNC} );
       y = floor( ((gp-minNC)/range( gp )) * (numCells-1) ) + 1;
       
-%       if draw3DGraph == 1 && triangulationType == 1
-%         tetramesh(tri, 'FaceColor', cm( 2, : ), 'FaceAlpha', 0.0, 'EdgeAlpha', 0.1 );
-%       end
+      if drawTriangulation == 1 && triangulationType == 1
+        tetramesh(tri, 'FaceColor', cm( 2, : ), 'FaceAlpha', 0.0, 'EdgeAlpha', 0.1 );
+      end
       
       numCellFiles = maxCF-minCF+1;
       cFToGP = cell( numCellFiles, 1 );
       % draw an ellipsoid for each cell
+      hold on
       for c=1:numCells
         % get position of current cell
         if triangulationType == 1
@@ -260,7 +269,7 @@ for curT=startT:endT
         cf = pureCellFile - minCF + 1;
         cFToGP{ cf, 1 } = [ cFToGP{ cf, 1 } gp( c, 1 ) ];
         
-        if draw3DGraph == 1 %&& cellFileType == pureCellFile
+        if draw3DGraph == 1 && cellFileType == pureCellFile
           color = cm( y(c, 1), : );
           [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
             drawEllipse3d( p(1), p(2), p(3), radEllip, radEllip, 0, 0 );
@@ -275,51 +284,9 @@ for curT=startT:endT
         caxis( [minNC, maxNC] )
       end
       
-      hold off
-      % generate histogram for each cell file
-      hi = cell( numCellFiles, 1 );
-      for cf=1:numCellFiles
-        hi{ cf, 1 } = hist( cFToGP{ cf, 1 }, numBins );
-      end
-      hold on
-      
       if drawDistributions == 1
-        x = linspace( minNC, maxNC, numBins );
-        y = zeros( numBins, numCellFiles );
-        for cf=1:numCellFiles
-          for b=1:numBins
-            y( b, cf ) = y( b, cf ) + hi{ cf, 1 }( 1, b );
-          end
-        end
-        xplot = 1:numel(x);
-        ba = bar( xplot, y, 1, 'stacked' );
-        %ax = gca;
-        %ax.XAxis.Tick = xplot;
-        %ax.XAxis.TickLabel = x;
-        %ax.XAxis.TickLabelFormat = '%,.1f';
-        set( gca, 'XTick', xplot);
-        NumTicks = 8;
-        L = get(gca,'XLim');
-        set(gca,'XTick',linspace(L(1),L(2),NumTicks))
-        if pl == 2 || pl == 4
-          set( gca, 'XTickLabel', cellstr(num2str(x(:), '%.4f')) )
-        else
-          set( gca, 'XTickLabel', cellstr(num2str(x(:), '%.2f')) )
-        end
-        ba(1).FaceColor = 'black'; % -4
-        ba(2).FaceColor = 'black'; % -3
-        ba(3).FaceColor = 'red'; % -2
-        ba(4).FaceColor = 'green'; % -1
-        ba(5).FaceColor = 'blue'; % 0
-        ba(6).FaceColor = 'yellow'; % 1
-        ba(7).FaceColor = 'cyan'; % 2
-        ba(8).FaceColor = 'magenta'; % 3
-        T = [ 0.5, 0, 0.5 ; 0, 0, 0 ; 1, 0, 0 ; 0, 1, 0 ; 0, 0, 1 ; 1, 1, 0 ; 0, 1, 1 ; 1, 0, 1 ];
-        xsp = [ 0 ; 1/7 ; 2/7 ; 3/7 ; 4/7 ; 5/7 ; 6/7 ; 7/7 ];
-        custMap = interp1( xsp, T, linspace(0,1,8));
-        colormap( custMap )
-        colorbar
-        caxis( [minCF, maxCF] )
+        drawCellFileBar( minNC, maxNC, numCellFiles, numBins, cFToGP,...
+          pl, minCF, maxCF );
       end
       
       % TODO
@@ -337,14 +304,17 @@ for curT=startT:endT
       %       end
       %     end
       
-      hold off;
-      set( f,'nextplot','replacechildren' );
+      %hold off;
+      %set( f,'nextplot','replacechildren' );
     end
   end
+  
   if draw3DGraph == 1
-    filePath = strcat( imageOutputPath, rawDataStr( 1, chosenData ), '_T', digit, num2str(curT), '_Data', '.png' );
-  elseif drawDistributions == 1
-    filePath = strcat( imageOutputPath, rawDataStr( 1, chosenData ), '_T', digit, num2str(curT), '_Distribution', '.png' );
+    suffixStr = strcat( '_Data_', viewStr( 1, cView ), '_CF', num2str(cellFileType) );
+  else
+    suffixStr = strcat( '_Distribution_', viewStr( 1, cView ), '_CF', num2str(cellFileType) );
   end
+  
+  filePath = strcat( imageOutputPath, rawDataStr( 1, chosenData ), '_T', digit, num2str(curT), suffixStr, '.png' );
   export_fig( gcf, char(filePath), '-m2', '-png' );
 end

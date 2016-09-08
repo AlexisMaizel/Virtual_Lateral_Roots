@@ -35,22 +35,23 @@ for i=1:numCCs
     cellShapes = [ cellShapes ; { S( i, : ).Centroid, remainingCCs, cm( remainingCCs, : ) } ];
   end
 end
+% TODO
 % if it is the first time step store for each remaining cell its
 % centroid and its unique color for identifcation of cell tracks
-if first == 1
-  cellTracks( t ) = cellShapes;
-else
-  % else consider the initial set of values from the last time step and
-  % find the nearest neighbor of the current extracted cell shape and
-  % store it in the cellTracks map
-  valueSet = values( cellTracks( t-1 ) );
-  % find for each cell shape in the current time step the nearest neighbor
-  % in the last time step and create a cell track between them
-  rows = size( cellShapes, 1 );
-  for r=1:rows
-    % TODO
-  end
-end
+% if first == 1
+%   cellTracks( t ) = cellShapes;
+% else
+%   % else consider the initial set of values from the last time step and
+%   % find the nearest neighbor of the current extracted cell shape and
+%   % store it in the cellTracks map
+%   valueSet = values( cellTracks( t-1 ) );
+%   % find for each cell shape in the current time step the nearest neighbor
+%   % in the last time step and create a cell track between them
+%   rows = size( cellShapes, 1 );
+%   for r=1:rows
+%     % TODO
+%   end
+% end
 fclose(fileID);
 remainingCCs
 hold off

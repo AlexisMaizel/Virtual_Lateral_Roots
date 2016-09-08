@@ -3,7 +3,7 @@ setWorkingPathProperties()
 chosenData = 6;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' '20160706' };
-startT = 50;
+startT = 43;
 endT = 50;
 
 %showDSLT = 0;
@@ -56,10 +56,11 @@ tic
 for lineHalfLength = 11:2:11
   for length = 9:2:9
     lineSteps = lineHalfLength*2 + 1;
-    plotIndex = 1;
+    
     %L = lineHalfLength
     %R = length
     for t=startT:endT
+      plotIndex = 1;
       X = sprintf( 'Time step %d', t );
       disp(X)
       if t < 10
@@ -99,7 +100,15 @@ for lineHalfLength = 11:2:11
         if showMIPs == 1
           winHeight = winHeight/4;
         end
-        f = figure( 'Name', 'MembraneSegmentation', 'Position', [ 100 50 winWidth winHeight ] );
+        title = strcat( 'MembSeg_T', num2str(t) );
+        f = figure( 'Name', char(title), 'Position', [ 100 50 winWidth winHeight ] );
+        % activate orbit rotation by default
+        cameratoolbar( 'SetMode', 'orbit' );
+        % activate none coord system by default for not resetting the camera up
+        % vector when rotating
+        cameratoolbar( 'SetCoordSys', 'none' );
+        % show camera toolbar by default
+        cameratoolbar( 'Show' );
       end
       
       xMinMax = [ 0 width ];
