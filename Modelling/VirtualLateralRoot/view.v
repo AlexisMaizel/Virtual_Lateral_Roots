@@ -11,7 +11,7 @@ SurfaceType: 0 // type of surface: 0 -> side view, 1 -> radial view
 UseAutomaticContourPoints: false // use contour points that are generated automatically
 InitialSituationType: 0 // forced division situation at the beginning; can be 0, 1, 2, or 3 -> 0: not hardwired at the beginning, 1: force the initial situation beginning with two founder cells that divide anticlinally in a 1/3:2/3 ratio, 2: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards periclinally resulting in 6 cells, 3: force the initial situation beginning with two founder cells that first divide anticlinally in a 1/3:2/3 ratio and afterwards anticlinally again resulting in 6 cells
 CenterOfMassBasedOnTriangleFan: true // compute the center of mass based on the center of a triangle fan of all boundary nodes
-Loop: false
+Loop: true
 AvoidTrianglesThreshold: 15 // in [0, 100] percentage distance threshold in order to avoid triangle cells; example: 20 -> 20% of total length of cell wall is the minimum distance that should be guaranteed between division line end point and junction of cell wall
 LoadLastModel: false // if true load the last created model for which this variable was set to false -> this is required to rerun models that are generated with randomized parameters
 OnlyGrowthInHeight: true // the idealized bezier surface changes in width and height -> setting this parameter to true results in a bezier surface only increasing in height
