@@ -1,4 +1,5 @@
-function [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] = readRawData( dataStr )
+function [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep,...
+  minX, minY, minZ, maxX, maxY, maxZ, cellFileMap, minCF, maxCF ] = readRawData( dataStr )
 storeOnlyLastPrecursorInfo = 1;
 % reading raw data
 path = strcat( '../FinalVLRForMatlab/', dataStr, '.csv' );
@@ -68,7 +69,19 @@ while (l < numLines+1)
   end
 end
 
-cellData = cell( dimData, 8 );
+% get bounding box are by determining
+% min and max of x/y/z values
+% loop over all time steps
+minX = min( XCol );
+minY = min( YCol );
+minZ = min( ZCol );
+maxX = max( XCol );
+maxY = max( YCol );
+maxZ = max( ZCol );
+minCF = min( CFCol );
+maxCF = max( CFCol );
+
+cellData = cell( dimData, 9 );
 cellFileMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'int32' );
 divisionMap = containers.Map( 'KeyType', 'int32', 'ValueType', 'any' );
 
@@ -88,18 +101,18 @@ while (l < numLines+1)
   % if the id is -1 than the cell starts at the root which we use as an
   % identification of non daughter cells
   % we set this value for all points interpolated in between
-  lastPrecur = getLastPrecursorID( PCol(l) );
+  lastDivisionPrecur = getLastPrecursorID( PCol(l) );
   
   % insert first line
   if storeOnlyLastPrecursorInfo == 1
-    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) lastPrecur};
+    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) lastDivisionPrecur lastDivisionPrecur};
   else
-    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) PCol(l)};
+    cellData( nl, : ) = {firstCellId XCol(l) YCol(l) ZCol(l) TCol(l) LCol(l) CFCol(l) PCol(l) lastDivisionPrecur};
   end
   nl = nl+1;
   
-  if lastPrecur ~= -1
-    childrenData = [ childrenData ; double(lastPrecur) double(TCol(l)) XCol(l) YCol(l) ZCol(l) ];
+  if lastDivisionPrecur ~= -1
+    childrenData = [ childrenData ; double(lastDivisionPrecur) double(TCol(l)) XCol(l) YCol(l) ZCol(l) ];
   end
   
   % interpolate between cell positions
@@ -117,33 +130,21 @@ while (l < numLines+1)
       z = double(1-k) * ZCol(l) + double(k) * ZCol(l+1);
       % insert all relevant data into main data structure
       if storeOnlyLastPrecursorInfo == 1
-        % TODO: have to check why I set this to -1 before
-        %cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) -1};
         % if we interpolate the nodes between the root and the first
         % division then use the current cell ID as the last precursor ID
-        if lastPrecur == -1
-          cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) firstCellId};
-        else
-          cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) lastPrecur};
-        end
+        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) lastDivisionPrecur firstCellId};
       else
-        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) PCol(l)};
+        cellData( nl, : ) = {firstCellId x y z t LCol(l) CFCol(l) PCol(l) lastDivisionPrecur};
       end
       nl = nl+1;
     end
     
     % insert last line
     if storeOnlyLastPrecursorInfo == 1
-      % TODO: have to check why I set this to -1 before
-      %cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) -1};
       nextLastPrecur = getLastPrecursorID( PCol(l+1) );
-      if nextLastPrecur == -1
-        cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) firstCellId};
-      else
-        cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) nextLastPrecur};
-      end
+      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) nextLastPrecur firstCellId};
     else
-      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) PCol(l+1)};
+      cellData( nl, : ) = {firstCellId XCol(l+1) YCol(l+1) ZCol(l+1) TCol(l+1) LCol(l+1) CFCol(l+1) PCol(l+1) nextLastPrecur};
     end
     nl = nl+1;
     % update cell file map

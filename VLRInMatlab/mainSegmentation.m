@@ -1,23 +1,33 @@
-cd('C:\Jens\VLRRepository\VLRInMatlab')
-addpath( genpath( '/geom3d/' ) );
-addpath( genpath( '/export_fig/' ) );
-addpath( genpath( '/@tree/' ) );
+setWorkingPathProperties()
 
-chosenData = 3;
+chosenData = 6;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
-rawDataStr = { '120830' '121204' '121211' '130508' '130607' };
-inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chosenData ), '\changed_t' );
-startT = 150;
-endT = 150;
-radEllip = 10;
+rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' };
+startT = 10;
+endT = 10;
+radEllip = 5;%10
 lineWidth = 1;
-numPlots = 4;
+if chosenData < 6
+  numPlots = 6;
+else
+  numPlots = 5;
+end
 numColorsCells = 40;
 cmapNumCells = colorcube(numColorsCells);
 ELLIP = [];
 ELLIPPATCH = [];
 nucleiCounter = 1;
 spatialNormalization = 0;
+
+if chosenData < 6
+  anisotropyZ = 2.;
+elseif chosenData == 6
+  anisotropyZ = 1.;
+elseif chosenData == 7
+  anisotropyZ = 4.;
+elseif chosenData == 8
+  anisotropyZ = 7.5;
+end
 
 % parameters for finding connected components (cc)
 % both parameters have to be chosen carefully depending on
@@ -26,86 +36,86 @@ spatialNormalization = 0;
 % thres = 1000 -> minV = 200, voxelC = 2700
 % thres = 900 -> minV = 400, voxelC = 3200
 % thres = 750 -> minV = 200, voxelC = 3200
-minVoxelCount = 300;
-voxelCountPerCell = 3300;
+% 500 for 121211
+% 1500 for 20160426
+%minVoxelCount = 1500;
+minVoxelCount = 150;
+% 3600 for 121211
+% 15000 for 20160426
+% 20000 for 20160428
+% 6000 for agressiveThresholding and 10000 for trained one
+voxelCountPerCell = 10000;%10000;%4600;
+%voxelCountPerCellEnd = 13000;%4600;
 
 storeTIFF = 1;
 storePNGs = 1;
-cellRadius = 17;
+storeCSVResult = 0;
 
 % output format of values
-format longG
+format shortG %longG %shortG
 
+% input path
+inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chosenData ) );
 % path to image output
-imageDir = strcat( 'I:/SegmentationResults/Matlab/Segmentation/' );
-mkdir( char(imageDir) );
+imageOutputPath = strcat( 'I:\SegmentationResults\Matlab\Segmentation\', rawDataStr( 1, chosenData ), '\' );
+mkdir( char(imageOutputPath) );
 
 % read raw data (manual segmentation and tracking)
-[ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] =...
-  readRawData( dataStr( 1, chosenData ) );
+if chosenData < 6
+  [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] =...
+    readRawData( dataStr( 1, chosenData ) );
+end
 
 %generateTreeStructureFromData( cellData, size(numCellsPerTimeStep,1), 1, 20 );
 
 if storePNGs == 1
-  f = figure( 'Name', 'Segmentation', 'Position', [ 50 50 1600 800 ] );
+  if chosenData < 6
+    w = 1800;
+    h = 900;
+  elseif chosenData == 7
+    w = 1000;
+    h = 750;
+  else
+    w = 1500;
+    h = 750;
+  end
+  f = figure( 'Name', 'Segmentation', 'Position', [ 50 50 w h ] );
 end
 
 % start measuring elapsed time
 tic
 
 for t=startT:endT
-  msg = strcat( 'Timestep', {' '}, num2str(t) );
-  disp( msg );
-  if storePNGs == 1
-    % subplot settings
-    clf(f)
-    for p=1:numPlots
-      subplot( numPlots/2, numPlots/2, p );
-      hold on
-      if spatialNormalization == 0
-        xMinMax = [ -50 750 ];
-        if p == numPlots
-          yMinMax = [ 0 400 ];
-        else
-          yMinMax = [ -450 -50 ];
-        end
-      else
-        xMinMax = [ -400 400 ];
-        yMinMax = [ -200 200 ];
-      end
-      % axis([xmin xmax ymin ymax zmin zmax cmin cmax])
-      axis( [ xMinMax(1) xMinMax(2) yMinMax(1) yMinMax(2) -10000 10000 0 1 ] );
-      axis on
-      daspect( [ 1 1 1 ] );
-      xlabel('X');
-      ylabel('Y');
-      zlabel('Z');
-      camproj( 'orthographic' );
-    end
-  end
-        
-  % image output options
   if t < 10
-    fileName = strcat( inputPath, '00', num2str(t), '_c1.tif' );
-    digit = strcat( rawDataStr( 1, chosenData ), 'TimeStepSeg', '_00' );
-    newFileName = strcat( inputPath, '00', num2str(t), '_c1M.tif' );
+    digit = '00';
   elseif t < 100
-    fileName = strcat( inputPath, '0', num2str(t), '_c1.tif' );
-    digit = strcat( rawDataStr( 1, chosenData ), 'TimeStepSeg', '_0' );
-    newFileName = strcat( inputPath, '0', num2str(t), '_c1M.tif' );
+    digit = '0';
   else
-    fileName = strcat( inputPath, num2str(t), '_c1.tif' );
-    digit = strcat( rawDataStr( 1, chosenData ), 'TimeStepSeg', '_' );
-    newFileName = strcat( inputPath, num2str(t), '_c1M.tif' );
+    digit = '';
   end
   
-  % get connected components
-  [S, cc, maxInt, imageStack] = findConnectedComponents( fileName, minVoxelCount, voxelCountPerCell );
+  %nucleiFileName = strcat( inputPath, '\changed_t', digit, num2str(t), '.tif' );
+  %nucleiFileName = strcat( inputPath, '\manThres_t', digit, num2str(t), '.tif' );
+  %nucleiFileName = strcat( 'I:\NewDatasets\Zeiss\20160427\red\cropped_spim_TL_slice', digit, num2str(t), '_Angle1.tif' );
+  nucleiFileName = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\nuclei\small_cropped_nuclei_T', digit, num2str(t), '_Angle1.tif' );
+  %nucleiFileName = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\nuclei\MAX_small_cropped_nuclei_T', digit, num2str(t), '_Angle1.tif' );
+  
+  %membraneFileName = strcat( inputPath, '\changed_membrane_t', digit, num2str(t), '.tif' );
+  %membraneFileName = strcat( 'I:\SegmentationResults\Matlab\Segmentation\20160427\Membrane\20160427_Membrane_T', digit, num2str(t), '.tif' );
+  %membraneFileName = strcat( 'I:\NewDatasets\Zeiss\20160427\green\cropped_spim_TL_slice', digit, num2str(t), '_Angle1.jpg' );
+  membraneFileName = strcat( 'I:\NewDatasets\ilastikWorkshopData\20160427\membrane\small_cropped_membrane_T', digit, num2str(t), '_Angle1.tif' );
+  
+  outputFileName = strcat( inputPath, '\preprocessed_t', digit, num2str(t), '.tif' );
+  [S, cc, intensities, width, height, slices] =...
+    identifyCellObjects( nucleiFileName, membraneFileName, minVoxelCount, voxelCountPerCell );
+  
   if storeTIFF == 1
-    generateCellShape( imageStack, cc, maxInt, cellRadius, newFileName );
+    generateCellShape( width, height, slices, cc, intensities, outputFileName );
   end
   
   if storePNGs == 1
+    setSubPlots( f, numPlots, chosenData, spatialNormalization, width, height, 0 );
+    
     % determine center of data points
     centerPosAuto = zeros(1, 3);
     numCellsAuto = 0;
@@ -114,14 +124,22 @@ for t=startT:endT
       centerPosAuto = centerPosAuto + cen;
       numCellsAuto = numCellsAuto+1;
     end
-    centerPosAuto = centerPosAuto./numCellsAuto;
+    if numCellsAuto ~= 0
+      centerPosAuto = centerPosAuto./numCellsAuto;
+    end
     
     % store all auto positions
     cellCounter = 1;
     X = zeros(numCellsAuto, 2);
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% automatic segmentation result before clustering %%%
-    ax1 = subplot( numPlots/2, numPlots/2, 1 );
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if chosenData < 6
+      ax1 = subplot( 2, numPlots/2, 1 );
+    else
+      ax1 = subplot( 2, (numPlots+1)/2, 1 );
+    end
     hold on
     
     numColorsArea = 0;
@@ -137,26 +155,34 @@ for t=startT:endT
       cen = S(i, :).Centroid;
       if spatialNormalization == 1
         cen = cen - centerPosAuto;
+      else
+        cen = [ cen(1) -cen(2)+height cen(3) ];
       end
       
       color = cmapArea( mod( areaSize-1, numColorsArea )+1, : );
       [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
-        drawEllipse3d( cen(1), -cen(2), cen(3), radEllip, radEllip, 0, 0 );
+        drawEllipse3d( cen(1), cen(2), cen(3), radEllip, radEllip, 0, 0 );
       set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
       set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
       nucleiCounter = nucleiCounter+1;
     end
     
     tit = strcat( 'AutoSegBefore\_', 'T', {' '}, num2str(t), ',',...
-      {' '}, '#Cells', {' '}, num2str(size(S,1)) );
+      {' '}, '#CCs', {' '}, num2str(size(S,1)) );
     title( char(tit) );
     
-    colormap(ax1, cmapArea)
-    colorbar
-    caxis([0, numColorsArea])
+%     colormap(ax1, cmapArea)
+%     colorbar
+%     caxis([0, numColorsArea])
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% automatic segmentation result before clustering without small ccs %%%
-    ax2 = subplot( numPlots/2, numPlots/2, 2 );
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if chosenData < 6
+      ax2 = subplot( 2, numPlots/2, 2 );
+    else
+      ax2 = subplot( 2, (numPlots+1)/2, 2 );
+    end
     hold on
     
     remainingCells = 0;
@@ -172,38 +198,48 @@ for t=startT:endT
       cen = S(i, :).Centroid;
       if spatialNormalization == 1
         cen = cen - centerPosAuto;
+      else
+        cen = [ cen(1) -cen(2)+height cen(3) ];
       end
       
       color = cmapArea( mod( areaSize-1, numColorsArea )+1, : );
       [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
-        drawEllipse3d( cen(1), -cen(2), cen(3), radEllip, radEllip, 0, 0 );
+        drawEllipse3d( cen(1), cen(2), cen(3), radEllip, radEllip, 0, 0 );
       set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
       set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
       nucleiCounter = nucleiCounter+1;
     end
     
     tit = strcat( 'AutoSegBeforeCropped\_', 'T', {' '}, num2str(t), ',',...
-      {' '}, '#Cells', {' '}, num2str(remainingCells) );
+      {' '}, '#CCs', {' '}, num2str(remainingCells) );
     title( char(tit) );
     
-    colormap(ax2, cmapArea)
-    colorbar
-    caxis([0, numColorsArea])
+%     colormap(ax2, cmapArea)
+%     colorbar
+%     caxis([0, numColorsArea])
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% automatic segmentation result after clustering %%%
-    ax3 = subplot( numPlots/2, numPlots/2, 3 );
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if chosenData < 6
+      ax3 = subplot( 2, numPlots/2, 3 );
+    else
+      ax3 = subplot( 2, (numPlots+1)/2, 3 );
+    end
     hold on
     
     for i=1:size(cc,1)
       cen = cc(i, :);
       if spatialNormalization == 1
         cen = cen - centerPosAuto;
+      else
+        cen = [ cen(1) -cen(2)+height cen(3) ];
       end
       X(cellCounter, :) = [ cen(1) cen(2) ];
       
       color = cmapNumCells( mod( cellCounter, numColorsCells )+1, : );
       [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
-        drawEllipse3d( cen(1), -cen(2), cen(3), radEllip, radEllip, 0, 0 );
+        drawEllipse3d( cen(1), cen(2), cen(3), radEllip, radEllip, 0, 0 );
       set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
       set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
       nucleiCounter = nucleiCounter+1;
@@ -211,7 +247,12 @@ for t=startT:endT
       cellCounter = cellCounter + 1;
     end
     
-    tit = strcat( 'AutoSegAfter\_', 'T', {' '}, num2str(t), ',',...
+    if storeCSVResult == 1
+      csvPath = strcat( imageOutputPath, rawDataStr( 1, chosenData ), '_T', digit, num2str(t), '.dat' );
+      csvwrite( char(csvPath), X );
+    end
+    
+    tit = strcat( 'AutoSeg\_', 'T', {' '}, num2str(t), ',',...
       {' '}, '#Cells', {' '}, num2str(numCellsAuto) );
     title( char(tit) );
     
@@ -219,44 +260,68 @@ for t=startT:endT
     %colorbar
     %caxis([0, numColorsCells])
     
-    %%% manual segmentation result %%%
-    ax4 = subplot( numPlots/2, numPlots/2, 4 );
-    hold on
-    
-    % store all manual positions
-    numCellsManual = numCellsPerTimeStep(t, 1);
-    cellCounter = 1;
-    Y = zeros(numCellsManual, 2);
-    
-    for j=1:dimData
-      if cellData{j, 5} == t
-        % get position of current cell
-        p = [ cellData{j, 2} cellData{j, 3} cellData{j, 4} ];
-        if spatialNormalization == 1
-          p = p - centerPosPerTimeStep( t, : );
-        end
-        Y(cellCounter, :) = [ p(1) p(2) ];
-        
-        color = cmapNumCells( mod( cellCounter, numColorsCells )+1, : );
-        [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
-          drawEllipse3d( p(1), p(2), p(3), radEllip, radEllip, 0, 0 );
-        set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
-        set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
-        nucleiCounter = nucleiCounter+1;
-        
-        cellCounter = cellCounter + 1;
-      end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%% MIP image of raw data %%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if chosenData < 6
+      ax4 = subplot( 2, numPlots/2, 4 );
+    else
+      ax4 = subplot( 2, (numPlots+1)/2, 4 );
     end
     
-    tit = strcat( 'ManualSeg\_', 'T', {' '}, num2str(t), ',',...
-      {' '}, '#Cells', {' '}, num2str(numCellsManual) );
+    h1 = showMIP( rawDataStr( 1, chosenData ), 0, t );
+    tit = strcat( 'rawMIP\_', 'T', {' '}, num2str(t) );
     title( char(tit) );
     
-    %colormap(ax4, cmapNumCells)
-    %colorbar
-    %caxis([0, numColorsCells])
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%% MIP image of thresholding %%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if chosenData < 6
+      ax5 = subplot( 2, numPlots/2, 5 );
+    else
+      ax5 = subplot( 2, (numPlots+1)/2, 5 );
+    end
+    h2 = showMIP( rawDataStr( 1, chosenData ), 1, t );
+    tit = strcat( 'thresholdMIP\_', 'T', {' '}, num2str(t) );
+    title( char(tit) );
     
-    filePath = strcat( imageDir, digit, num2str(t), '.png' );
+    if chosenData < 6
+      %%% manual segmentation result %%%
+      ax6 = subplot( 2, numPlots/2, 6 );
+      hold on
+      
+      % store all manual positions
+      numCellsManual = numCellsPerTimeStep(t, 1);
+      cellCounter = 1;
+      
+      for j=1:dimData
+        if cellData{j, 5} == t
+          % get position of current cell
+          p = [ cellData{j, 2} cellData{j, 3} cellData{j, 4} ];
+          if spatialNormalization == 1
+            p = p - centerPosPerTimeStep( t, : );
+          end
+          
+          color = cmapNumCells( mod( cellCounter, numColorsCells )+1, : );
+          [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
+            drawEllipse3d( p(1), p(2), p(3), radEllip, radEllip, 0, 0 );
+          set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
+          set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
+          nucleiCounter = nucleiCounter+1;
+          
+          cellCounter = cellCounter + 1;
+        end
+      end
+      
+      tit = strcat( 'ManualSeg\_', 'T', {' '}, num2str(t), ',',...
+        {' '}, '#Cells', {' '}, num2str(numCellsManual) );
+      title( char(tit) );
+      
+      %colormap(ax6, cmapNumCells)
+      %colorbar
+      %caxis([0, numColorsCells])
+    end
+    filePath = strcat( imageOutputPath, rawDataStr( 1, chosenData ), '_T', digit, num2str(t), '.png' );
     export_fig( gcf, char(filePath), '-m2', '-png' );
   end
 end
