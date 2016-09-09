@@ -1,9 +1,9 @@
 setWorkingPathProperties()
 
-chosenData = 5;
+chosenData = 3;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' };
-startT = 1;
+startT = 300;
 endT = 300;
 
 radEllip = 5;
@@ -28,8 +28,8 @@ triangulationType = 1;
 cellFileType = 0;
 
 % drawing parameters
-draw3DGraph = 0;
-drawDistributions = 1;
+draw3DGraph = 1;
+drawDistributions = 0;
 drawTriangulation = 0;
 drawVoronoi = 0;
 
@@ -285,8 +285,7 @@ for curT=startT:49:endT
       end
       
       if drawDistributions == 1
-        drawCellFileBar( minNC, maxNC, numCellFiles, numBins, cFToGP,...
-          pl, minCF, maxCF );
+        drawStackedBar( minNC, maxNC, numCellFiles, numBins, cFToGP, pl, 2 );
       end
       
       % TODO
