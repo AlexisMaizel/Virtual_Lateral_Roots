@@ -1,10 +1,22 @@
-function [] = drawStackedBar( minNC, maxNC, numStacks, numBins, cFToGP,...
+function [] = drawStackedBar( minNC, maxNC, numStacks, numBins, data,...
   pl, type )
 hold off
-% generate histogram for each cell file
+% generate histogram for each attribute (cell file or cell layer)
 hi = cell( numStacks, 1 );
-for cf=1:numStacks
-  hi{ cf, 1 } = hist( cFToGP{ cf, 1 }, numBins );
+if type == 2
+  for cf=1:numStacks
+    hi{ cf, 1 } = hist( data{ cf, 1 }, numBins );
+  end
+else
+  for cf=1:numStacks
+    % get complete data from map container
+    if isKey( data, cf ) == 1
+      vals = cell2mat( data( cf ) );
+      hi{ cf, 1 } = hist( vals, numBins );
+    else
+      hi{ cf, 1 } = hist( 0, numBins );
+    end
+  end
 end
 hold on
 % 
@@ -31,7 +43,7 @@ else
 end
 
 for t=1:NumTicks
-  labels{ 1, t } = num2str(x( floor(xIndex(1, t) ) ), prec );
+  labels{ 1, t } = num2str(x( round(xIndex(1, t) ) ), prec );
 end
 set( gca, 'XTick', xpos, 'XTickLabel', cellstr(labels) )
 % cell files
@@ -51,9 +63,10 @@ if type == 2
 else
   % cell layers
   cm = generateLayerColorMap();
+  colormap( cm );
   for c=1:numStacks
-     ba(c).FaceColor = cm( c, : );
+     ba(c).FaceColor = cm( mod( c-1, size(cm, 1) )+1, : );
   end
 end
-%colorbar
+colorbar
 %caxis( [minCF, maxCF] )

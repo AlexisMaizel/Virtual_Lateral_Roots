@@ -3,16 +3,24 @@ setWorkingPathProperties()
 chosenData = 1;
 dataStr = { 'BD' 'Random' };
 
-simulationSteps = 1;
-startT = 500;
+startT = 1;
+stepT = 20;
 endT = 500;
+% startS should always start with 1!!!!
+startS = 1;
+endS = 100;
 
 radEllip = 8;
 lineWidth = 1;
 
+% resolution of grid
+resGrid = 20;
+
 % drawing parameters
-drawGraph = 0;
-drawDistributions = 1;
+drawAverageGraph = 1;
+drawAverageDistribution = 0;
+draw2DGraph = 0;
+drawGrid = 0;
 drawVoronoi = 0;
 
 % graph coloring: 1 -> cell layering, 2 -> graph properties
@@ -52,36 +60,50 @@ set( gcf, 'color', [ 1 1 1 ] );
 ELLIP = [];
 ELLIPPATCH = [];
 LINES = [];
+GRIDTILES = [];
 
 imageOutputPath = strcat( 'I:\GraphTopologyAnalysis\', dataStr( 1, chosenData ), '\' );
 mkdir( char(imageOutputPath) );
 
+disp( 'Reading simlulation data' )
 tic
+maxS = endS;
+maxT = 500;
 % read simulation data
 [ cellData, connMat ] = readSimulationData( dataStr( 1, chosenData ),...
-  simulationSteps, endT );
+  maxS, maxT );
 toc
 
-curS = 1;
+totalMinAxes = [ -300 -50 -10 ];
+totalMaxAxes = [ 300 150 10 ];
 nucleiCounter = 1;
+
+disp( 'Traversing time steps' )
 tic
 % loop over all time steps
-for curT=startT:endT
-  if curT < 10
-    digit = '00';
-  elseif curT < 100
-    digit = '0';
-  else
-    digit = '';
-  end
-  
+for curT=startT:stepT:endT
+  tileGrid = cell( numGraphProperties, 1 );
+  cellLayers = cell( numGraphProperties, 1 );
   hideHandle( ELLIP );
   hideHandle( ELLIPPATCH );
   hideHandle( LINES );
+  hideHandle( GRIDTILES );
   
   for pl=1:numGraphProperties
     subplot( numGraphProperties/2, numGraphProperties/2, pl, 'replace' )
-    if drawGraph == 1
+    if drawGrid == 1
+      % initialize 2D grid
+      [ rows, columns ] =...
+        generate2DGrid(...
+        [totalMinAxes(1) totalMinAxes(2)],...
+        [totalMaxAxes(1) totalMaxAxes(2)], resGrid );
+    end
+    
+    tileGrid{ pl, 1 } = cell( rows*columns, 1 );
+    cellLayers{ pl, 1 } = containers.Map( 'KeyType', 'int32', 'ValueType', 'any' );
+    % remove all entries at the beginning of each time step
+    %remove( cellLayers{ pl, 1 }, keys( cellLayers{ pl, 1 } ) );
+    if drawAverageGraph == 1 || draw2DGraph == 1
       axis( [ -300 300 -50 150 ] );
     end
     axis on
@@ -90,98 +112,157 @@ for curT=startT:endT
     ylabel('Y');
     zlabel('Z');
     title( strcat( dataStr( 1, chosenData ), ' Time Step ', num2str(curT), '\_', char( graphPropString( 1, pl ) ) ) );
-    if drawGraph == 1
+    if drawAverageGraph == 1 || draw2DGraph == 1
       daspect( [ 1 1 1 ] );
     end
   end
   
-  % adjacency matrix of current time step
-  adjaMat = connMat{ curS, 1 }{ curT, 1 };
-  % and cell data information
-  data = cellData{ curS, 1 }{ curT, 1 };
-  
-  % number of cells in the current time step
-  numCells = size( adjaMat, 1 );
-  
-  % compute graph properties
-  G = graph( adjaMat );
-  
-  % max number of cell layers
-  numCellLayers = max( data( :, 7 )+1 );
-  
-  for pl=1:numGraphProperties
-    subplot( numGraphProperties/2, numGraphProperties/2, pl )
+  % loop over all simulation steps
+  for curS=startS:endS    
+    % adjacency matrix of current time step
+    adjaMat = connMat{ curS, 1 }{ curT, 1 };
+    % and cell data information
+    data = cellData{ curS, 1 }{ curT, 1 };
     
-    if pl == 1
-      gp = centrality( G, 'degree' );
-    elseif pl == 2
-      gp = centrality( G, 'closeness' );
-    elseif pl == 3
-      gp = centrality( G, 'betweenness' );
-    elseif pl == 4
-      gp = centrality( G, 'pagerank' );
-    end
+    % number of cells in the current time step
+    numCells = size( adjaMat, 1 );
     
-    if graphColoring == 1
-      cm = generateLayerColorMap();
-    else
-      cm = jet( numCells );
-    end
-    colormap( cm );
-    minNC = min(gp);
-    maxNC = max(gp);
-    if minNC ~= maxNC
-      cellIndex = floor( ((gp-minNC)/range( gp )) * (numCells-1) ) + 1;
-    else
-      cellIndex = gp;
-    end
+    % compute graph properties
+    G = graph( adjaMat );
     
-    cellLayerToGP = cell( numCellLayers, 1 );
-    
-    % draw an ellipsoid for each cell
-    hold on
-    for c=1:numCells
-      % get position of current cell
-      p = [ data( c, 4 ) data( c, 5 ) 10 ];
-      layer = data( c, 7 )+1;
-      
-      % separate the gp values into each cell layer
-      cellLayerToGP{ layer, 1 } = [ cellLayerToGP{ layer, 1 } gp( c, 1 ) ];
-      
-      if drawGraph == 1
-        if graphColoring == 1
-          color = cm( layer, : );
-        else
-          color = cm( cellIndex(c, 1), : );
-        end
-        [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
-          drawEllipse3d( p(1), p(2), p(3), radEllip, radEllip, 0, 0 );
-        set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
-        set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
-        nucleiCounter = nucleiCounter+1;
+    for pl=1:numGraphProperties
+      subplot( numGraphProperties/2, numGraphProperties/2, pl )
+      if pl == 1
+        gp = centrality( G, 'degree' );
+      elseif pl == 2
+        gp = centrality( G, 'closeness' );
+      elseif pl == 3
+        gp = centrality( G, 'betweenness' );
+      elseif pl == 4
+        gp = centrality( G, 'pagerank' );
       end
-    end
-    
-    % draw lines
-    if drawGraph == 1
-      gplot2( adjaMat, data( :, 4:5 ), '-k', 'LineWidth', lineWidth );
-      colorbar
-      caxis( [minNC, maxNC] )
-    end
-    
-    if drawDistributions == 1
-      drawStackedBar( minNC, maxNC, numCellLayers, numBins, cellLayerToGP,...
-        pl, 1 );
+      
+      if draw2DGraph == 1
+        if graphColoring == 1
+          cm = generateLayerColorMap();
+        else
+          numColors = 20;
+          cm = jet( numColors );
+        end
+        colormap( cm );
+        minNC = min(gp);
+        maxNC = max(gp);
+        if minNC ~= maxNC
+          colorIndex = round( ((gp-minNC)/range( gp )) * (numColors-1) ) + 1;
+        else
+          colorIndex = ones( size( gp ) );
+        end
+      end
+      
+      % draw an ellipsoid for each cell
+      hold on
+      for c=1:numCells
+        % get position of current cell
+        p = [ data( c, 4 ) data( c, 5 ) 10 ];
+        layer = data( c, 7 )+1;
+        % separate the gp values into each cell layer
+        if isKey( cellLayers{ pl, 1 }, layer ) == 1
+          tempCell = cellLayers{ pl, 1 }( layer );
+          dim = size( tempCell, 1 );
+          tempCell{ dim+1, 1 } = gp( c, 1 );
+          cellLayers{ pl, 1 }( layer ) = tempCell;
+        else
+          tempCell = cell( 1, 1 );
+          tempCell{ 1, 1 } = gp( c, 1 );
+          cellLayers{ pl, 1 }( layer ) = tempCell;
+        end
+        
+        % locate the cell within the grid and assign its gp value to the
+        % grid in order to average over the data in each tile
+        tileIndex = getTileIndex( p, [totalMinAxes(1) totalMinAxes(2)],...
+          [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns );
+        tileGrid{ pl, 1 }{ tileIndex } = [ tileGrid{ pl, 1 }{ tileIndex }; gp( c, 1 ) ];
+        
+        if draw2DGraph == 1
+          if graphColoring == 1
+            color = cm( mod( layer-1, size(cm, 1) )+1, : );
+          else
+            color = cm( colorIndex( c, 1 ), : );
+          end
+          [ ELLIP(nucleiCounter), ELLIPPATCH(nucleiCounter) ] =...
+            drawEllipse3d( p(1), p(2), p(3), radEllip, radEllip, 0, 0 );
+          set( ELLIP(nucleiCounter), 'color', color, 'LineWidth', lineWidth );
+          set( ELLIPPATCH(nucleiCounter), 'FaceColor', color, 'FaceLighting', 'none' );
+          nucleiCounter = nucleiCounter+1;
+        end
+      end
+      
+      % draw lines
+      if draw2DGraph == 1
+        gplot2( adjaMat, data( :, 4:5 ), '-k', 'LineWidth', lineWidth );
+        lineCounter = lineCounter + 1;
+        colorbar
+        if minNC ~= maxNC
+          caxis( [minNC, maxNC] )
+        end
+      end
     end
   end
   
-  if drawGraph == 1
+  if drawAverageGraph == 1
+    % combine all simulation results for the current time step
+    % get overall min and max values of the graph properties
+    numColors = 20;
+    cm = jet( numColors );
+    colormap( cm );
+    hold on
+    tileCounter = 1;
+    for pl=1:numGraphProperties
+      subplot( numGraphProperties/2, numGraphProperties/2, pl )
+      tg = cell2mat( tileGrid{ pl, 1 } );
+      totalMinNC = min( tg, [], 1 );
+      totalMaxNC = max( tg, [], 1 );
+      colorbar
+      if totalMinNC ~= totalMaxNC
+        caxis( [totalMinNC, totalMaxNC] )
+      end
+      for gt=1:rows*columns
+        numValues = size( tileGrid{ pl, 1 }{ gt }, 1 );
+        if numValues ~= 0
+          averageVal = mean( tileGrid{ pl, 1 }{ gt } );
+          if totalMinNC ~= totalMaxNC
+            colorIndex = round( ((averageVal-totalMinNC)/(totalMaxNC-totalMinNC)) * (numColors-1) ) + 1;
+          else
+            colorIndex = 1;
+          end
+          color = cm( colorIndex, : );
+          GRIDTILES( tileCounter ) = drawColoredTile( gt,...
+            [totalMinAxes(1) totalMinAxes(2)],...
+            [totalMaxAxes(1) totalMaxAxes(2)], resGrid, rows, columns, color );
+          tileCounter = tileCounter + 1;
+        end
+      end
+    end
+  end
+  
+  if drawAverageDistribution == 1
+    for pl=1:numGraphProperties
+      subplot( numGraphProperties/2, numGraphProperties/2, pl )
+      tg = cell2mat( tileGrid{ pl, 1 } );
+      totalMinNC = min( tg, [], 1 );
+      totalMaxNC = max( tg, [], 1 );
+      drawStackedBar( totalMinNC, totalMaxNC, size( cellLayers{ pl, 1 }, 1 ),...
+        numBins, cellLayers{ pl, 1 }, pl, 1 );
+    end
+  end
+  if drawAverageGraph == 1
     suffixStr = '_Data';
   else
     suffixStr = '_Distribution';
   end
-  
-  filePath = strcat( imageOutputPath, dataStr( 1, chosenData ), '_T', digit, num2str(curT), suffixStr, '.png' );
+  filePath = strcat( imageOutputPath, dataStr( 1, chosenData ), num2str(curT),...
+    '_T', num2str(startT), '-', num2str(endT),...
+    '_S', num2str(startS), '-', num2str(endS), suffixStr, '.png' );
   export_fig( gcf, char(filePath), '-m2', '-png' );
 end
 toc
