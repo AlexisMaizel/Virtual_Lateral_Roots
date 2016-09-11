@@ -430,7 +430,9 @@ void exportAdjacencyMatrixCellProp( const std::string &filename,
         << c->parentId << " "
         << c->center.i() << " "
         << c->center.j() << " "
-        << c->center.k() << "\n";
+        << c->center.k() << " "
+        << c->layerValue-1 << " "
+        << c->divisionSequence << "\n";
   }
   
   out.close();  
