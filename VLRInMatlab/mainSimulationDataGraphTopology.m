@@ -17,11 +17,16 @@ lineWidth = 1;
 resGrid = 20;
 
 % drawing parameters
-drawAverageGraph = 1;
-drawAverageDistribution = 0;
+drawAverageGraph = 0;
+drawAverageDistribution = 1;
 draw2DGraph = 0;
 drawGrid = 0;
 drawVoronoi = 0;
+
+storeImages = 1;
+
+% determine global min and max values
+determineMinMaxValues = 0;
 
 % graph coloring: 1 -> cell layering, 2 -> graph properties
 graphColoring = 2;
@@ -77,6 +82,90 @@ toc
 totalMinAxes = [ -300 -50 -10 ];
 totalMaxAxes = [ 300 150 10 ];
 nucleiCounter = 1;
+
+% set global min and max values for each time step regarding both types:
+% NEW
+% BD
+% globalMinNC =
+% 
+%                          1
+%        0.00292397660818713
+%                          1
+%        0.00868720002402338
+% 
+% 
+% globalMaxNC =
+% 
+%                          8
+%                          1
+%           364.710225888366
+%                        0.5
+% Random
+% globalMinNC =
+% 
+%                          1
+%         0.0022271714922049
+%          0.333333333333333
+%        0.00767674555703311
+% 
+% 
+% globalMaxNC =
+% 
+%                         10
+%                          1
+%           511.429512096124
+%                        0.5
+
+% NEW AVERAGE
+% BD
+% globalMinNC =
+% 
+%                          1
+%        0.00302879249122682
+%                          2
+%        0.00977880469131011
+% 
+% 
+% globalMaxNC =
+% 
+%           6.47619047619048
+%                          1
+%           186.936937678646
+%                        0.5
+
+% Random
+% globalMinNC =
+% 
+%                          1
+%        0.00299954965288543
+%        0.00531914893617021
+%         0.0104266588021286
+% 
+% 
+% globalMaxNC =
+% 
+%                       6.52
+%                          1
+%           177.543189600794
+%                        0.5
+                       
+if determineMinMaxValues == 1
+  globalMinNC = ones( numGraphProperties, 1 ).*realmax;
+  globalMaxNC = zeros( numGraphProperties, 1 );
+else
+  % if the graph is drawn then the min and max values are different because
+  % of computing the mean value which is not the case for the distibution
+  % plot
+  if drawAverageGraph == 1
+    % averaged min and max values for each graph property
+    globalMinNC = [ 1 ; 0.00299954965288543 ; 0.00531914893617021 ; 0.00977880469131011 ];
+    globalMaxNC = [ 6.52 ; 1 ; 186.936937678646 ; 0.5 ];
+  else
+    % averaged min and max values for each graph property
+    globalMinNC = [ 1 ; 0.0022271714922049 ; 0.333333333333333 ; 0.00767674555703311 ];
+    globalMaxNC = [ 10 ; 1 ; 511.429512096124 ; 0.5 ];
+  end
+end
 
 disp( 'Traversing time steps' )
 tic
@@ -209,6 +298,27 @@ for curT=startT:stepT:endT
     end
   end
   
+  if determineMinMaxValues == 1
+    for pl=1:numGraphProperties
+      for gt=1:rows*columns
+        numValues = size( tileGrid{ pl, 1 }{ gt }, 1 );
+        if numValues ~= 0
+          averageVal = mean( tileGrid{ pl, 1 }{ gt } );
+          
+          if averageVal > 0
+            if averageVal < globalMinNC( pl, 1 )
+              globalMinNC( pl, 1 ) = averageVal;
+            end
+          end
+          
+          if averageVal >= globalMaxNC( pl, 1 )
+            globalMaxNC( pl, 1 ) = averageVal;
+          end
+        end
+      end
+    end
+  end
+  
   if drawAverageGraph == 1
     % combine all simulation results for the current time step
     % get overall min and max values of the graph properties
@@ -219,9 +329,16 @@ for curT=startT:stepT:endT
     tileCounter = 1;
     for pl=1:numGraphProperties
       subplot( numGraphProperties/2, numGraphProperties/2, pl )
-      tg = cell2mat( tileGrid{ pl, 1 } );
-      totalMinNC = min( tg, [], 1 );
-      totalMaxNC = max( tg, [], 1 );
+      %tg = cell2mat( tileGrid{ pl, 1 } );
+      %totalMinNC = min( tg, [], 1 );
+      %totalMaxNC = max( tg, [], 1 );
+      if pl ~= 1
+        totalMinNC = log( globalMinNC( pl, 1 ) );
+        totalMaxNC = log( globalMaxNC( pl, 1 ) );
+      else
+        totalMinNC = globalMinNC( pl, 1 );
+        totalMaxNC = globalMaxNC( pl, 1 );
+      end
       colorbar
       if totalMinNC ~= totalMaxNC
         caxis( [totalMinNC, totalMaxNC] )
@@ -230,6 +347,12 @@ for curT=startT:stepT:endT
         numValues = size( tileGrid{ pl, 1 }{ gt }, 1 );
         if numValues ~= 0
           averageVal = mean( tileGrid{ pl, 1 }{ gt } );
+          if pl ~= 1
+            if averageVal == 0
+              averageVal = 1;
+            end
+            averageVal = log( averageVal );
+          end
           if totalMinNC ~= totalMaxNC
             colorIndex = round( ((averageVal-totalMinNC)/(totalMaxNC-totalMinNC)) * (numColors-1) ) + 1;
           else
@@ -248,21 +371,36 @@ for curT=startT:stepT:endT
   if drawAverageDistribution == 1
     for pl=1:numGraphProperties
       subplot( numGraphProperties/2, numGraphProperties/2, pl )
-      tg = cell2mat( tileGrid{ pl, 1 } );
-      totalMinNC = min( tg, [], 1 );
-      totalMaxNC = max( tg, [], 1 );
+      %tg = cell2mat( tileGrid{ pl, 1 } );
+      %totalMinNC = min( tg, [], 1 );
+      %totalMaxNC = max( tg, [], 1 );
+      if pl ~= 1
+        totalMinNC = log( globalMinNC( pl, 1 ) );
+        totalMaxNC = log( globalMaxNC( pl, 1 ) );
+      else
+        totalMinNC = globalMinNC( pl, 1 );
+        totalMaxNC = globalMaxNC( pl, 1 );
+      end
       drawStackedBar( totalMinNC, totalMaxNC, size( cellLayers{ pl, 1 }, 1 ),...
         numBins, cellLayers{ pl, 1 }, pl, 1 );
     end
   end
-  if drawAverageGraph == 1
-    suffixStr = '_Data';
-  else
-    suffixStr = '_Distribution';
+  if storeImages == 1
+    if drawAverageGraph == 1
+      suffixStr = '_Data';
+    else
+      suffixStr = '_Distribution';
+    end
+    filePath = strcat( imageOutputPath, dataStr( 1, chosenData ), num2str(curT),...
+      '_T', num2str(startT), '-', num2str(endT),...
+      '_S', num2str(startS), '-', num2str(endS), suffixStr, '.png' );
+    export_fig( gcf, char(filePath), '-m2', '-png' );
   end
-  filePath = strcat( imageOutputPath, dataStr( 1, chosenData ), num2str(curT),...
-    '_T', num2str(startT), '-', num2str(endT),...
-    '_S', num2str(startS), '-', num2str(endS), suffixStr, '.png' );
-  export_fig( gcf, char(filePath), '-m2', '-png' );
 end
+
 toc
+
+if determineMinMaxValues == 1
+  globalMinNC
+  globalMaxNC
+end
