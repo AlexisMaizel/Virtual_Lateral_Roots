@@ -1,6 +1,6 @@
 setWorkingPathProperties()
 
-chosenData = 1;
+chosenData = 2;
 dataStr = { 'BD' 'Random' };
 
 startT = 1;
@@ -17,8 +17,8 @@ lineWidth = 1;
 resGrid = 20;
 
 % drawing parameters
-drawAverageGraph = 0;
-drawAverageDistribution = 1;
+drawAverageGraph = 1;
+drawAverageDistribution = 0;
 draw2DGraph = 0;
 drawGrid = 0;
 drawVoronoi = 0;
@@ -82,72 +82,6 @@ toc
 totalMinAxes = [ -300 -50 -10 ];
 totalMaxAxes = [ 300 150 10 ];
 nucleiCounter = 1;
-
-% set global min and max values for each time step regarding both types:
-% NEW
-% BD
-% globalMinNC =
-% 
-%                          1
-%        0.00292397660818713
-%                          1
-%        0.00868720002402338
-% 
-% 
-% globalMaxNC =
-% 
-%                          8
-%                          1
-%           364.710225888366
-%                        0.5
-% Random
-% globalMinNC =
-% 
-%                          1
-%         0.0022271714922049
-%          0.333333333333333
-%        0.00767674555703311
-% 
-% 
-% globalMaxNC =
-% 
-%                         10
-%                          1
-%           511.429512096124
-%                        0.5
-
-% NEW AVERAGE
-% BD
-% globalMinNC =
-% 
-%                          1
-%        0.00302879249122682
-%                          2
-%        0.00977880469131011
-% 
-% 
-% globalMaxNC =
-% 
-%           6.47619047619048
-%                          1
-%           186.936937678646
-%                        0.5
-
-% Random
-% globalMinNC =
-% 
-%                          1
-%        0.00299954965288543
-%        0.00531914893617021
-%         0.0104266588021286
-% 
-% 
-% globalMaxNC =
-% 
-%                       6.52
-%                          1
-%           177.543189600794
-%                        0.5
                        
 if determineMinMaxValues == 1
   globalMinNC = ones( numGraphProperties, 1 ).*realmax;
@@ -156,15 +90,56 @@ else
   % if the graph is drawn then the min and max values are different because
   % of computing the mean value which is not the case for the distibution
   % plot
+  % MEAN
+%   if drawAverageGraph == 1
+%     % averaged min and max values for each graph property
+%     globalMinNC = [ 1 ; 0.00299954965288543 ; 0.00531914893617021 ; 0.00977880469131011 ];
+%     globalMaxNC = [ 6.52 ; 1 ; 186.936937678646 ; 0.5 ];
+%   else
+%     % averaged min and max values for each graph property
+%     globalMinNC = [ 1 ; 0.0022271714922049 ; 0.333333333333333 ; 0.00767674555703311 ];
+%     globalMaxNC = [ 10 ; 1 ; 511.429512096124 ; 0.5 ];
+%   end
+  % VARIANCE
   if drawAverageGraph == 1
     % averaged min and max values for each graph property
-    globalMinNC = [ 1 ; 0.00299954965288543 ; 0.00531914893617021 ; 0.00977880469131011 ];
-    globalMaxNC = [ 6.52 ; 1 ; 186.936937678646 ; 0.5 ];
+    globalMinNC = [ 0.0114926987560844 ; 7.52316384526264e-37 ; 5.91645678915759e-31 ; 7.70371977754894e-34 ];
+    globalMaxNC = [ 2.88888888888889 ; 0.00114237035833957 ; 16929.3290544878 ; 0.000972376745430563 ];
   else
     % averaged min and max values for each graph property
     globalMinNC = [ 1 ; 0.0022271714922049 ; 0.333333333333333 ; 0.00767674555703311 ];
     globalMaxNC = [ 10 ; 1 ; 511.429512096124 ; 0.5 ];
   end
+  % BD
+%   globalMinNC =
+% 
+%         0.0114926987560844
+%       7.52316384526264e-37
+%       5.91645678915759e-31
+%       7.70371977754894e-34
+% 
+% 
+% globalMaxNC =
+% 
+%           1.51246537396122
+%       2.12039263552961e-05
+%           7140.95067435156
+%       0.000256099284644677
+% Random
+% globalMinNC =
+% 
+%         0.0131555555555556
+%       2.30377511592669e-10
+%        0.00263128112267995
+%        6.1862096868431e-08
+% 
+% 
+% globalMaxNC =
+% 
+%           2.88888888888889
+%        0.00114237035833957
+%           16929.3290544878
+%       0.000972376745430563
 end
 
 disp( 'Traversing time steps' )
@@ -303,7 +278,8 @@ for curT=startT:stepT:endT
       for gt=1:rows*columns
         numValues = size( tileGrid{ pl, 1 }{ gt }, 1 );
         if numValues ~= 0
-          averageVal = mean( tileGrid{ pl, 1 }{ gt } );
+          %averageVal = mean( tileGrid{ pl, 1 }{ gt } );
+          averageVal = var( tileGrid{ pl, 1 }{ gt }, 1 );
           
           if averageVal > 0
             if averageVal < globalMinNC( pl, 1 )
@@ -332,13 +308,8 @@ for curT=startT:stepT:endT
       %tg = cell2mat( tileGrid{ pl, 1 } );
       %totalMinNC = min( tg, [], 1 );
       %totalMaxNC = max( tg, [], 1 );
-      if pl ~= 1
-        totalMinNC = log( globalMinNC( pl, 1 ) );
-        totalMaxNC = log( globalMaxNC( pl, 1 ) );
-      else
-        totalMinNC = globalMinNC( pl, 1 );
-        totalMaxNC = globalMaxNC( pl, 1 );
-      end
+      totalMinNC = log( globalMinNC( pl, 1 ) );
+      totalMaxNC = log( globalMaxNC( pl, 1 ) );
       colorbar
       if totalMinNC ~= totalMaxNC
         caxis( [totalMinNC, totalMaxNC] )
@@ -346,13 +317,12 @@ for curT=startT:stepT:endT
       for gt=1:rows*columns
         numValues = size( tileGrid{ pl, 1 }{ gt }, 1 );
         if numValues ~= 0
-          averageVal = mean( tileGrid{ pl, 1 }{ gt } );
-          if pl ~= 1
-            if averageVal == 0
-              averageVal = 1;
-            end
-            averageVal = log( averageVal );
-          end
+          %averageVal = mean( tileGrid{ pl, 1 }{ gt } );
+          averageVal = var( tileGrid{ pl, 1 }{ gt }, 1 );
+           if averageVal == 0
+             averageVal = globalMinNC( pl, 1 );
+           end
+           averageVal = log( averageVal );
           if totalMinNC ~= totalMaxNC
             colorIndex = round( ((averageVal-totalMinNC)/(totalMaxNC-totalMinNC)) * (numColors-1) ) + 1;
           else
