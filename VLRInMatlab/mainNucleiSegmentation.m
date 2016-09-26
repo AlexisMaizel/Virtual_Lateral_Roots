@@ -1,6 +1,6 @@
 setWorkingPathProperties()
 
-chosenData = 6;
+chosenData = 8;
 dataStr = { '120830_raw' '121204_raw_2014' '121211_raw' '130508_raw' '130607_raw' };
 rawDataStr = { '120830' '121204' '121211' '130508' '130607' '20160427' '20160428' '20160426' };
 startT = 10;
@@ -111,10 +111,12 @@ for t=startT:endT
   width = size( imageStack, 2 );
   slices = size( imageStack, 3 );
   
+  nImageStack = normalizeImage( imageStack );
+  
   outputFileName = strcat( inputPath, '\preprocessed_t', digit, num2str(t), '.tif' );
   
   % generate gradient magnitude image
-  [ gradientStack ] = generate3DGradientMagnitudeImage( imageStack );
+  %[ gradientStack ] = generate3DGradientMagnitudeImage( imageStack );
   %newFileName = strcat( inputPath, '\gradient_', digit, num2str(t), '.tif' );
   %writeTIFstack( gradientStack, char(newFileName), 2^31 );
   
@@ -256,8 +258,8 @@ for t=startT:endT
     end
     %h2 = showMIP( segmentedStack );
     %thresholdStack = imhmax( imageStack, 100 );
-    h2 = showMIP( gradientStack );
-    %h2 = showMIP( thresholdStack );
+    %h2 = showMIP( gradientStack );
+    h2 = showMIP( nImageStack );
     %h2 = showMIP( bwdist( ~thresholdStack ) );
     tit = strcat( 'thresholdMIP\_', 'T', {' '}, num2str(t) );
     title( char(tit) );

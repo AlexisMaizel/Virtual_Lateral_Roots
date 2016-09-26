@@ -1,3 +1,7 @@
+% Modified version of DSLT method published by
+% Kawase et al (2015), A direction-selective local-thresholding method,
+% DSLT, in combination with a dye-based method for automated
+% three-dimensional segmentation of cells and airspaces in developing leaves
 function [ binImageStack ] = applyDSLT( imageStack, psiStart, psiEnd, psiStep,...
   thetaStart, thetaEnd, thetaStep, lineHalfLength, lineSampling, lineSteps,...
   alpha, cconst)

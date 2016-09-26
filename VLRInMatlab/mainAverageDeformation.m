@@ -1,3 +1,7 @@
+% This method is inspired by the idea of Graner et al (2008): Discrete
+% rearranging disordered patterns, part I: Robust statistical tools in two
+% or three dimenions to compute the deformation of cells and their
+% underlying triangulation depicting cell neighborhood.
 geomPath = strcat( pwd, '/geom3d' );
 splinesPath = strcat( pwd, '/hobbysplines' );
 bezierPath = strcat( pwd, '/BezierPatchSurface' );
@@ -24,7 +28,7 @@ cView = 3;
 % startIndex
 startI = 1;
 % endIndex
-endI = 21;
+endI = 2;
 % step size
 deltaI = 1;
 % min and max index

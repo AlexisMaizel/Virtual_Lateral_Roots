@@ -344,7 +344,7 @@ end
 if first == true
   fileName = strcat( '/tmp/conPoints-', dataName, '.txt' );
   fileId = fopen( char(fileName), 'w' );
-  fprintf( fileId, '%1d\n', numContourMarks );
+  %fprintf( fileId, '%1d\n', numContourMarks );
   for p=1:size(points,1)
     fprintf( fileId, '%4f %4f\n', points(p,1:2) );
   end

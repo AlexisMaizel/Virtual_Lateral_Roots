@@ -1,3 +1,4 @@
+% different thresholding types applied to an imageStack
 function [ thresholdStack ] = applyThresholding( imageStack )
 % thresholdType == 0: manual global thresholding set by user-defined parameter
 % (1 is object, 0 is background)

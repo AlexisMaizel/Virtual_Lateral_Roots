@@ -20,7 +20,7 @@ cView = 2;
 % startIndex
 startI = 1;
 % endIndex
-endI = 20;
+endI = 1;
 % min and max index
 minI = 1;
 maxI = 20;

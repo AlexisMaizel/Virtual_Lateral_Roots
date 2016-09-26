@@ -12,7 +12,7 @@ setenv('LC_ALL','C')
 % 5 -> 130607
 % 6 -> 131203
 % 7 -> all
-dataId = 2;
+dataId = 1;
 % camera view which is later set by chaning the camera orbit:
 % 1 -> top
 % 2 -> side
@@ -287,8 +287,8 @@ for dataIndex=startD:endD
   end
   fileId = fopen( char(fileName), 'w' );
   % first write the maximum number of time steps
-  fprintf( fileId, '%1d\n', startT );
-  fprintf( fileId, '%1d\n', maxT );
+  %fprintf( fileId, '%1d\n', startT );
+  %fprintf( fileId, '%1d\n', maxT );
 
   % contour points for the first and last time step
   if autoContour == 0
