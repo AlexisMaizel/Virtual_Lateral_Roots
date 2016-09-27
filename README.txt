@@ -59,9 +59,7 @@ is a programming language provided by Richard Smith to generate a growing model 
 structure given an initial and a last surface structure. The surface/tissue is realized using a 2D
 Bezier surface. Together with the initial and last surface type plus the definition when and how
 a cell should divide, a complete 2D VLR model can be established and run over time. The
-installation of the VV lib on Linux is not that trivial and requires the Qt lib as well.
-Since a newer version of VV (called VVE) is available and the VV was used with an old Ubuntu
-version, I refer for an installation guide to Richard Smith.
+installation of VV (Vlab on Linux and maybe LStudio on Windows) is not that trivial and requires adiitionally libs like Qt, libGLEW etc. with a minimum version number. For an updated installation giude I refer to Richard Smith who provided us all necessary files and software.
 
 
 -------------------------------
