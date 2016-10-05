@@ -17,11 +17,11 @@ elif chosenData == 7:
 	endT = 34
 	appendix = '.tif'
 elif chosenData == 8:
-	sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160426\\red\\spim_TL'
-	outputFolder = 'I:\\SegmentationResults\\MIPsRawData\\20160426\\MIP_t'
+	sourceFolder = 'I:\\NewDatasets\\Zeiss\\20160426\\red\\partiallyNormalized\\cropped_spim_TL'
+	outputFolder = 'I:\\SegmentationResults\\MIPsRawData\\20160426\\MIP_normalized_cropped_t'
 	startT = 3
 	endT = 23
-	appendix = '_Angle1.tif'
+	appendix = '.tif'
 
 for i in range(startT, endT+1):		
 	if i < 10:
