@@ -13,6 +13,7 @@ addpath( genpath( 'MaximaMinima3D/' ) );
 addpath( genpath( 'RidlerCalvardThresholding/' ) );
 addpath( genpath( '3DSkeleton/' ) );
 addpath( genpath( 'BuggenthinEtAl2013/' ) );
+addpath( genpath( 'FastCellDetection/' ) );
 warning('on','all')
 
 % draw delaunay tri?
