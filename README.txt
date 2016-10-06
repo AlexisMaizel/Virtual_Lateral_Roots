@@ -105,6 +105,8 @@ mainMembraneSegmentationMultiProcessor
 This algo applies a membrane segmentation inspired by the idea of Kawase et al (2015):
 A direction-selective local-thresholding method, DSLT, in combination with a dye-based method
 for automated three-dimensional segmentation of cells and airspaces in developing leaves.
+Additionally, a cell shape extractor is included that enables the detection and generation of
+cell shapes based on the segmented membrane information.
 
 mainNormalizedStatic
 **********************

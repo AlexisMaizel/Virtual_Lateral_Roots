@@ -71,6 +71,7 @@ bw = logical(bw);
 
 %% visualize it
 if r.visualize
+    restoredefaultpath
     s1 = subplot(2,2,1);
     imagesc(I_org)
     colormap gray

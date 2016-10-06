@@ -6,9 +6,9 @@ import ij.ImagePlus as ImagePlus
 sys.path.append( 'C:\\Jens\\VLRRepository\\FijiScripts' )
 
 # data can be in [1,9]
-chosenData = 6
+chosenData = 8
 applyNucleiCropping = 1
-applyMembraneCropping = 1
+applyMembraneCropping = 0
 
 if chosenData == 6:
 	nucleiFolder = 'I:\\NewDatasets\\Zeiss\\20160427\\red\spim_TL'
@@ -62,10 +62,10 @@ elif chosenData == 8:
 	#ROI_yStart = 600
 	#ROI_xSize = 1100
 	#ROI_ySize = 800
-	ROI_xStart = 900
-	ROI_yStart = 720
-	ROI_xSize = 200
-	ROI_ySize = 420
+	ROI_xStart = 700
+	ROI_yStart = 500
+	ROI_xSize = 400
+	ROI_ySize = 700
 	ROI_zStart = 0
 	ROI_zSize = 0 # if zero then it will be set later if the image size is read else chosen size is taken
 	appendix = '_Angle1.tif'
