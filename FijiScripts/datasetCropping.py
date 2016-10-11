@@ -1,3 +1,4 @@
+# apply a 3D cropping of datasets
 import sys
 import ij.IJ as IJ
 from ij.io import FileSaver

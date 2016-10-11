@@ -1,3 +1,4 @@
+# open TIFF files and store them as MIPs
 import time
 import ij.IJ as IJ
 from ij.io import FileSaver

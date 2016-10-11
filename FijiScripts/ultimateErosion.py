@@ -1,3 +1,5 @@
+# Testing of using ultimate erosion in Fiji which has different results compared to the results
+# in MATLAB
 import time
 import ij.IJ as IJ
 import ij.process.StackStatistics as STAT

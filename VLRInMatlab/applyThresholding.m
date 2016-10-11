@@ -9,7 +9,7 @@ function [ thresholdStack ] = applyThresholding( imageStack )
 % thresholdType == 4: automatic Otsu's method
 % thresholdType == 5: H-maxima transform
 % thresholdType == 6: extended H-maxima transform
-thresholdType = 6;
+thresholdType = 0;
 
 % first apply gauss filtering for blurring and removing noise
 imageStack = imgaussfilt3(imageStack, 1.);

@@ -1,3 +1,10 @@
+# preprocessing steps of data resulting in segmented nuclei or membrane BUT they are not labeled
+# so generation of connected components etc. is done later in MATLAB
+# The following steps can be done:
+# - manual or automatic thresholding
+# - load a classifier from the trainable WEKA segmentation plugin to segment
+# - save of TIFF files and/or MIPs
+# - possibility to resample data based on z resolution (but not recommended because of resulting too large data sizes)
 import sys
 import time
 import ij

@@ -1,3 +1,5 @@
+% Complete nuclei segmentation step from, thresholding, different methods for identifying cell objects
+% as using the membrane channel, nearest neighbor search or clustering of regional maxima.
 setWorkingPathProperties()
 
 chosenData = 8;
@@ -19,40 +21,35 @@ ELLIPPATCH = [];
 nucleiCounter = 1;
 spatialNormalization = 0;
 
-if chosenData < 6
-  anisotropyZ = 2.;
-elseif chosenData == 6
-  anisotropyZ = 1.;
-elseif chosenData == 7
-  anisotropyZ = 4.;
-elseif chosenData == 8
-  anisotropyZ = 7.5;
-end
+% type of method how to map a connected component (cc) onto a cell
+% type == 0 -> nearest cc are merged based on cellRadius and represent a cell.
+% type == 1 -> consider a user-chosen cell size to determine an initial
+% number of cells for a cc which is then clustered and verified by
+% considering cell walls in the membrane channel. Ignore ccs smaller than
+% some threshold.
+% type == 2 -> generate cc using regional maxima, merge ccs with distance
+% smaller than a user-defined cellRadius, check for nearest neighbors and
+% additionally check membrane channel.
+type = 2;
 
-% parameters for finding connected components (cc)
-% both parameters have to be chosen carefully depending on
-% the choice of threshold used in the Fiji script for thresholding the
-% image
-% thres = 1000 -> minV = 200, voxelC = 2700
-% thres = 900 -> minV = 400, voxelC = 3200
-% thres = 750 -> minV = 200, voxelC = 3200
-% 500 for 121211
-% 1500 for 20160426
-%minVoxelCount = 1500;
+% two parameters for finding connected components (cc) which are only
+% considered when type == 1
+% number of voxels a cc has to have else it will be ignored
 minVoxelCount = 150;
-% 3600 for 121211
-% 15000 for 20160426
-% 20000 for 20160428
-% 6000 for agressiveThresholding and 10000 for trained one
-voxelCountPerCell = 10000;%10000;%4600;
-%voxelCountPerCellEnd = 13000;%4600;
+% number of voxels for a cell in average
+voxelCountPerCell = 10000;
 
+% store TIFF of perfectly created cell shapes?
 storeTIFF = 1;
+
+% store png output
 storePNGs = 1;
+
+% store cell positions into csv file
 storeCSVResult = 0;
 
 % output format of values
-format shortG %longG %shortG
+format shortG
 
 % input path
 inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chosenData ) );
@@ -60,13 +57,11 @@ inputPath = strcat( 'I:\SegmentationResults\Preprocessing\', rawDataStr( 1, chos
 imageOutputPath = strcat( 'I:\SegmentationResults\Matlab\Segmentation\', rawDataStr( 1, chosenData ), '\' );
 mkdir( char(imageOutputPath) );
 
-% read raw data (manual segmentation and tracking)
+% read raw data (manual segmentation and tracking) of Daniel's data
 if chosenData < 6
   [ cellData, dimData, centerPosPerTimeStep, numCellsPerTimeStep ] =...
     readRawData( dataStr( 1, chosenData ) );
 end
-
-%generateTreeStructureFromData( cellData, size(numCellsPerTimeStep,1), 1, 20 );
 
 if storePNGs == 1
   if chosenData < 6
@@ -84,7 +79,6 @@ end
 
 % start measuring elapsed time
 tic
-
 for t=startT:endT
   if t < 10
     digit = '00';
@@ -111,8 +105,7 @@ for t=startT:endT
   width = size( imageStack, 2 );
   slices = size( imageStack, 3 );
   
-  nImageStack = normalizeImage( imageStack );
-  
+  %nImageStack = normalizeImage( imageStack, 16 );
   outputFileName = strcat( inputPath, '\preprocessed_t', digit, num2str(t), '.tif' );
   
   % generate gradient magnitude image
@@ -124,7 +117,7 @@ for t=startT:endT
   [ thresholdStack ] = applyThresholding( imageStack );
   
   % identify cell objects from the preprocessed threshold stack
-  [S, cc, intensities] = identifyCellObjects( thresholdStack, membraneFileName, minVoxelCount, voxelCountPerCell );
+  [S, cc, intensities] = identifyCellObjects( thresholdStack, type, membraneFileName, minVoxelCount, voxelCountPerCell );
   
   % store the extracted cells as newly perfect generated cells in tiff
   if storeTIFF == 1
@@ -189,10 +182,6 @@ for t=startT:endT
       {' '}, '#CCs', {' '}, num2str(size(S,1)) );
     title( char(tit) );
     
-%     colormap(ax1, cmapArea)
-%     colorbar
-%     caxis([0, numColorsArea])
-    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% automatic segmentation result %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -227,13 +216,10 @@ for t=startT:endT
       csvwrite( char(csvPath), X );
     end
     
+    clear title
     tit = strcat( 'AutoSeg\_', 'T', {' '}, num2str(t), ',',...
       {' '}, '#Cells', {' '}, num2str(numCellsAuto) );
     title( char(tit) );
-    
-    %colormap(ax3, cmapNumCells)
-    %colorbar
-    %caxis([0, numColorsCells])
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% MIP image of raw data %%%
@@ -245,6 +231,7 @@ for t=startT:endT
     end
     
     h1 = showMIP( imageStack );
+    clear title
     tit = strcat( 'rawMIP\_', 'T', {' '}, num2str(t) );
     title( char(tit) );
     
@@ -256,11 +243,8 @@ for t=startT:endT
     else
       ax4 = subplot( 2, (numPlots+1)/2, 4 );
     end
-    %h2 = showMIP( segmentedStack );
-    %thresholdStack = imhmax( imageStack, 100 );
-    %h2 = showMIP( gradientStack );
-    h2 = showMIP( nImageStack );
-    %h2 = showMIP( bwdist( ~thresholdStack ) );
+    h2 = showMIP( thresholdStack );
+    clear title
     tit = strcat( 'thresholdMIP\_', 'T', {' '}, num2str(t) );
     title( char(tit) );
     
@@ -292,18 +276,14 @@ for t=startT:endT
         end
       end
       
+      clear title
       tit = strcat( 'ManualSeg\_', 'T', {' '}, num2str(t), ',',...
         {' '}, '#Cells', {' '}, num2str(numCellsManual) );
       title( char(tit) );
-      
-      %colormap(ax6, cmapNumCells)
-      %colorbar
-      %caxis([0, numColorsCells])
     end
     filePath = strcat( imageOutputPath, rawDataStr( 1, chosenData ), '_T', digit, num2str(t), '.png' );
     export_fig( gcf, char(filePath), '-m2', '-png' );
   end
 end
-
 % print elapsed time
 toc

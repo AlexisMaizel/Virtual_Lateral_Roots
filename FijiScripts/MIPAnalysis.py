@@ -1,3 +1,4 @@
+# show and store specific MIPs or slices
 import sys
 import ij.IJ as IJ
 import ij.plugin.ZProjector as ZProjector

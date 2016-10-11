@@ -1,5 +1,7 @@
+# helper methods for segmentation
 import ij
 
+# all values below threshold are set to 0, else set to 1
 def convertToBinaryMask( imp, threshold ):
 	stack = imp.getStack()
 	slices = imp.getNSlices()
@@ -10,6 +12,7 @@ def convertToBinaryMask( imp, threshold ):
 	
 	return ij.ImagePlus( 'BinaryImage', stack )
 
+# all values below threshold are set to 0, else the value keeps the same
 def cropVoxelValuesBelowThreshold( imp, threshold ):
 	stack = imp.getStack()
 	slices = imp.getNSlices()

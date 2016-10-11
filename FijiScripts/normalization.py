@@ -1,3 +1,5 @@
+# perform a normalization of the datasets with respect to all time steps; used only as testing
+# for few datasets but could be easily adapted with this code
 import time
 import ij.IJ as IJ
 import ij.process.StackStatistics as STAT

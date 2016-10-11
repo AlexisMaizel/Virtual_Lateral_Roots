@@ -49,7 +49,7 @@ for n=1:si
 end
 
 % subdivide by distance and number of "lines" to normalize number of voxels
-distance = distancePoints3d( pos1, pos2 );
+%distance = distancePoints3d( pos1, pos2 );
 %numCellWallVoxels
 %numCellWallVoxels = numCellWallVoxels/si;
 %numCellWallVoxels

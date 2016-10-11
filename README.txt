@@ -20,7 +20,7 @@ self-explanatory and paths of the datasets are used with respect to working on t
 Wolverine workstation. The overall idea was to apply a preprocessing step for further
 segmenting and tracking cells over time. Preprocessing refers to steps like automatic or
 manual thresholding, creating of binary masks, etc. . But also MIP generation of single or
-time series data was implemented.
+time series data was implemented. More details are given in the corresponding files.
 
 
 -------------------------------
@@ -59,7 +59,9 @@ is a programming language provided by Richard Smith to generate a growing model 
 structure given an initial and a last surface structure. The surface/tissue is realized using a 2D
 Bezier surface. Together with the initial and last surface type plus the definition when and how
 a cell should divide, a complete 2D VLR model can be established and run over time. The
-installation of VV (Vlab on Linux and maybe LStudio on Windows) is not that trivial and requires adiitionally libs like Qt, libGLEW etc. with a minimum version number. For an updated installation giude I refer to Richard Smith who provided us all necessary files and software.
+installation of VV (Vlab on Linux and maybe LStudio on Windows) is not that trivial and requires
+adittionally libs like Qt, libGLEW etc. with a minimum version number. For an updated installation
+giude I refer to Richard Smith who provided us all necessary files and software.
 
 
 -------------------------------
@@ -69,8 +71,10 @@ VLRInMatlab
 This folder contains all analysis and visualization of the VLR realized in Matlab. The subfolders
 are external libraries or methods used to simplify own analysis methods. *.m files that do NOT start
 with "main" are helper methods that are used within the main Matlab files to simplfy code reading.
-All files are more or less documented and work by others are cited within the file. Below, a detailed
-description of all *.m files starting with "main" are given:
+All files are more or less documented and work by others are cited within the file. All methods are either
+applied to Daniel's datasets (120830, 121204, 121211, 130508, 130607) or to the "new" datasets
+generated recently (20160427, 20160428, 20160426). Below, a description of all *.m files
+starting with "main" are given:
 
 
 mainAverageDeformation
@@ -129,7 +133,8 @@ mainNucleiSegmentation
 **********************
 
 Complete nuclei segmentation step from, thresholding, different methods for identifying cell objects
-as for example using the membrane channel, nearest neighbor search or clustering of regional maxima.
+as for example using the membrane channel, nearest neighbor search or clustering of regional maxima
+and saving the result as TIFF.
 
 mainRegisteredBezierAndGrowthDisplacementModel
 **********************
