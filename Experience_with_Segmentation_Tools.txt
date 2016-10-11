@@ -1,0 +1,150 @@
+Experiences with segmentation/tracking tools
+================================
+Date of writing: 10/11/2016
+Author: Jens Fangerau
+
+Here you can read about my experiences when using other segmentation
+and tracking tools applied to our lateral root datasets.
+
+----------------------------------------------------
+Name: Ilastik
+Availability: free
+Task: Segmentation and Tracking
+Source: http://ilastik.org/download.html
+System: Win, Linux, Mac
+----------------------------------------------------
+
+Open-source segmentation and tracking tool of the image processing group of Fred Hamprecht.
+
+CON
+***
+
+- still performance issues which makes interaction almost impossible with our datasets.
+
+PRO
+***
+
+- a lot of powerful features: pixel classification -> segmentation, manual/semi-automatic tracking,
+multicut -> extract cell contours and shapes, carving -> extract single 3D cell shapes, etc. .
+- Membrane and nuclei segmentation of samples of Daniel's data and the new ones were really good
+putting only a little effort in time and pixel drawing (<30 min).
+- external segmentation results can be imported and ilastik's semi-automatic tracking can then
+be applied.
+
+----------------------------------------------------
+Name: RACE
+Availability: free
+Task: Membrane Segmentation
+Source: Stegmaier et al, Real-Time Three-Dimensional Cell Segmentation in Large-Scale
+Microscopy Data of Developing Embryos, 2016
+System: Win, Linux, Mac
+----------------------------------------------------
+
+Software for automated 3D cell segmentation consisting to two steps: slice-based watershed
+segmentation and then fusion of 2D cell segments based on seed positions.
+
+CON
+***
+
+- several bugs in version (newest version has a dependency on a commercial lib file on WIndows:
+PICX20.dll but using an older version does not create some intermediate results etc. ).
+- several parameters for which small changes require a rerun.
+- after several EMails written to the authors, I received no answer.
+- it takes a lot of time and tries to get some results which were not satisfying in my opinion
+applied to our datasets.
+
+PRO
+***
+
+- GUI interface which is user-friendly
+
+----------------------------------------------------
+Name: TGMM
+Availability: free
+Task: Segmentation and Tracking
+Source: Amat et al, Efficient processing and analysis of large-scale light-sheet
+microscopy data, 2015
+System: Win, Linux (with CUDA GPU)
+----------------------------------------------------
+
+TGMM is a console based tool to generate a segmentation (persistence-based clustering) and
+tracking using Gaussian mixture models. I integrated the execution of the tool into a MATLAB
+file which will also automatically create and use the config files for several time steps and
+datasets with respect to user-chosen parameters (mainTrackingInformationFromTGMM.m).
+
+CON
+***
+
+- Usage of Win version since Linux version was not compilable
+- Preprocessing step was required such that TGMM is able to identify cells. This step is actually
+a segmentation itself (although TGMM has a segmentation which is not that good with our datasets)
+and consists of the generation of "perfect" cell shapes which was done by thresholding and
+clustering (see the MATLAB file mainNucleiSegmentation.m).
+- No way to separate the segmentation and tracking step such that an own segmentation can be used;
+so I ended up generating the "perfect" cell shapes, stored them in a TIFF file, and resegmented
+then again in TGMM which ofc was able to identify them.
+- Also after several EMails written to the authors, I received no answer about some issues of TGMM.
+- It is also important that the "perfect" cell shapes are not allowed to have a single intensity
+value for a complete cell but a radial gradient course of intensities; else TGMM fails in finding
+cells.
+-  The automatic tracking results were not that perfect and the methods fails when between
+time steps t, t+1, t+2, a cell disappears in t+1, then also the cell track is lost
+
+PRO
+***
+
+- when used with CUDA the performance is good (several minutes for 100 time steps)
+
+----------------------------------------------------
+Name: Imaris
+Availability: commercial (played with demo that was provided to Alexis)
+Task: Segmentation and Tracking
+Source: http://www.bitplane.com/imaris/imaris
+System: Win, Linux, Mac
+----------------------------------------------------
+
+Imaris is a commercial visualization and analysis tool that provides two ways to extract
+cells: Either by detecting the cell boundaries or by using the membrane channel.
+
+CON
+***
+
+- expensive
+- Cell detection by using the membrane channel took more than 6 hours for a sample data and the
+results were not that satisfying
+- only usage of global thresholding which is not always the best choice
+
+PRO
+***
+
+- very user-friendly interaction with everything and nice handling of intermediate and final results
+- definition of region of interests (ROIs) to focus on specific regions
+- automatic segmentation and tracking is applied to all time steps imported (as TIFF)
+- Feture of splitting touching cells
+- Manual modification of cell tracks (2D lineage trees) by drag and drop
+- even missing cells in-between subsequent time steps were correctly included into cell tracks
+
+----------------------------------------------------
+Name: Trainable WEKA Segmentation
+Availability: free, Fiji-Plugin
+Task: Segmentation
+Source: http://imagej.net/Trainable_Weka_Segmentation
+System: Win, Linux, Mac
+----------------------------------------------------
+
+Free segmentation plugin in Fiji that perfoms a machine-learning based segmentation of images
+(similar to ilastik).
+
+CON
+***
+
+- does not run on multiple time steps while classifying cells and background; this means that
+for one time steps the classifier has to be trained on the image which can then be stored.
+- however, single "drawn" classifiers on an image cannot be modified when loading again.
+
+PRO
+***
+
+- Provides kind of fast results with respect to ilastik
+- lots of filter options
+- works on 2D and 3D data
