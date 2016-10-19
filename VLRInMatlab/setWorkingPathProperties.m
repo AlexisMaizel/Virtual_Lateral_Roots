@@ -13,4 +13,3 @@ addpath( genpath( 'MaximaMinima3D/' ) );
 addpath( genpath( 'RidlerCalvardThresholding/' ) );
 addpath( genpath( '3DSkeleton/' ) );
 addpath( genpath( 'BuggenthinEtAl2013/' ) );
-warning('on','all')

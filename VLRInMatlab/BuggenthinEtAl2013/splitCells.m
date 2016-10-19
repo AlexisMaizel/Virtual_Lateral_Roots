@@ -23,11 +23,11 @@
 % Parts of this code have been adapted from CellProfiler 1.0
 % (https://github.com/CellProfiler/CellProfiler1.0)
 
-function [L,bw2] = splitCells(I_c,bw,MinDiameter,MaxDiameter,maxEcc,docComplement,doMerge)
+function [L,bw2, bwLabel] = splitCells(I_c,bw,MinDiameter,MaxDiameter,maxEcc,docComplement,doMerge)
 
 if docComplement
-    I_c = imcomplement(I_c);
-    I_c = im2double(I_c);
+  I_c = imcomplement(I_c);
+  I_c = im2double(I_c);
 end
 
 clearborder = 1;
@@ -90,6 +90,7 @@ end
 L = logical(bw);
 bw2 = L;
 bw2(L ~= 0) = 1;
+bwLabel = bw;
 end
 
 

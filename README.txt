@@ -4,8 +4,8 @@ Date of writing: 09/26/2016
 Author: Jens Fangerau
 
 This is a repository storing the VLR datasets and all corresponding work for
-modelling (in VV/C++), segmenting (in Matlab/Fiji) and
-tracking (in Matlab) virtual lateral root datasets.
+modelling (in VV/C++), visual analysis (in scifer/C++) segmenting (in Matlab/Fiji)
+and tracking (in Matlab) virtual lateral root datasets.
 
 The content of each subfolder is explained below:
 
@@ -195,3 +195,23 @@ mainTrackingInformationFromTGMM
 This method allows a batch parameter setting using the TGMM software to segment nuclei. It also
 features a visual comparison to the real datasets as well as a simple lineage visualization.
 
+
+-------------------------------
+Experience_with_Segmentation_Tools.txt
+-------------------------------
+
+Text file that gives a list of properties, PROs, CONs about other segmentation and tracking tools based on my
+experience and applied to our datasets.
+
+-------------------------------
+SciferCode
+-------------------------------
+
+C++ code fragments taken from scifer that were used for the analysis and visualization of the VLR datasets. An
+additional README file within the folder gives more details about the corresponding source and header files.
+
+-------------------------------
+NewDatasetsProperties.pdf
+-------------------------------
+
+A small sheet giving some properties about the recently acquired datasets: 20160426, 20160427, 20160428.

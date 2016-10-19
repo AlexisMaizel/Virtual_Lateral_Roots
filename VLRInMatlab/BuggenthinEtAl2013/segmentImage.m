@@ -66,20 +66,27 @@ for mser=1:numel(msers)
 end
 bw = logical(bw);
 
+connectivity = 26;
+NCC = bwconncomp( bw, connectivity );
+NS = regionprops( NCC, 'Centroid', 'Area', 'BoundingBox', 'PixelList', 'PixelIdxList' );
+numCCs = size( NS, 1 );
+outp = sprintf( 'Before split/merge: %d', numCCs );
+disp( outp )
+
 %% split clumped cells
-[L,bw2] = splitCells(I,bw,r.minSizeSplit,r.maxSizeSplit,r.maxEcc,1,1);
+[L,bw2, bwLabel] = splitCells(I,bw,r.minSizeSplit,r.maxSizeSplit,r.maxEcc, true, true);
 
 %% visualize it
 if r.visualize
     restoredefaultpath
     s1 = subplot(2,2,1);
-    imagesc(I_org)
+    imagesc( imcomplement( I_org ) )
     colormap gray
     title('Raw Image')
     axis off
     
     s2 = subplot(2,2,2);
-    imagesc(I)
+    imagesc( imcomplement( I ) )
     colormap gray
     title('Background corrected')
     axis off
@@ -91,8 +98,9 @@ if r.visualize
     axis off
     
     s4 = subplot(2,2,4);
-    imagesc(bw2)
-    colormap gray
+    %imagesc(bw2)
+    imagesc( label2rgb(bwLabel) )
+    %colormap gray
     title('Final result after split/merge')
     axis off
     

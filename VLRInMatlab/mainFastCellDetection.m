@@ -30,8 +30,8 @@ for t=3:3
   maxSizeMSER = 4000;
   maxVariation = 100;
   maxEcc = .7;
-  minSizeSplit = 500;
-  maxSizeSplit = 2500;
+  minSizeSplit = 2000;
+  maxSizeSplit = 2000;
 
   imageStack = imread( char( nucleiFileName ) );
   bw = segmentImage( imcomplement( im2uint8(imageStack) ), 'tiledim', tiledim,...
@@ -40,6 +40,13 @@ for t=3:3
     'maxEcc', maxEcc, 'minSizeSplit', minSizeSplit, ...
     'maxSizeSplit', maxSizeSplit, 'visualize', true );
   setWorkingPathProperties
+  
+  connectivity = 26;
+  NCC = bwconncomp( bw, connectivity );
+  NS = regionprops( NCC, 'Centroid', 'Area', 'BoundingBox', 'PixelList', 'PixelIdxList' );
+  numCCs = size( NS, 1 );
+  outp = sprintf( 'After split/merge: %d', numCCs );
+  disp( outp )
   
 %   subplot( 2, 2, plotIndex )
 %   h = showMIP( imageStack );
