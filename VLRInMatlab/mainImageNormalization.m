@@ -14,8 +14,6 @@ for t=3:23
   nucleiFileName = strcat( 'I:\NewDatasets\Zeiss\20160426\red\cropped_spim_TL', digit, num2str(t), '_Angle1.tif' );
   %membraneFileName = strcat( 'I:\NewDatasets\Zeiss\20160426\green\cropped_spim_TL006_Angle1.tif' );
   
-  nucleiFileName
-  
   % create 3D array of binary image data
   imageStack = readTIFstack( char(nucleiFileName) );
   height = size( imageStack, 1 );

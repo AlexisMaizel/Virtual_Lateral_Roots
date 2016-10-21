@@ -86,6 +86,17 @@ of cells over time based on their underlying (delaunay) triangulation depicting 
 This method was used to create the visual average deformation results in Wangenheim et al (2016):
 Rules and Self-Organizing Properties of Postembryonic Plant Organ Cell Division Pattern.
 
+mainCellClusterSegmentation
+**********************
+
+This method is inspired by the idea of Wählby et al. (2004): Combining intensity, edge and shape
+information for 2D and 3D segmentation of cell nuclei in tissue sections. I reimplemented as far as
+I can reproduce what they did several steps of their approach. The figure 2 in their paper gives a
+good impression of the intermediate and final results. I successfully reimplemented the methods
+resulting in the images 2A - 2F which yield quite promising results applied to our datasets. I also
+implemented the idea shown in 2G - 2I but I am not sure how these results can be of use (Maybe I made
+a mistake in the code). Anyway, the idea is also in the file but comment out.
+
 mainExportTriangulation
 **********************
 
@@ -93,6 +104,12 @@ Old method to manually generate contour points of the bezier surfaces that are u
 for the 2D modelling. The initial idea was to approximate the contour of the five VLR datasets
 but we ended up using only an averaged and "optimal" 2D surface structure for the model for
 comparison with the real data.
+
+mainFastCellDetection
+**********************
+
+Simple program that executes the open source code of Buggenthin et al (2013) applied to our datasets (slices).
+But their code only supports 2D and it cannot simply be used for 3D datasets.
 
 mainGraphNetworkTopology
 **********************
@@ -102,6 +119,18 @@ of the five VLR datasets. Four graphs properties were computed: Degree, Closenes
 PageRank (Random Walk). The contribution of graph property values are analyzed for each tile of a
 grid that was overlayed on the viewing type of the data (side, top or radial). This is similar to
 measurement of the contributions done in mainAverageDeformation.
+
+mainImageNormalization
+**********************
+
+This code is an attempt to adaptively normalize the intensity of specific time steps taking the 20160426
+dataset. The problem is that the intensity values differ a lot for the case when a division occurs
+(the dividing cell is the brightest while the other cells getting darker) and  this cannot be simply
+"fixed" by normalizing along all time steps. For this reason, I implemented an approach that reduces the
+"intesity distances" between the highest and mid intensity values for only these time steps in which a
+division occurs. Look at the MIPs from 20160426 at t == 6 || t == 16 || t == 17 || t == 18 || t == 19 || t == 23
+to get an idea of the problem. In summary, this code improves the output and gives a some-kind of hacked
+solution to this problem.
 
 mainMembraneSegmentationMultiProcessor
 **********************
